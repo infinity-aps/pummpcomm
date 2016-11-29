@@ -23,7 +23,11 @@ defmodule CgmTest do
 
   test "correctly assigns reference timestamps", %{cgm_page: cgm_page} do
     assert {:ok, decoded_events} = Cgm.decode(cgm_page)
-    expected_timestamp = %{year: 2016, month: 2, day: 8, hour: 20, minute: 54}
-    assert Enum.at(decoded_events, 0) == {:sensor_timestamp, timestamp: expected_timestamp}
+    assert Enum.at(decoded_events, 0) == {:sensor_timestamp, %{timestamp: ~N[2016-02-08 20:54:00]}}
+  end
+
+  test "correctly assigns relative timestamps", %{cgm_page: cgm_page} do
+    assert {:ok, decoded_events} = Cgm.decode(cgm_page)
+    assert Enum.at(decoded_events, 5) == {:nineteen_something, %{timestamp: ~N[2016-02-08 21:19:00]}}
   end
 end

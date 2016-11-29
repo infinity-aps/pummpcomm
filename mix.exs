@@ -11,10 +11,10 @@ defmodule ExDecocare.Mixfile do
   end
 
   def application do
-    [applications: [:logger]]
+    [applications: [:logger, :timex]]
   end
 
   defp deps do
-    []
+    [{:timex, "~> 3.0"}]
   end
 end
