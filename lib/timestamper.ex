@@ -45,6 +45,6 @@ defmodule Timestamper do
   @reference_events [:sensor_timestamp]
   defp is_reference_event?(event), do: event_key(event) in @reference_events
 
-  @relative_events [:nineteen_something]
+  @relative_events [:data_end, :nineteen_something, :sensor_glucose_value]
   defp is_relative_event?(event), do:  event_key(event) in @relative_events
 end

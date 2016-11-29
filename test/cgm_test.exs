@@ -30,4 +30,16 @@ defmodule CgmTest do
     assert {:ok, decoded_events} = Cgm.decode(cgm_page)
     assert Enum.at(decoded_events, 5) == {:nineteen_something, %{timestamp: ~N[2016-02-08 21:19:00]}}
   end
+
+  test "correctly identifies relative timestamp events" do
+    {:ok, cgm_page} = Base.decode16("1028B6140801CE6E")
+    {:ok, decoded_events} = Cgm.decode(cgm_page)
+    assert {:data_end, %{timestamp: _}} = Enum.at(decoded_events, 1)
+  end
+
+  test "correctly identifies sensor data" do
+    {:ok, cgm_page} = Base.decode16("1028B614081A6D34")
+    {:ok, decoded_events} = Cgm.decode(cgm_page)
+    assert {:sensor_glucose_value, %{timestamp: _, sgv: 52}} = Enum.at(decoded_events, 1)
+  end
 end
