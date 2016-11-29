@@ -16,8 +16,8 @@ defmodule Crc do
     end
   end
 
-  defp page_data(page), do: :binary.part(page, 0, byte_size(page) - 2)
-  defp crc_data(page), do: :binary.part(page, byte_size(page) - 2, 2) |> :binary.decode_unsigned
+  def page_data(page), do: :binary.part(page, 0, byte_size(page) - 2)
+  def crc_data(page), do: :binary.part(page, byte_size(page) - 2, 2) |> :binary.decode_unsigned
 
   def crc_16(binary), do: crc_16(binary, 0xffff)
   def crc_16(<<>>, crc), do: crc
