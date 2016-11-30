@@ -37,12 +37,12 @@ defmodule Cgm do
     decode_page(tail, [{:sensor_weak_signal} | events])
   end
 
-  def decode_page(<<@sensor_calibration::size(8), waiting::size(8), tail::binary>>, events) do
-    waiting = case waiting do
-                0x01 -> :waiting
-                _    -> :meter_bg_now
-              end
-    decode_page(tail, [{:sensor_calibration, %{waiting: waiting}} | events])
+  def decode_page(<<@sensor_calibration::size(8), 0x01::size(8), tail::binary>>, events) do
+    decode_page(tail, [{:sensor_calibration, %{waiting: :waiting}} | events])
+  end
+
+  def decode_page(<<@sensor_calibration::size(8), _meter_bg_now::size(8), tail::binary>>, events) do
+    decode_page(tail, [{:sensor_calibration, %{waiting: :meter_bg_now}} | events])
   end
 
   def decode_page(<<@fokko7::size(8), _unknown::size(8), tail::binary>>, events) do
