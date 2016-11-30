@@ -1,24 +1,7 @@
 # ExDecocare
 
-**TODO: Add description**
+This is an Elixir implementation of portions of the decocare project https://github.com/openaps/decocare
 
-## Installation
+## Supported functionality
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed as:
-
-  1. Add `ex_decocare` to your list of dependencies in `mix.exs`:
-
-    ```elixir
-    def deps do
-      [{:ex_decocare, "~> 0.1.0"}]
-    end
-    ```
-
-  2. Ensure `ex_decocare` is started before your application:
-
-    ```elixir
-    def application do
-      [applications: [:ex_decocare]]
-    end
-    ```
-
+- CGM page decoding
