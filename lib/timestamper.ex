@@ -7,31 +7,29 @@ defmodule Timestamper do
     |> process_events([], [])
   end
 
-  defp process_events([], processed, _), do: processed
-  defp process_events([event | tail], processed, needs_timestamp) do
+  defp process_events([], in_transition, processed), do: in_transition ++ processed
+  defp process_events([event | tail], in_transition, processed) do
     cond do
-      is_relative_event?(event)  -> process_events(tail, processed, [event | needs_timestamp])
-      is_reference_event?(event) -> process_events(tail, add_timestamps(event, needs_timestamp, processed), [])
-      true                       -> process_events(tail, [event | processed], needs_timestamp)
+      is_reference_event?(event) -> process_events(tail, [], add_timestamps(event, in_transition, processed))
+      true                       -> process_events(tail, [event | in_transition], processed)
     end
   end
 
-  defp add_timestamps(reference_event, relative_events, processed) do
+  defp add_timestamps(reference_event, to_be_processed, processed) do
     timestamp = event_timestamp(reference_event)
-
-    processed = relative_events
-    |> Enum.with_index
-    |> Enum.map(fn({relative_event, index}) ->
-      timestamp
-      |> Timex.shift(minutes: 5 * (index + 1))
-      |> add_timestamp(relative_event)
+    {events_with_timestamps, thing} = Enum.map_reduce(to_be_processed, timestamp, fn(event, timestamp) ->
+      cond do
+        is_relative_event?(event)  ->
+          timestamp = Timex.shift(timestamp, minutes: 5)
+          event = add_timestamp(event, timestamp)
+          {event, timestamp}
+        true -> {event, timestamp}
+      end
     end)
-    |> Enum.concat(processed)
-
-    [reference_event | processed]
+    [reference_event | Enum.concat(events_with_timestamps, processed)]
   end
 
-  defp add_timestamp(timestamp, event) do
+  defp add_timestamp(event, timestamp) do
     {event_key(event), Map.put(event_map(event), :timestamp, timestamp)}
   end
 
