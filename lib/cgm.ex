@@ -26,27 +26,33 @@ defmodule Cgm do
   def decode_page(<<>>, events), do: Timestamper.timestamp_relative_events(events)
 
   def decode_page(<<0x00::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:null_byte, %{raw: reverse(<<0x00>>)}} | events])
+    event = {:null_byte, %{raw: reverse(<<0x00>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<@data_end::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:data_end, %{raw: reverse(<<@data_end>>)}} | events])
+    event = {:data_end, %{raw: reverse(<<@data_end>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_weak_signal::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:sensor_weak_signal, %{raw: reverse(<<@sensor_weak_signal>>)}} | events])
+    event = {:sensor_weak_signal, %{raw: reverse(<<@sensor_weak_signal>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_calibration::size(8), 0x01::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:sensor_calibration, %{waiting: :waiting, raw: reverse(<<@sensor_calibration>> <> <<0x01>>)}} | events])
+    event = {:sensor_calibration, %{waiting: :waiting, raw: reverse(<<@sensor_calibration>> <> <<0x01>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_calibration::size(8), meter_bg_now::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:sensor_calibration, %{waiting: :meter_bg_now, raw: reverse(<<@sensor_calibration>> <> <<meter_bg_now>>)}} | events])
+    event = {:sensor_calibration, %{waiting: :meter_bg_now, raw: reverse(<<@sensor_calibration>> <> <<meter_bg_now>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<@fokko7::size(8), unknown::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:fokko7, %{raw: reverse(<<@fokko7>> <> <<unknown>>)}} | events])
+    event = {:fokko7, %{raw: reverse(<<@fokko7>> <> <<unknown>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_timestamp::size(8), timestamp::binary-size(4), tail::binary>>, events) do
@@ -75,14 +81,20 @@ defmodule Cgm do
   end
 
   def decode_page(<<@cal_bg_for_gh::size(8), timestamp::binary-size(4), partial_amount::integer-unsigned-size(8), tail::binary>>, events) do
-    amount = partial_amount + (Enum.at(:binary.bin_to_list(timestamp), 3) &&& 0b00100000)
-    event = {:cal_bg_for_gh, %{amount: amount, timestamp: DateDecoder.decode_timestamp(timestamp), raw: reverse(<<@cal_bg_for_gh>> <> timestamp <> <<partial_amount::integer-unsigned-size(8)>>)}}
+    event = {:cal_bg_for_gh, %{
+                amount: partial_amount + (Enum.at(:binary.bin_to_list(timestamp), 3) &&& 0b00100000),
+                timestamp: DateDecoder.decode_timestamp(timestamp),
+                raw: reverse(<<@cal_bg_for_gh>> <> timestamp <> <<partial_amount::integer-unsigned-size(8)>>)
+             }}
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_calibration_factor::size(8), timestamp::binary-size(4), raw_factor::integer-unsigned-size(16), tail::binary>>, events) do
-    factor = raw_factor / 1000.0
-    event = {:sensor_calibration_factor, %{factor: factor, timestamp: DateDecoder.decode_timestamp(timestamp), raw: reverse(<<@sensor_calibration_factor>> <> timestamp <> <<raw_factor::integer-unsigned-size(16)>>)}}
+    event = {:sensor_calibration_factor, %{
+                factor: raw_factor / 1000.0,
+                timestamp: DateDecoder.decode_timestamp(timestamp),
+                raw: reverse(<<@sensor_calibration_factor>> <> timestamp <> <<raw_factor::integer-unsigned-size(16)>>)
+             }}
     decode_page(tail, [event | events])
   end
 
@@ -92,16 +104,18 @@ defmodule Cgm do
   end
 
   def decode_page(<<@nineteen_something::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:nineteen_something, %{raw: reverse(<<@nineteen_something>>)}} | events])
+    event = {:nineteen_something, %{raw: reverse(<<@nineteen_something>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<raw_sgv::unsigned-integer-size(8), tail::binary>>, events) when raw_sgv >= 20 do
-    sgv = raw_sgv * 2
-    decode_page(tail, [{:sensor_glucose_value, %{sgv: sgv, raw: reverse(<<raw_sgv>>)}} | events])
+    event = {:sensor_glucose_value, %{sgv: raw_sgv * 2, raw: reverse(<<raw_sgv>>)}}
+    decode_page(tail, [event | events])
   end
 
   def decode_page(<<unknown::size(8), tail::binary>>, events) do
-    decode_page(tail, [{:unknown, %{raw: reverse(<<unknown>>)}} | events])
+    event = {:unknown, %{raw: reverse(<<unknown>>)}}
+    decode_page(tail, [event | events])
   end
 
   defp reverse(<<head::size(8), tail::binary>>), do: reverse(tail, <<head>>)
