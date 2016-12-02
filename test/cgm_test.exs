@@ -120,6 +120,7 @@ defmodule CgmTest do
   test "slurps up zeros" do
     {:ok, cgm_page} = Base.decode16("000000CC9C")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert 0 == length(decoded_events)
+    assert 3 == length(decoded_events)
+    assert {:null_byte} = Enum.at(decoded_events, 2)
   end
 end

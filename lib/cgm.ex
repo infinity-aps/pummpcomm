@@ -26,7 +26,7 @@ defmodule Cgm do
   def decode_page(<<>>, events), do: Timestamper.timestamp_relative_events(events)
 
   def decode_page(<<0x00::size(8), tail::binary>>, events) do
-    decode_page(tail, events)
+    decode_page(tail, [{:null_byte} | events])
   end
 
   def decode_page(<<@data_end::size(8), tail::binary>>, events) do
