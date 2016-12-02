@@ -134,6 +134,6 @@ defmodule CgmTest do
     |> Enum.map(fn(event_map) -> Map.fetch!(event_map, :raw) end)
     |> Enum.reduce(<<>>, fn(raw, acc) -> acc <> raw end)
 
-    assert reconstituted_cgm_page == Crc.page_data(cgm_page)
+    assert cgm_page == reconstituted_cgm_page <> <<Crc.crc_16(reconstituted_cgm_page)::size(16)>>
   end
 end
