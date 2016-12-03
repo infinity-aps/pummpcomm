@@ -1,13 +1,17 @@
 defmodule Timestamper do
 
-  def timestamp_relative_events([]), do: []
-  def timestamp_relative_events(events) do
+  def timestamp_events(events, in_transition \\ []) do
     events
     |> Enum.reverse
-    |> process_events([], [])
+    |> process_events(in_transition, [])
   end
 
-  defp process_events([], in_transition, processed), do: in_transition ++ processed
+  # Base case
+  # All of the events in the cgm_page have been processed except any events
+  # still in the in_transition list. These events still need a reference
+  # timestamp, but the current page can't provide it.
+  defp process_events([], in_transition, processed), do: {:ok, %{processed: processed, in_transition: in_transition}}
+
   defp process_events([event | tail], in_transition, processed) do
     cond do
       is_reference_event?(event) -> process_events(tail, [], add_timestamps(event, in_transition, processed))

@@ -26,34 +26,29 @@ defmodule CgmTest do
     assert  {:sensor_timestamp, %{timestamp: ~N[2016-02-08 20:54:00]}} = Enum.at(decoded_events, 0)
   end
 
-  test "correctly assigns relative timestamps", %{cgm_page: cgm_page} do
-    assert {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:nineteen_something, %{timestamp: ~N[2016-02-08 21:19:00]}} = Enum.at(decoded_events, 5)
-  end
-
   test "correctly identifies data end" do
     {:ok, cgm_page} = Base.decode16("1028B6140801CE6E")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:data_end, %{timestamp: _}} = Enum.at(decoded_events, 1)
+    assert {:data_end, _} = Enum.at(decoded_events, 1)
   end
 
   test "correctly identifies sensor data" do
     {:ok, cgm_page} = Base.decode16("1028B614081A6D34")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:sensor_glucose_value, %{timestamp: _, sgv: 52}} = Enum.at(decoded_events, 1)
+    assert {:sensor_glucose_value, %{sgv: 52}} = Enum.at(decoded_events, 1)
   end
 
   test "correctly identifies sensor weak signal" do
     {:ok, cgm_page} = Base.decode16("1028B6140802FE0D")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:sensor_weak_signal, %{timestamp: _}} = Enum.at(decoded_events, 1)
+    assert {:sensor_weak_signal, _} = Enum.at(decoded_events, 1)
   end
 
   test "correctly identifies sensor calibration" do
     {:ok, cgm_page} = Base.decode16("1028B61408010300037CE0")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:sensor_calibration, %{waiting: :waiting, timestamp: _}} = Enum.at(decoded_events, 1)
-    assert {:sensor_calibration, %{waiting: :meter_bg_now, timestamp: _}} = Enum.at(decoded_events, 2)
+    assert {:sensor_calibration, %{waiting: :waiting}} = Enum.at(decoded_events, 1)
+    assert {:sensor_calibration, %{waiting: :meter_bg_now}} = Enum.at(decoded_events, 2)
   end
 
   test "correctly identifies fokko-7" do
@@ -108,7 +103,7 @@ defmodule CgmTest do
     {:ok, cgm_page} = Base.decode16("1028B614100144B4")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
     assert {:ten_something, %{timestamp: ~N[2016-02-08 20:54:00]}} = Enum.at(decoded_events, 0)
-    assert {:data_end, %{timestamp: ~N[2016-02-08 20:59:00]}} = Enum.at(decoded_events, 1)
+    assert {:data_end, _} = Enum.at(decoded_events, 1)
   end
 
   test "correctly identifies unknown opcodes" do

@@ -15,6 +15,9 @@ defmodule Cgm do
   @ten_something             0x10
   @nineteen_something        0x13
 
+  # Takes a page of cgm data and decodes events from it. Relative events
+  # will not have timestamps, so the output from this needs to be run
+  # though the timestamper
   def decode(page) do
     case Crc.check_crc_16(page) do
       {:ok, _} -> {:ok, page |> Crc.page_data |> reverse |> decode_page}
@@ -23,7 +26,7 @@ defmodule Cgm do
   end
 
   def decode_page(page_data), do: decode_page(page_data, [])
-  def decode_page(<<>>, events), do: Timestamper.timestamp_relative_events(events)
+  def decode_page(<<>>, events), do: events
 
   def decode_page(<<0x00::size(8), tail::binary>>, events) do
     event = {:null_byte, %{raw: reverse(<<0x00>>)}}
