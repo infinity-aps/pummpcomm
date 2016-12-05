@@ -4,8 +4,10 @@ defmodule DateDecoder do
   def decode_timestamp(timestamp_data) do
     ts_bytes = :binary.bin_to_list(timestamp_data)
 
-    {:ok, timestamp} = NaiveDateTime.new(year(ts_bytes), month(ts_bytes), day(ts_bytes), hour(ts_bytes), minute(ts_bytes), 0)
-    timestamp
+    case NaiveDateTime.new(year(ts_bytes), month(ts_bytes), day(ts_bytes), hour(ts_bytes), minute(ts_bytes), 0) do
+      {:ok, timestamp} -> timestamp
+      {:error, error} -> IO.inspect "#{year(ts_bytes)}, #{month(ts_bytes)}, #{day(ts_bytes)}, #{hour(ts_bytes)}, #{minute(ts_bytes)}"
+    end
   end
 
   defp year(ts_bytes),   do: 2000 + (Enum.at(ts_bytes, 3) &&& 0b01111111)

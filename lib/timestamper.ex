@@ -1,6 +1,6 @@
 defmodule Timestamper do
-  @reference_events [:sensor_timestamp, :ten_something, :sensor_calibration_factor]
-  @relative_events [:data_end, :sensor_weak_signal, :sensor_calibration, :nineteen_something, :sensor_glucose_value]
+  @reference_events [:sensor_timestamp]
+  @relative_events [:data_end, :sensor_weak_signal, :sensor_calibration, :nineteen_something, :sensor_glucose_value, :sensor_data_low, :sensor_error]
 
   def timestamp_events(events, in_transition \\ []) do
     events
@@ -25,7 +25,13 @@ defmodule Timestamper do
     timestamp = event_timestamp(reference_event)
     {events_with_timestamps, thing} = Enum.map_reduce(to_be_processed, timestamp, fn(event, timestamp) ->
       case event do
+        {:data_end, _} ->
+          event = add_timestamp(event, timestamp)
+          {event, timestamp}
         {:nineteen_something, _} ->
+          event = add_timestamp(event, timestamp)
+          {event, timestamp}
+        {:sensor_calibration, %{waiting: :meter_bg_now}} ->
           event = add_timestamp(event, timestamp)
           {event, timestamp}
         {event_type, _} when event_type in @relative_events ->
