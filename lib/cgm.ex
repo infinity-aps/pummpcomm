@@ -41,7 +41,7 @@ defmodule Cgm do
   end
 
   def decode_page(<<@sensor_calibration::size(8), type::size(8), tail::binary>>, events) do
-    event = {:sensor_calibration, %{waiting: calibration_type(type), raw: reverse(<<@sensor_calibration>> <> <<type>>)}}
+    event = {:sensor_calibration, %{calibration_type: calibration_type(type), raw: reverse(<<@sensor_calibration>> <> <<type>>)}}
     decode_page(tail, [event | events])
   end
 

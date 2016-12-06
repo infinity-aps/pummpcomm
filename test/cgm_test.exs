@@ -26,12 +26,6 @@ defmodule CgmTest do
     assert  {:sensor_timestamp, %{timestamp: ~N[2016-02-08 20:54:00]}} = Enum.at(decoded_events, 0)
   end
 
-  test "correctly identifies data end" do
-    {:ok, cgm_page} = Base.decode16("1028B6140801CE6E")
-    {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:data_end, _} = Enum.at(decoded_events, 1)
-  end
-
   test "correctly identifies sensor data" do
     {:ok, cgm_page} = Base.decode16("1028B614081A6D34")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
@@ -47,8 +41,8 @@ defmodule CgmTest do
   test "correctly identifies sensor calibration" do
     {:ok, cgm_page} = Base.decode16("1028B61408010300037CE0")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:sensor_calibration, %{waiting: :waiting}} = Enum.at(decoded_events, 1)
-    assert {:sensor_calibration, %{waiting: :meter_bg_now}} = Enum.at(decoded_events, 2)
+    assert {:sensor_calibration, %{calibration_type: :waiting}} = Enum.at(decoded_events, 1)
+    assert {:sensor_calibration, %{calibration_type: :meter_bg_now}} = Enum.at(decoded_events, 2)
   end
 
   test "correctly identifies fokko-7" do
@@ -100,10 +94,10 @@ defmodule CgmTest do
   end
 
   test "correctly identifies 0x10 something" do
-    {:ok, cgm_page} = Base.decode16("1028B614100144B4")
+    {:ok, cgm_page} = Base.decode16("0000011028B6141013D8C4")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
     assert {:ten_something, %{timestamp: ~N[2016-02-08 20:54:00]}} = Enum.at(decoded_events, 0)
-    assert {:data_end, _} = Enum.at(decoded_events, 1)
+    assert {:nineteen_something, _} = Enum.at(decoded_events, 1)
   end
 
   test "correctly identifies unknown opcodes" do

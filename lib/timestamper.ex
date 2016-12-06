@@ -1,12 +1,15 @@
 defmodule Timestamper do
   @reference_events [:sensor_timestamp]
-  @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_error]
+  @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_error, :sensor_packet]
 
   def timestamp_events(events) do
     events
     |> Enum.reverse
     |> process_events([], nil)
   end
+
+  def relative_events(), do: @relative_events
+  def reference_events(), do: @reference_events
 
   defp process_events([], processed, _), do: processed
 
