@@ -45,27 +45,15 @@ defmodule Cgm do
     decode_page(tail, [event | events])
   end
 
-  defp calibration_type(0x00), do: :meter_bg_now
-  defp calibration_type(0x01), do: :waiting
-  defp calibration_type(0x02), do: :cal_error
-
   def decode_page(<<@sensor_packet::size(8), type::size(8), tail::binary>>, events) do
     event = {:sensor_packet, %{packet_type: packet_type(type), raw: reverse(<<@sensor_packet>> <> <<type>>)}}
     decode_page(tail, [event | events])
   end
 
-  # defp packet_type(?), do: :pre_init
-  defp packet_type(0x02), do: :init
-  # defp packet_type(?), do: :burst
-  defp packet_type(_), do: :unknown
-
   def decode_page(<<@sensor_error::size(8), type::size(8), tail::binary>>, events) do
     event = {:sensor_error, %{error_type: error_type(type), raw: reverse(<<@sensor_error>> <> <<type>>)}}
     decode_page(tail, [event | events])
   end
-
-  defp error_type(0x01), do: :end
-  defp error_type(_), do: :unknown
 
   def decode_page(<<@fokko7::size(8), unknown::size(8), tail::binary>>, events) do
     event = {:fokko7, %{raw: reverse(<<@fokko7>> <> <<unknown>>)}}
@@ -82,11 +70,6 @@ defmodule Cgm do
     decode_page(tail, [event | events])
   end
 
-  defp timestamp_type(0b00100000), do: :page_end
-  defp timestamp_type(0b01000000), do: :gap
-  defp timestamp_type(0b00000000), do: :last_rf
-  defp timestamp_type(_         ), do: :unknown
-
   def decode_page(<<@battery_change::size(8), timestamp::binary-size(4), tail::binary>>, events) do
     event = {:battery_change, %{timestamp: DateDecoder.decode_timestamp(timestamp), raw: reverse(<<@battery_change>> <> timestamp)}}
     decode_page(tail, [event | events])
@@ -100,10 +83,6 @@ defmodule Cgm do
                 raw: reverse(<<@sensor_status>> <> timestamp)}}
     decode_page(tail, [event | events])
   end
-
-  defp status_type(0b00000000), do: :off
-  defp status_type(0b00100000), do: :on
-  defp status_type(0b01000000), do: :lost
 
   def decode_page(<<@datetime_change::size(8), timestamp::binary-size(4), tail::binary>>, events) do
     event = {:datetime_change, %{timestamp: DateDecoder.decode_timestamp(timestamp), raw: reverse(<<@datetime_change>> <> timestamp)}}
@@ -119,10 +98,6 @@ defmodule Cgm do
     decode_page(tail, [event | events])
   end
 
-  defp sync_type(0b01100000), do: :find
-  defp sync_type(0b00100000), do: :new
-  defp sync_type(0b01000000), do: :old
-
   def decode_page(<<@cal_bg_for_gh::size(8), timestamp::binary-size(4), partial_amount::integer-unsigned-size(8), tail::binary>>, events) do
     <<_::size(16), origin::unsigned-integer-size(8), _::binary>> = timestamp
     event = {:cal_bg_for_gh, %{
@@ -133,9 +108,6 @@ defmodule Cgm do
              }}
     decode_page(tail, [event | events])
   end
-
-  defp origin_type(0b00000000), do: :rf
-  defp origin_type(_), do: :unknown
 
   def decode_page(<<@sensor_calibration_factor::size(8), timestamp::binary-size(4), raw_factor::integer-unsigned-size(16), tail::binary>>, events) do
     event = {:sensor_calibration_factor, %{
@@ -170,6 +142,34 @@ defmodule Cgm do
     event = {:unknown, %{raw: reverse(<<unknown>>)}}
     decode_page(tail, [event | events])
   end
+
+  defp calibration_type(0x00), do: :meter_bg_now
+  defp calibration_type(0x01), do: :waiting
+  defp calibration_type(0x02), do: :cal_error
+
+  defp error_type(0x01), do: :end
+  defp error_type(_), do: :unknown
+
+  # defp packet_type(?), do: :pre_init
+  defp packet_type(0x02), do: :init
+  # defp packet_type(?), do: :burst
+  defp packet_type(_), do: :unknown
+
+  defp timestamp_type(0b00100000), do: :page_end
+  defp timestamp_type(0b01000000), do: :gap
+  defp timestamp_type(0b00000000), do: :last_rf
+  defp timestamp_type(_         ), do: :unknown
+
+  defp status_type(0b00000000), do: :off
+  defp status_type(0b00100000), do: :on
+  defp status_type(0b01000000), do: :lost
+
+  defp sync_type(0b01100000), do: :find
+  defp sync_type(0b00100000), do: :new
+  defp sync_type(0b01000000), do: :old
+
+  defp origin_type(0b00000000), do: :rf
+  defp origin_type(_), do: :unknown
 
   defp reverse(<<head::size(8), tail::binary>>), do: reverse(tail, <<head>>)
   defp reverse(<<>>, reversed), do: reversed
