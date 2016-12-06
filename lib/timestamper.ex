@@ -1,48 +1,31 @@
 defmodule Timestamper do
   @reference_events [:sensor_timestamp]
-  @relative_events [:data_end, :sensor_weak_signal, :sensor_calibration, :nineteen_something, :sensor_glucose_value, :sensor_data_low, :sensor_error]
+  @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_error]
 
-  def timestamp_events(events, in_transition \\ []) do
+  def timestamp_events(events) do
     events
     |> Enum.reverse
-    |> process_events(in_transition, [])
+    |> process_events([], nil)
   end
 
-  # Base case
-  # All of the events in the cgm_page have been processed except any events
-  # still in the in_transition list. These events still need a reference
-  # timestamp, but the current page can't provide it.
-  defp process_events([], in_transition, processed), do: {:ok, %{processed: processed, in_transition: in_transition}}
+  defp process_events([], processed, _), do: processed
 
-  defp process_events([event | tail], in_transition, processed) do
+  defp process_events([event | tail], processed, timestamp) do
     cond do
-      is_reference_event?(event) -> process_events(tail, [], add_timestamps(event, in_transition, processed))
-      true                       -> process_events(tail, [event | in_transition], processed)
+      is_reference_event?(event) ->
+        reference_timestamp = elem(event, 1)[:timestamp]
+        process_events(tail, [event | processed], reference_timestamp)
+      is_relative_event?(event)  ->
+        event = add_timestamp(event, timestamp)
+        timestamp = decrement_timestamp(timestamp)
+        process_events(tail, [event | processed], timestamp)
+      true                       ->
+        process_events(tail, [event | processed], timestamp)
     end
   end
 
-  defp add_timestamps(reference_event, to_be_processed, processed) do
-    timestamp = event_timestamp(reference_event)
-    {events_with_timestamps, thing} = Enum.map_reduce(to_be_processed, timestamp, fn(event, timestamp) ->
-      case event do
-        {:data_end, _} ->
-          event = add_timestamp(event, timestamp)
-          {event, timestamp}
-        {:nineteen_something, _} ->
-          event = add_timestamp(event, timestamp)
-          {event, timestamp}
-        {:sensor_calibration, %{waiting: :meter_bg_now}} ->
-          event = add_timestamp(event, timestamp)
-          {event, timestamp}
-        {event_type, _} when event_type in @relative_events ->
-          timestamp = Timex.shift(timestamp, minutes: 5)
-          event = add_timestamp(event, timestamp)
-          {event, timestamp}
-        _ -> {event, timestamp}
-      end
-    end)
-    [reference_event | Enum.concat(events_with_timestamps, processed)]
-  end
+  defp decrement_timestamp(nil), do: nil
+  defp decrement_timestamp(timestamp), do: Timex.shift(timestamp, minutes: -5)
 
   defp add_timestamp(event, timestamp) do
     {event_key(event), Map.put(event_map(event), :timestamp, timestamp)}
