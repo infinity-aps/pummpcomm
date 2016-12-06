@@ -39,8 +39,6 @@ defmodule Timestamper do
   defp event_map(event) when tuple_size(event) == 1, do: %{}
   defp event_map(event) when tuple_size(event) >= 2, do: elem(event, 1)
 
-  defp event_timestamp(event), do: event_map(event)[:timestamp]
-
   defp is_reference_event?(event), do: event_key(event) in @reference_events
 
   defp is_relative_event?(event), do:  event_key(event) in @relative_events

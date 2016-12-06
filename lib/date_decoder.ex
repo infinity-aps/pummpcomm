@@ -6,7 +6,6 @@ defmodule DateDecoder do
 
     case NaiveDateTime.new(year(ts_bytes), month(ts_bytes), day(ts_bytes), hour(ts_bytes), minute(ts_bytes), 0) do
       {:ok, timestamp} -> timestamp
-      {:error, error} -> IO.inspect "#{year(ts_bytes)}, #{month(ts_bytes)}, #{day(ts_bytes)}, #{hour(ts_bytes)}, #{minute(ts_bytes)}"
     end
   end
 
