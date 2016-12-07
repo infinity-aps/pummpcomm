@@ -3,9 +3,8 @@ defmodule Timestamper do
   @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_error, :sensor_packet]
 
   def timestamp_events(events) do
-    events
-    |> Enum.reverse
-    |> process_events([], nil)
+    reverse_events = Enum.reverse(events)
+    process_events(reverse_events, [], try_find_timestamp(reverse_events, 0))
   end
 
   def relative_events(), do: @relative_events
@@ -32,6 +31,19 @@ defmodule Timestamper do
 
   defp add_timestamp(event, timestamp) do
     {event_key(event), Map.put(event_map(event), :timestamp, timestamp)}
+  end
+
+  defp try_find_timestamp([], _), do: nil
+  defp try_find_timestamp([event | tail], count) do
+    cond do
+      is_relative_event?(event) ->
+        try_find_timestamp(tail, count + 1)
+      is_reference_event?(event) ->
+        timestamp = elem(event, 1)[:timestamp]
+        Timex.shift(timestamp, minutes: count * 5)
+      true ->
+        nil
+    end
   end
 
   defp event_key(event), do: elem(event, 0)
