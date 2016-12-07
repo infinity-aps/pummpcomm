@@ -6,7 +6,7 @@ defmodule Cgm do
   @sensor_packet             0x04
   @sensor_error              0x05
   @sensor_data_low           0x06
-  @fokko7                    0x07
+  @sensor_data_high          0x07
   @sensor_timestamp          0x08
   @battery_change            0x0A
   @sensor_status             0x0B
@@ -55,8 +55,11 @@ defmodule Cgm do
     decode_page(tail, [event | events])
   end
 
-  def decode_page(<<@fokko7::size(8), unknown::size(8), tail::binary>>, events) do
-    event = {:fokko7, %{raw: reverse(<<@fokko7>> <> <<unknown>>)}}
+  def decode_page(<<@sensor_data_high::size(8), unknown::size(8), tail::binary>>, events) do
+    event = {:sensor_data_high, %{
+                sgv: 400,
+                raw: reverse(<<@sensor_data_high>> <> <<unknown>>)
+             }}
     decode_page(tail, [event | events])
   end
 
@@ -167,6 +170,7 @@ defmodule Cgm do
   defp sync_type(0b01100000), do: :find
   defp sync_type(0b00100000), do: :new
   defp sync_type(0b01000000), do: :old
+  defp sync_type(_), do: :unknown
 
   defp origin_type(0b00000000), do: :rf
   defp origin_type(_), do: :unknown

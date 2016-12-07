@@ -45,10 +45,10 @@ defmodule CgmTest do
     assert {:sensor_calibration, %{calibration_type: :meter_bg_now}} = Enum.at(decoded_events, 2)
   end
 
-  test "correctly identifies fokko-7" do
+  test "correctly identifies sensor data high" do
     {:ok, cgm_page} = Base.decode16("1028B61408FF0716AB")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:fokko7, _} = Enum.at(decoded_events, 1)
+    assert {:sensor_data_high, %{ sgv: 400 }} = Enum.at(decoded_events, 1)
   end
 
   test "correctly identifies sensor timestamp" do

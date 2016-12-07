@@ -1,6 +1,6 @@
 defmodule Timestamper do
   @reference_events [:sensor_timestamp]
-  @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_error, :sensor_packet]
+  @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_data_high, :sensor_error, :sensor_packet]
 
   def timestamp_events(events) do
     reverse_events = Enum.reverse(events)
