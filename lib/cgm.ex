@@ -1,6 +1,7 @@
 defmodule Cgm do
   use Bitwise
 
+  @data_end                  0x01
   @sensor_weak_signal        0x02
   @sensor_calibration        0x03
   @sensor_packet             0x04
@@ -32,6 +33,11 @@ defmodule Cgm do
 
   def decode_page(<<0x00::size(8), tail::binary>>, events) do
     event = {:null_byte, %{raw: reverse(<<0x00>>)}}
+    decode_page(tail, [event | events])
+  end
+
+  def decode_page(<<@data_end, tail::binary>>, events) do
+    event = {:data_end, %{raw: <<@data_end>>}}
     decode_page(tail, [event | events])
   end
 

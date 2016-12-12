@@ -13,10 +13,10 @@ defmodule TimestamperTest do
   end
 
   test "it timestamps forward when there are only relative events since the last reference sensor timestamp" do
-    {:ok, cgm_page} = Base.decode16("1028B614083445B483")
+    {:ok, cgm_page} = Base.decode16("1008B614083445818B")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
     timestamped_events = Timestamper.timestamp_events(decoded_events)
-    assert {:sensor_timestamp, %{timestamp: ~N[2016-02-08 20:54:00]}} = Enum.at(timestamped_events, 0)
+    assert {:sensor_timestamp, %{timestamp: ~N[2016-02-08 20:54:00], event_type: :last_rf}} = Enum.at(timestamped_events, 0)
     assert {:sensor_glucose_value, %{sgv: 104, timestamp: ~N[2016-02-08 20:59:00]}} = Enum.at(timestamped_events, 1)
     assert {:sensor_glucose_value, %{sgv: 138, timestamp: ~N[2016-02-08 21:04:00]}} = Enum.at(timestamped_events, 2)
   end

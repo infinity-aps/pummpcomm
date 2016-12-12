@@ -54,7 +54,7 @@ defmodule CgmTest do
   test "correctly identifies sensor timestamp" do
     {:ok, cgm_page} = Base.decode16("1028B61408A53B")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:sensor_timestamp, %{timestamp: ~N[2016-02-08 20:54:00]}} = Enum.at(decoded_events, 0)
+    assert {:sensor_timestamp, %{timestamp: ~N[2016-02-08 20:54:00], event_type: :page_end}} = Enum.at(decoded_events, 0)
   end
 
   test "correctly identifies battery change" do
@@ -66,7 +66,7 @@ defmodule CgmTest do
   test "correctly identifies sensor status" do
     {:ok, cgm_page} = Base.decode16("1028B6140B9558")
     {:ok, decoded_events} = Cgm.decode(cgm_page)
-    assert {:sensor_status, %{timestamp: ~N[2016-02-08 20:54:00]}} = Enum.at(decoded_events, 0)
+    assert {:sensor_status, %{timestamp: ~N[2016-02-08 20:54:00], status_type: :on}} = Enum.at(decoded_events, 0)
   end
 
   test "correctly identifies date time change" do

@@ -1,5 +1,4 @@
 defmodule Timestamper do
-  @reference_events [:sensor_timestamp]
   @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_data_high, :sensor_error, :sensor_packet]
 
   def timestamp_events(events) do
@@ -8,7 +7,6 @@ defmodule Timestamper do
   end
 
   def relative_events(), do: @relative_events
-  def reference_events(), do: @reference_events
 
   defp process_events([], processed, _), do: processed
 
@@ -38,7 +36,9 @@ defmodule Timestamper do
     cond do
       is_relative_event?(event) ->
         try_find_timestamp(tail, count + 1)
-      is_reference_event?(event) ->
+      event_key(event) in [:data_end, :nineteen_something] ->
+        try_find_timestamp(tail, count)
+      is_reference_event?(event) && event_map(event)[:event_type] == :last_rf ->
         timestamp = elem(event, 1)[:timestamp]
         Timex.shift(timestamp, minutes: count * 5)
       true ->
@@ -51,7 +51,7 @@ defmodule Timestamper do
   defp event_map(event) when tuple_size(event) == 1, do: %{}
   defp event_map(event) when tuple_size(event) >= 2, do: elem(event, 1)
 
-  defp is_reference_event?(event), do: event_key(event) in @reference_events
+  defp is_reference_event?(event), do: event_key(event) == :sensor_timestamp
 
   defp is_relative_event?(event), do:  event_key(event) in @relative_events
 end
