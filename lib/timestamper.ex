@@ -36,10 +36,10 @@ defmodule Timestamper do
     cond do
       is_relative_event?(event) ->
         try_find_timestamp(tail, count + 1)
-      event_key(event) in [:data_end, :nineteen_something] ->
+      event_key(event) in [:data_end, :nineteen_something, :null_byte] ->
         try_find_timestamp(tail, count)
       is_reference_event?(event) && event_map(event)[:event_type] == :last_rf ->
-        timestamp = elem(event, 1)[:timestamp]
+        timestamp = event_map(event)[:timestamp]
         Timex.shift(timestamp, minutes: count * 5)
       true ->
         nil
