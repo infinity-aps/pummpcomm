@@ -1,4 +1,4 @@
-defmodule DateDecoder do
+defmodule Decocare.DateDecoder do
   use Bitwise
 
   def decode_timestamp(timestamp_data) do

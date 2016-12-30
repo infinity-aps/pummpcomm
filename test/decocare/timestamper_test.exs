@@ -1,5 +1,7 @@
-defmodule TimestamperTest do
+defmodule Decocare.TimestamperTest do
   use ExUnit.Case
+  alias Decocare.Timestamper, as: Timestamper
+  alias Decocare.Cgm,         as: Cgm
 
   doctest Timestamper
 

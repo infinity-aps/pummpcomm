@@ -1,2 +1,0 @@
-defmodule ExDecocare do
-end

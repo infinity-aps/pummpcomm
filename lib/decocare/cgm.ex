@@ -1,5 +1,7 @@
-defmodule Cgm do
+defmodule Decocare.Cgm do
   use Bitwise
+  alias Decocare.DateDecoder, as: DateDecoder
+  alias Decocare.Crc16,       as: Crc16
 
   @data_end                  0x01
   @sensor_weak_signal        0x02
@@ -22,8 +24,8 @@ defmodule Cgm do
   # will not have timestamps, so the output from this needs to be run
   # though the timestamper
   def decode(page) do
-    case Crc.check_crc_16(page) do
-      {:ok, _} -> {:ok, page |> Crc.page_data |> reverse |> decode_page}
+    case Crc16.check_crc_16(page) do
+      {:ok, _} -> {:ok, page |> Crc16.page_data |> reverse |> decode_page}
       other    -> other
     end
   end
