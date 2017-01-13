@@ -589,7 +589,7 @@ defmodule FullPageTest do
     {:ok, cgm_page} = Decocare.Cgm.decode(page_data)
 
     relevant_event_types = [:sensor_timestamp] ++ Timestamper.relative_events()
-    relevant_events = cgm_page |> Timestamper.timestamp_events |> Enum.filter(fn(event) -> elem(event, 0) in relevant_event_types end)
+    relevant_events = cgm_page |> Enum.filter(fn(event) -> elem(event, 0) in relevant_event_types end)
 
     assert relevant_events == expected_events_and_timestamps
   end

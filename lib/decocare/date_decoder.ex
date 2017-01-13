@@ -1,20 +1,21 @@
 defmodule Decocare.DateDecoder do
   use Bitwise
 
-  def decode_timestamp(timestamp_data) do
-    ts_bytes = :binary.bin_to_list(timestamp_data)
+  #  +=====================================================================+
+  #  | BYTE    0  |        |        1  |        |   2   |       | 3        |
+  #  | MONTH HIGH |   HOUR | MONTH LOW | MINUTE | FLAGS |   DAY |     YEAR |
+  #  + -----------+--------+-----------+--------+-------+-------+----------+
+  #  |         xx | 0xxxxx |        xx | xxxxxx |   xxx | xxxxx | 0xxxxxxx |
+  #  +=====================================================================+
 
-    case NaiveDateTime.new(year(ts_bytes), month(ts_bytes), day(ts_bytes), hour(ts_bytes), minute(ts_bytes), 0) do
+  def decode_timestamp(timestamp = <<month_high::2, _::1, hour::5, month_low::2, minute::6, _flags::3, day::5, _::1, year::7>>) when is_binary(timestamp) do
+    <<month::4>> = <<month_high::2, month_low::2>>
+    case NaiveDateTime.new(2000 + year, month, day, hour, minute, 0) do
       {:ok, timestamp} -> timestamp
     end
   end
 
-  defp year(ts_bytes),   do: 2000 + (Enum.at(ts_bytes, 3) &&& 0b01111111)
-  defp month(ts_bytes) do
-    ((Enum.at(ts_bytes, 0) &&& 0b11000000) >>> 4) +
-    ((Enum.at(ts_bytes, 1) &&& 0b11000000) >>> 6)
+  def decode_timestamp(timestamp) do
+    decode_timestamp(<<timestamp::32>>)
   end
-  defp day(ts_bytes),    do: Enum.at(ts_bytes, 2) &&& 0b00011111
-  defp hour(ts_bytes),   do: Enum.at(ts_bytes, 0) &&& 0b00011111
-  defp minute(ts_bytes), do: Enum.at(ts_bytes, 1) &&& 0b00111111
 end
