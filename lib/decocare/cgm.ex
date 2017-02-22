@@ -180,7 +180,7 @@ defmodule Decocare.Cgm do
   defp origin_type(0b000), do: :rf
   defp origin_type(_    ), do: :unknown
 
-  defp flags(timestamp = <<_::16, flags::3, rest::bitstring>>) when is_binary(timestamp), do: flags
+  defp flags(timestamp = <<_::16, flags::3, _::bitstring>>) when is_binary(timestamp), do: flags
   defp flags(timestamp), do: flags(<<timestamp::32>>)
 
   defp reverse(<<head::8, tail::binary>>), do: reverse(tail, <<head>>)
