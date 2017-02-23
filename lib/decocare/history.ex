@@ -8,6 +8,7 @@ defmodule Decocare.History do
   @alarm_sensor            0x0B
   @bg_received             0x3F
   @bolus_wizard_estimate   0x5B
+  @unabsorbed_insulin      0x5C
 
   def decode(page, large_format) do
     case Crc16.check_crc_16(page) do
@@ -85,5 +86,24 @@ defmodule Decocare.History do
     }
     event = {:bolus_wizard_estimate, event_info}
     decode_page(tail, large_format, [event | events])
+  end
+
+  def decode_page(<<@unabsorbed_insulin, length::8, tail::binary>>, large_format = false, events) do
+    data_length = max((length - 2), 2)
+    <<data::binary-size(data_length), tail::binary>> = tail
+    event_info = %{
+      data: parse_unabsorbed_insulin_records(data, [])
+    }
+    event = {:unabsorbed_insulin, event_info}
+    decode_page(tail, large_format, [event | events])
+  end
+
+  defp parse_unabsorbed_insulin_records(<<>>, records), do: records |> Enum.reverse
+  defp parse_unabsorbed_insulin_records(<<amount::8, age_lower_bits::8, _::2, age_higher_bits::2, _::4, tail::binary>>, records) do
+    record = %{
+      age: (age_higher_bits <<< 8) + age_lower_bits,
+      amount: amount / 40.0
+    }
+    parse_unabsorbed_insulin_records(tail, [record | records])
   end
 end
