@@ -8,8 +8,9 @@ defmodule Decocare.History do
   import MapMerge
   use Bitwise
 
-  alias Decocare.Crc16, as: Crc16
-  alias Decocare.DateDecoder, as: DateDecoder
+  alias Decocare.Crc16
+  alias Decocare.DateDecoder
+  alias Decocare.PumpModel
 
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
@@ -17,14 +18,21 @@ defmodule Decocare.History do
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
 
-  def decode(page, large_format) do
+  def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
-      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_page(large_format) |> Enum.reverse}
+      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_page(pump_options(pump_model)) |> Enum.reverse}
       other    -> other
     end
   end
 
-  def decode_page(page_data, large_format), do: decode_page(page_data, large_format, [])
+  defp pump_options(pump_model) do
+    %{
+      large_format: PumpModel.large_format?(pump_model),
+      strokes_per_unit: PumpModel.strokes_per_unit(pump_model)
+    }
+  end
+
+  def decode_page(page_data, pump_options = %{}), do: decode_page(page_data, pump_options, [])
   def decode_page(<<>>, _, events), do: events
 
   @bolus_normal                             0x01
@@ -34,14 +42,14 @@ defmodule Decocare.History do
   @change_basal_profile_pattern             0x08
   @change_basal_profile                     0x09
 
-  def decode_page(<<0x0A, data::binary-size(6), tail::binary>>, large_format, events) do
+  def decode_page(<<0x0A, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:cal_bg_for_ph, decode_cal_bg_for_ph(data) | %{ raw: <<0x0A>> <> data }}
-    decode_page(tail, large_format, [event | events])
+    decode_page(tail, pump_options, [event | events])
   end
 
-  def decode_page(<<0x0B, data::binary-size(7), tail::binary>>, large_format, events) do
+  def decode_page(<<0x0B, data::binary-size(7), tail::binary>>, pump_options, events) do
     event = {:alarm_sensor, decode_alarm_sensor(data) | %{ raw: <<0x0B>> <> data }}
-    decode_page(tail, large_format, [event | events])
+    decode_page(tail, pump_options, [event | events])
   end
 
   @clear_alarm                              0x0C
@@ -71,9 +79,9 @@ defmodule Decocare.History do
   @questionable3b                           0x3B
   @change_paradigm_link_id                  0x3C
 
-  def decode_page(<<0x3F, data::binary-size(9), tail::binary>>, large_format, events) do
+  def decode_page(<<0x3F, data::binary-size(9), tail::binary>>, pump_options, events) do
     event = {:bg_received, decode_bg_received(data) | %{ raw: <<0x3F>> <> data }}
-    decode_page(tail, large_format, [event | events])
+    decode_page(tail, pump_options, [event | events])
   end
 
   @journal_entry_meal_marker                0x40
@@ -91,12 +99,12 @@ defmodule Decocare.History do
   @change_bolus_scroll_step_size            0x57
   @bolus_wizard_setup                       0x5A
 
-  def decode_page(<<0x5B, data::binary-size(19), tail::binary>>, large_format = false, events) do
+  def decode_page(<<0x5B, data::binary-size(19), tail::binary>>, pump_options = %{large_format: false}, events) do
     event = {:bolus_wizard_estimate, decode_bolus_wizard_estimate(data) | %{ raw: <<0x5B>> <> data }}
-    decode_page(tail, large_format, [event | events])
+    decode_page(tail, pump_options, [event | events])
   end
 
-  def decode_page(<<0x5C, length::8, tail::binary>>, large_format = false, events) do
+  def decode_page(<<0x5C, length::8, tail::binary>>, pump_options = %{large_format: false}, events) do
     data_length = max((length - 2), 2)
     <<data::binary-size(data_length), tail::binary>> = tail
     event_info = %{
@@ -104,7 +112,7 @@ defmodule Decocare.History do
       raw: <<0x5C, length::8>> <> data
     }
     event = {:unabsorbed_insulin, event_info}
-    decode_page(tail, large_format, [event | events])
+    decode_page(tail, pump_options, [event | events])
   end
 
   @save_settings                            0x5D
