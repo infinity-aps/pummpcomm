@@ -12,6 +12,7 @@ defmodule Decocare.History do
   alias Decocare.DateDecoder
   alias Decocare.PumpModel
 
+  import Decocare.History.BolusNormal
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
   import Decocare.History.BGReceived
@@ -35,7 +36,11 @@ defmodule Decocare.History do
   def decode_page(page_data, pump_options = %{}), do: decode_page(page_data, pump_options, [])
   def decode_page(<<>>, _, events), do: events
 
-  @bolus_normal                             0x01
+  def decode_page(<<0x01, data::binary-size(8), tail::binary>>, pump_options = %{large_format: false, strokes_per_unit: strokes_per_unit}, events) do
+    event = {:bolus_normal, decode_bolus_normal(data, strokes_per_unit) | %{ raw: <<0x01>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @prime                                    0x03
   @alarm_pump                               0x06
   @result_daily_total                       0x07
