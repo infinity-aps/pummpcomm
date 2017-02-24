@@ -13,10 +13,27 @@ defmodule Decocare.History.AlarmSensor do
     0x71 => "Lost Sensor",
     0x73 => "Low Glucose Predicted"
   }
-  def decode_alarm_sensor(<<alarm_type::8, alarm_param::8, timestamp::binary-size(5)>>) do
-    %{
+  def decode_alarm_sensor(<<0x65, amount::8, timestamp::binary-size(5)>>) do
+    decode_alarm_sensor(0x65, %{amount: amount(amount, timestamp)}, timestamp)
+  end
+
+  def decode_alarm_sensor(<<0x66, amount::8, timestamp::binary-size(5)>>) do
+    decode_alarm_sensor(0x66, %{amount: amount(amount, timestamp)}, timestamp)
+  end
+
+  def decode_alarm_sensor(<<alarm_type::8, _::8, timestamp::binary-size(5)>>) do
+    decode_alarm_sensor(alarm_type, %{}, timestamp)
+  end
+
+  def decode_alarm_sensor(alarm_type, alarm_params, timestamp) do
+    Map.merge(%{
       timestamp: DateDecoder.decode_history_timestamp(timestamp),
       alarm_type: Map.get(@alarm_types, alarm_type, "Unknown")
-    }
+    }, alarm_params)
+  end
+
+  defp amount(amount, timestamp) do
+    <<_::32, high_bit::1, _::7>> = timestamp
+    (high_bit <<< 8) + amount
   end
 end
