@@ -65,7 +65,8 @@ defmodule Decocare.HistoryTest do
         %{ age: 265, amount: 0.05 },
         %{ age: 275, amount: 1.35 },
         %{ age: 475, amount: 2.80 }
-      ]
+      ],
+      raw: history_page
     }
     assert {:unabsorbed_insulin, ^expected_event_info} = Enum.at(decoded_events, 0)
   end
