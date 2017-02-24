@@ -11,6 +11,12 @@ defmodule Decocare.History do
   alias Decocare.Crc16, as: Crc16
   alias Decocare.DateDecoder, as: DateDecoder
 
+  import Decocare.History.CalBGForPH
+  import Decocare.History.AlarmSensor
+  import Decocare.History.BGReceived
+  import Decocare.History.BolusWizardEstimate
+  import Decocare.History.UnabsorbedInsulin
+
   def decode(page, large_format) do
     case Crc16.check_crc_16(page) do
       {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_page(large_format) |> Enum.reverse}
@@ -27,44 +33,15 @@ defmodule Decocare.History do
   @result_daily_total                       0x07
   @change_basal_profile_pattern             0x08
   @change_basal_profile                     0x09
-  @cal_bg_for_ph                            0x0A
-  def decode_page(<<@cal_bg_for_ph, data::binary-size(6), tail::binary>>, large_format, events) do
-    raw = <<@cal_bg_for_ph::8>> <> data
-    event = {:cal_bg_for_ph, decode_cal_bg_for_ph(data) | %{ raw: raw }}
+
+  def decode_page(<<0x0A, data::binary-size(6), tail::binary>>, large_format, events) do
+    event = {:cal_bg_for_ph, decode_cal_bg_for_ph(data) | %{ raw: <<0x0A>> <> data }}
     decode_page(tail, large_format, [event | events])
   end
 
-  def decode_cal_bg_for_ph(data = <<amount::8, timestamp::binary-size(5)>>) do
-    <<_::size(16), amount_high_bit::size(1), _::size(15), amount_medium_bit::size(1), _::size(7)>> = timestamp
-    %{
-      amount: (amount_high_bit <<< 9) + (amount_medium_bit <<< 8) + amount,
-      timestamp: DateDecoder.decode_history_timestamp(timestamp)
-    }
-  end
-
-  @alarm_sensor                             0x0B
-  def decode_page(<<@alarm_sensor::8, data::binary-size(7), tail::binary>>, large_format, events) do
-    raw = <<@alarm_sensor>> <> data
-    event = {:alarm_sensor, decode_alarm_sensor(data) | %{ raw: raw }}
+  def decode_page(<<0x0B, data::binary-size(7), tail::binary>>, large_format, events) do
+    event = {:alarm_sensor, decode_alarm_sensor(data) | %{ raw: <<0x0B>> <> data }}
     decode_page(tail, large_format, [event | events])
-  end
-
-  @alarm_types %{
-    0x65 => "High Glucose",
-    0x66 => "Low Glucose",
-    0x68 => "Meter BG Now",
-    0x69 => "Cal Reminder",
-    0x6A => "Calibration Error",
-    0x6B => "Sensor End",
-    0x70 => "Weak Signal",
-    0x71 => "Lost Sensor",
-    0x73 => "Low Glucose Predicted"
-  }
-  def decode_alarm_sensor(<<alarm_type::8, alarm_param::8, timestamp::binary-size(5)>>) do
-    %{
-      timestamp: DateDecoder.decode_history_timestamp(timestamp),
-      alarm_type: Map.get(@alarm_types, alarm_type, "Unknown")
-    }
   end
 
   @clear_alarm                              0x0C
@@ -93,20 +70,10 @@ defmodule Decocare.History do
   @change_meter_id                          0x36
   @questionable3b                           0x3B
   @change_paradigm_link_id                  0x3C
-  @bg_received                              0x3F
-  def decode_page(<<@bg_received, data::binary-size(9), tail::binary>>, large_format, events) do
-    raw = <<@bg_received>> <> data
-    event = {:bg_received, decode_bg_received(data) | %{ raw: raw }}
-    decode_page(tail, large_format, [event | events])
-  end
 
-  def decode_bg_received(<<amount::8, timestamp::binary-size(5), meter_link_id::binary-size(3)>>) do
-    <<_::size(16), amount_low_bits::size(3), _::size(21)>> = timestamp
-    %{
-      amount: (amount <<< 3) + amount_low_bits,
-      meter_link_id: Base.encode16(meter_link_id),
-      timestamp: DateDecoder.decode_history_timestamp(timestamp),
-    }
+  def decode_page(<<0x3F, data::binary-size(9), tail::binary>>, large_format, events) do
+    event = {:bg_received, decode_bg_received(data) | %{ raw: <<0x3F>> <> data }}
+    decode_page(tail, large_format, [event | events])
   end
 
   @journal_entry_meal_marker                0x40
@@ -123,49 +90,21 @@ defmodule Decocare.History do
   @change_sensor_rate_of_change_alert_setup 0x56
   @change_bolus_scroll_step_size            0x57
   @bolus_wizard_setup                       0x5A
-  @bolus_wizard_estimate                    0x5B
-  def decode_page(<<@bolus_wizard_estimate, data::binary-size(19), tail::binary>>, large_format = false, events) do
-    <<bg_low_bits::8, timestamp::binary-size(5), carbohydrates::8, _::5, bg_high_bits::3, carb_ratio::8,
-      insulin_sensitivity::8, bg_target_low::8, correction_estimate_low_bits::8, food_estimate::8,
-                                          correction_estimate_high_bits::8, _::8, unabsorbed_insulin_total::8, _::8, bolus_estimate::8, bg_target_high::8>> = data
 
-    event_info = %{
-      bg: (bg_high_bits <<< 8) + bg_low_bits,
-      bg_target_high: bg_target_high,
-      bg_target_low: bg_target_low,
-      bolus_estimate: bolus_estimate / 10.0,
-      carbohydrates: carbohydrates,
-      carb_ratio: carb_ratio,
-      correction_estimate: ((correction_estimate_high_bits <<< 8) + correction_estimate_low_bits) / 10.0,
-      food_estimate: food_estimate / 10.0,
-      insulin_sensitivity: insulin_sensitivity,
-      unabsorbed_insulin_total: unabsorbed_insulin_total / 10.0,
-      timestamp: DateDecoder.decode_history_timestamp(timestamp),
-      raw: <<@bolus_wizard_estimate::8>> <> data
-    }
-    event = {:bolus_wizard_estimate, event_info}
+  def decode_page(<<0x5B, data::binary-size(19), tail::binary>>, large_format = false, events) do
+    event = {:bolus_wizard_estimate, decode_bolus_wizard_estimate(data) | %{ raw: <<0x5B>> <> data }}
     decode_page(tail, large_format, [event | events])
   end
 
-  @unabsorbed_insulin                       0x5C
-  def decode_page(<<@unabsorbed_insulin, length::8, tail::binary>>, large_format = false, events) do
+  def decode_page(<<0x5C, length::8, tail::binary>>, large_format = false, events) do
     data_length = max((length - 2), 2)
     <<data::binary-size(data_length), tail::binary>> = tail
     event_info = %{
       data: decode_unabsorbed_insulin(data, []),
-      raw: <<@unabsorbed_insulin::8, length::8>> <> data
+      raw: <<0x5C, length::8>> <> data
     }
     event = {:unabsorbed_insulin, event_info}
     decode_page(tail, large_format, [event | events])
-  end
-
-  def decode_unabsorbed_insulin(<<>>, records), do: records |> Enum.reverse
-  def decode_unabsorbed_insulin(<<amount::8, age_lower_bits::8, _::2, age_higher_bits::2, _::4, tail::binary>>, records) do
-    record = %{
-      age: (age_higher_bits <<< 8) + age_lower_bits,
-      amount: amount / 40.0
-    }
-    decode_unabsorbed_insulin(tail, [record | records])
   end
 
   @save_settings                            0x5D
@@ -192,7 +131,4 @@ defmodule Decocare.History do
   @change_watchdog_marriage_profile         0x81
   @delete_other_device_id                   0x82
   @change_capture_event_enable              0x83
-
-
-
 end
