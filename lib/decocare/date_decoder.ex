@@ -33,4 +33,18 @@ defmodule Decocare.DateDecoder do
       {:ok, timestamp} -> timestamp
     end
   end
+
+  #  +===========================================+
+  #  | BYTE    0  |        |        1  |         |
+  #  | MONTH HIGH |    DAY | MONTH LOW |    YEAR |
+  #  + -----------+--------+-----------+---------+
+  #  |        xxx |  xxxxx |         x | xxxxxxx |
+  #  +===========================================+
+
+  def decode_history_timestamp(timestamp = <<month_high::3, day::5, month_low::1, year::7>>) when is_binary(timestamp) do
+    <<month::4>> = <<month_high::3, month_low::1>>
+    case NaiveDateTime.new(2000 + year, month, day, 0, 0, 0) do
+      {:ok, timestamp} -> timestamp
+    end
+  end
 end

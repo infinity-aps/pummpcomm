@@ -13,6 +13,7 @@ defmodule Decocare.History do
   alias Decocare.PumpModel
 
   import Decocare.History.BolusNormal
+  import Decocare.History.ResultDailyTotal
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
   import Decocare.History.TempBasal
@@ -45,7 +46,12 @@ defmodule Decocare.History do
 
   @prime                                    0x03
   @alarm_pump                               0x06
-  @result_daily_total                       0x07
+
+  def decode_page(<<0x07, data::binary-size(6), tail::binary>>, pump_options = %{large_format: false}, events) do
+    event = {:result_daily_total, decode_result_daily_total(data) | %{ raw: <<0x07>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_basal_profile_pattern             0x08
   @change_basal_profile                     0x09
 
