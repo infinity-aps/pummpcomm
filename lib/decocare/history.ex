@@ -21,6 +21,7 @@ defmodule Decocare.History do
   import Decocare.History.BGReceived
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
+  import Decocare.History.DailyTotal522
 
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
@@ -153,7 +154,12 @@ defmodule Decocare.History do
   @bolus_reminder                           0x69
   @delete_alarm_clock_time                  0x6A
   @daily_total515                           0x6C
-  @daily_total522                           0x6D
+
+  def decode_page(<<0x6D, data::binary-size(43), tail::binary>>, pump_options, events) do
+    event = {:daily_total_522, decode_daily_total_522(data) | %{ raw: <<0x6D>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @daily_total523                           0x6E
   @change_carb_units                        0x6F
   @basal_profile_start                      0x7B
