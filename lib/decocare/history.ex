@@ -16,6 +16,7 @@ defmodule Decocare.History do
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
   import Decocare.History.TempBasal
+  import Decocare.History.TempBasalDuration
   import Decocare.History.BGReceived
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
@@ -60,7 +61,12 @@ defmodule Decocare.History do
 
   @clear_alarm                              0x0C
   @select_basal_profile                     0x14
-  @temp_basal_duration                      0x16
+
+  def decode_page(<<0x16, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:temp_basal_duration, decode_temp_basal_duration(data) | %{ raw: <<0x16>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_time                              0x17
   @new_time                                 0x18
   @journal_entry_pump_low_battery           0x19
