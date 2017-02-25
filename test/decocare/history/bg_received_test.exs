@@ -1,13 +1,15 @@
 defmodule Decocare.History.BGReceivedTest do
   use ExUnit.Case
 
-  test "BG Received" do
+  test "BG Received - 1" do
     {:ok, history_page} = Base.decode16("3F1B0183346D11856250")
     decoded_events = Decocare.History.decode_page(history_page, %{})
     assert {:bg_received, %{amount: 217, meter_link_id: "856250", timestamp: ~N[2017-02-13 20:03:01], raw: ^history_page}} = Enum.at(decoded_events, 0)
+  end
 
-    {:ok, history_page} = Base.decode16("3F1B0183D46D11856250")
+  test "BG Received - 2" do
+    {:ok, history_page} = Base.decode16("3F0E1D8B646E11859551")
     decoded_events = Decocare.History.decode_page(history_page, %{})
-    assert {:bg_received, %{amount: 222, meter_link_id: "856250", timestamp: ~N[2017-02-13 20:03:01], raw: ^history_page}} = Enum.at(decoded_events, 0)
+    assert {:bg_received, %{amount: 115, meter_link_id: "859551", timestamp: ~N[2017-02-14 04:11:29], raw: ^history_page}} = Enum.at(decoded_events, 0)
   end
 end
