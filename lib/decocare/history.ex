@@ -19,6 +19,7 @@ defmodule Decocare.History do
   import Decocare.History.TempBasal
   import Decocare.History.TempBasalDuration
   import Decocare.History.PumpSuspend
+  import Decocare.History.PumpResume
   import Decocare.History.BGReceived
   import Decocare.History.ChangeBolusWizardSetup
   import Decocare.History.BolusWizardEstimate
@@ -92,7 +93,11 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @resume                                   0x1F
+  def decode_page(<<0x1F, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:pump_resume, decode_pump_resume(data) | %{ raw: <<0x1F>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @selftest                                 0x20
   @rewind                                   0x21
   @clear_settings                           0x22
