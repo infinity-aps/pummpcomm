@@ -40,6 +40,11 @@ defmodule Decocare.History do
   def decode_page(page_data, pump_options = %{}), do: decode_page(page_data, pump_options, [])
   def decode_page(<<>>, _, events), do: events
 
+  def decode_page(<<0x00, tail::binary>>, pump_options, events) do
+    event = {:null_byte, raw: <<0x00>>}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   def decode_page(<<0x01, data::binary-size(8), tail::binary>>, pump_options = %{large_format: false, strokes_per_unit: strokes_per_unit}, events) do
     event = {:bolus_normal, decode_bolus_normal(data, strokes_per_unit) | %{ raw: <<0x01>> <> data }}
     decode_page(tail, pump_options, [event | events])
