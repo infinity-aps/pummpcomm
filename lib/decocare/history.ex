@@ -19,6 +19,7 @@ defmodule Decocare.History do
   import Decocare.History.TempBasal
   import Decocare.History.TempBasalDuration
   import Decocare.History.BGReceived
+  import Decocare.History.ChangeBolusWizardSetup
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
   import Decocare.History.DailyTotal522
@@ -117,7 +118,12 @@ defmodule Decocare.History do
   @journal_entry_exercise_marker            0x41
   @journal_entry_insulin_marker             0x42
   @journal_entry_other_marker               0x43
-  @change_bolus_wizard_setup                0x4F
+
+  def decode_page(<<0x4F, data::binary-size(38), tail::binary>>, pump_options, events) do
+    event = {:change_bolus_wizard_setup, decode_change_bolus_wizard_setup(data) | %{ raw: <<0x4F>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_sensor_setup2                     0x50
   @restore_mystery51                        0x51
   @restore_mystery52                        0x52
