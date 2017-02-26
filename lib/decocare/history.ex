@@ -18,6 +18,7 @@ defmodule Decocare.History do
   import Decocare.History.AlarmSensor
   import Decocare.History.TempBasal
   import Decocare.History.TempBasalDuration
+  import Decocare.History.PumpSuspend
   import Decocare.History.BGReceived
   import Decocare.History.ChangeBolusWizardSetup
   import Decocare.History.BolusWizardEstimate
@@ -85,7 +86,12 @@ defmodule Decocare.History do
   @journal_entry_pump_low_battery           0x19
   @battery                                  0x1A
   @set_auto_off                             0x1B
-  @suspend                                  0x1E
+
+  def decode_page(<<0x1E, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:pump_suspend, decode_pump_suspend(data) | %{ raw: <<0x1E>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @resume                                   0x1F
   @selftest                                 0x20
   @rewind                                   0x21
