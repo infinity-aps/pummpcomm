@@ -13,18 +13,24 @@ defmodule Decocare.History do
   alias Decocare.PumpModel
 
   import Decocare.History.BolusNormal
+  import Decocare.History.Prime
   import Decocare.History.ResultDailyTotal
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
   import Decocare.History.TempBasal
   import Decocare.History.TempBasalDuration
+  import Decocare.History.LowBattery
+  import Decocare.History.Battery
   import Decocare.History.PumpSuspend
   import Decocare.History.PumpResume
+  import Decocare.History.PumpRewind
   import Decocare.History.BGReceived
   import Decocare.History.ChangeBolusWizardSetup
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
   import Decocare.History.DailyTotal522
+  import Decocare.History.DailyTotal523
+  import Decocare.History.BasalProfileStart
 
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
@@ -53,10 +59,19 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @prime                                    0x03
+  def decode_page(<<0x03, data::binary-size(9), tail::binary>>, pump_options, events) do
+    event = {:prime, decode_prime(data) | %{ raw: <<0x03>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @alarm_pump                               0x06
 
   def decode_page(<<0x07, data::binary-size(6), tail::binary>>, pump_options = %{large_format: false}, events) do
+    event = {:result_daily_total, decode_result_daily_total(data) | %{ raw: <<0x07>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x07, data::binary-size(9), tail::binary>>, pump_options = %{large_format: true}, events) do
     event = {:result_daily_total, decode_result_daily_total(data) | %{ raw: <<0x07>> <> data }}
     decode_page(tail, pump_options, [event | events])
   end
@@ -84,8 +99,17 @@ defmodule Decocare.History do
 
   @change_time                              0x17
   @new_time                                 0x18
-  @journal_entry_pump_low_battery           0x19
-  @battery                                  0x1A
+
+  def decode_page(<<0x19, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:low_battery, decode_low_battery(data) | %{ raw: <<0x19>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x1A, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:battery, decode_battery(data) | %{ raw: <<0x1A>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @set_auto_off                             0x1B
 
   def decode_page(<<0x1E, data::binary-size(6), tail::binary>>, pump_options, events) do
@@ -99,7 +123,12 @@ defmodule Decocare.History do
   end
 
   @selftest                                 0x20
-  @rewind                                   0x21
+
+  def decode_page(<<0x21, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:pump_rewind, decode_pump_rewind(data) | %{ raw: <<0x21>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @clear_settings                           0x22
   @change_child_block_enable                0x23
   @change_max_bolus                         0x24
@@ -182,9 +211,19 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @daily_total523                           0x6E
+  def decode_page(<<0x6E, data::binary-size(51), tail::binary>>, pump_options, events) do
+    event = {:daily_total_523, decode_daily_total_523(data) | %{ raw: <<0x6E>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_carb_units                        0x6F
-  @basal_profile_start                      0x7B
+
+  def decode_page(<<0x7B, data::binary-size(9), tail::binary>>, pump_options, events) do
+    event = {:basal_profile_start, decode_basal_profile_start(data) | %{ raw: <<0x7B>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+
   @change_watchdog_enable                   0x7C
   @change_other_device_id                   0x7D
   @change_watchdog_marriage_profile         0x81
