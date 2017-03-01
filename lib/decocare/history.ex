@@ -15,6 +15,8 @@ defmodule Decocare.History do
   import Decocare.History.BolusNormal
   import Decocare.History.Prime
   import Decocare.History.ResultDailyTotal
+  import Decocare.History.ChangeBasalProfilePattern
+  import Decocare.History.ChangeBasalProfile
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
   import Decocare.History.TempBasal
@@ -30,6 +32,13 @@ defmodule Decocare.History do
   import Decocare.History.EnableBolusWizard
   import Decocare.History.BGReceived
   import Decocare.History.ChangeBolusWizardSetup
+  import Decocare.History.ChangeSensorSetup2
+  import Decocare.History.RestoreMystery51
+  import Decocare.History.RestoreMystery52
+  import Decocare.History.RestoreMystery54
+  import Decocare.History.RestoreMystery55
+  import Decocare.History.ChangeSensorRateOfChangeAlertSetup
+  import Decocare.History.ChangeSensorAlarmSilenceConfig
   import Decocare.History.ChangeBolusScrollStepSize
   import Decocare.History.BolusWizardSetup
   import Decocare.History.BolusWizardEstimate
@@ -38,6 +47,7 @@ defmodule Decocare.History do
   import Decocare.History.DailyTotal522
   import Decocare.History.DailyTotal523
   import Decocare.History.BasalProfileStart
+  import Decocare.History.ChangeCaptureEventEnable
 
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
@@ -49,7 +59,8 @@ defmodule Decocare.History do
   defp pump_options(pump_model) do
     %{
       large_format: PumpModel.large_format?(pump_model),
-      strokes_per_unit: PumpModel.strokes_per_unit(pump_model)
+      strokes_per_unit: PumpModel.strokes_per_unit(pump_model),
+      supports_low_suspend: PumpModel.supports_low_suspend?(pump_model)
     }
   end
 
@@ -83,8 +94,15 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_basal_profile_pattern             0x08
-  @change_basal_profile                     0x09
+  def decode_page(<<0x08, data::binary-size(151), tail::binary>>, pump_options, events) do
+    event = {:change_basal_profile_pattern, decode_change_basal_profile_pattern(data) | %{ raw: <<0x08>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x09, data::binary-size(151), tail::binary>>, pump_options, events) do
+    event = {:change_basal_profile, decode_change_basal_profile(data) | %{ raw: <<0x09>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x0A, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:cal_bg_for_ph, decode_cal_bg_for_ph(data) | %{ raw: <<0x0A>> <> data }}
@@ -188,19 +206,46 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  def decode_page(<<0x50, data::binary-size(38), tail::binary>>, pump_options, events) do
-    event = {:change_bolus_wizard_setup, decode_change_bolus_wizard_setup(data) | %{ raw: <<0x50>> <> data }}
+  def decode_page(<<0x50, data::binary-size(36), tail::binary>>, pump_options = %{ supports_low_suspend: false }, events) do
+    event = {:change_sensor_setup_2, decode_change_sensor_setup_2(data) | %{ raw: <<0x50>> <> data }}
     decode_page(tail, pump_options, [event | events])
   end
 
+  def decode_page(<<0x50, data::binary-size(40), tail::binary>>, pump_options = %{ supports_low_suspend: true }, events) do
+    event = {:change_sensor_setup_2, decode_change_sensor_setup_2(data) | %{ raw: <<0x50>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
+  def decode_page(<<0x51, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:restore_mystery_51, decode_restore_mystery_51(data) | %{ raw: <<0x51>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
-  @restore_mystery51                        0x51
-  @restore_mystery52                        0x52
-  @change_sensor_alarm_silence_config       0x53
-  @restore_mystery54                        0x54
-  @restore_mystery55                        0x55
-  @change_sensor_rate_of_change_alert_setup 0x56
+  def decode_page(<<0x52, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:restore_mystery_52, decode_restore_mystery_52(data) | %{ raw: <<0x52>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x53, data::binary-size(7), tail::binary>>, pump_options, events) do
+    event = {:change_sensor_alarm_silence_config, decode_change_sensor_alarm_silence_config(data) | %{ raw: <<0x53>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x54, data::binary-size(63), tail::binary>>, pump_options, events) do
+    event = {:restore_mystery_54, decode_restore_mystery_54(data) | %{ raw: <<0x54>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x55, data::binary-size(54), tail::binary>>, pump_options, events) do
+    event = {:restore_mystery_55, decode_restore_mystery_55(data) | %{ raw: <<0x55>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x56, data::binary-size(11), tail::binary>>, pump_options, events) do
+    event = {:change_sensor_rate_of_change_alert_setup, decode_change_sensor_rate_of_change_alert_setup(data) | %{ raw: <<0x56>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   def decode_page(<<0x57, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:change_bolus_scroll_step_size, decode_change_bolus_scroll_step_size(data) | %{ raw: <<0x57>> <> data }}
     decode_page(tail, pump_options, [event | events])
@@ -270,5 +315,9 @@ defmodule Decocare.History do
   @change_other_device_id                   0x7D
   @change_watchdog_marriage_profile         0x81
   @delete_other_device_id                   0x82
-  @change_capture_event_enable              0x83
+
+  def decode_page(<<0x83, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_capture_event_enable, decode_change_capture_event_enable(data) | %{ raw: <<0x83>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 end
