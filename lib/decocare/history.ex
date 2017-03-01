@@ -19,15 +19,22 @@ defmodule Decocare.History do
   import Decocare.History.AlarmSensor
   import Decocare.History.TempBasal
   import Decocare.History.TempBasalDuration
+  import Decocare.History.ChangeTime
+  import Decocare.History.NewTime
   import Decocare.History.LowBattery
   import Decocare.History.Battery
   import Decocare.History.PumpSuspend
   import Decocare.History.PumpResume
   import Decocare.History.PumpRewind
+  import Decocare.History.EnableDisableRemote
+  import Decocare.History.EnableBolusWizard
   import Decocare.History.BGReceived
   import Decocare.History.ChangeBolusWizardSetup
+  import Decocare.History.ChangeBolusScrollStepSize
+  import Decocare.History.BolusWizardSetup
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
+  import Decocare.History.ChangeAudioBolus
   import Decocare.History.DailyTotal522
   import Decocare.History.DailyTotal523
   import Decocare.History.BasalProfileStart
@@ -97,8 +104,15 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_time                              0x17
-  @new_time                                 0x18
+  def decode_page(<<0x17, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_time, decode_change_time(data) | %{ raw: <<0x17>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x18, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:new_time, decode_new_time(data) | %{ raw: <<0x18>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x19, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:low_battery, decode_low_battery(data) | %{ raw: <<0x19>> <> data }}
@@ -132,9 +146,19 @@ defmodule Decocare.History do
   @clear_settings                           0x22
   @change_child_block_enable                0x23
   @change_max_bolus                         0x24
-  @enable_disable_remote                    0x26
+
+  def decode_page(<<0x26, data::binary-size(20), tail::binary>>, pump_options, events) do
+    event = {:enable_disable_remote, decode_enable_disable_remote(data) | %{ raw: <<0x26>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_max_basal                         0x2C
-  @enable_bolus_wizard                      0x2D
+
+  def decode_page(<<0x2D, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:enable_bolus_wizard, decode_enable_bolus_wizard(data) | %{ raw: <<0x2D>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_bg_reminder_offset                0x31
   @change_alarm_clock_time                  0x32
 
@@ -164,15 +188,28 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_sensor_setup2                     0x50
+  def decode_page(<<0x50, data::binary-size(38), tail::binary>>, pump_options, events) do
+    event = {:change_bolus_wizard_setup, decode_change_bolus_wizard_setup(data) | %{ raw: <<0x50>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+
+
   @restore_mystery51                        0x51
   @restore_mystery52                        0x52
   @change_sensor_alarm_silence_config       0x53
   @restore_mystery54                        0x54
   @restore_mystery55                        0x55
   @change_sensor_rate_of_change_alert_setup 0x56
-  @change_bolus_scroll_step_size            0x57
-  @bolus_wizard_setup                       0x5A
+  def decode_page(<<0x57, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_bolus_scroll_step_size, decode_change_bolus_scroll_step_size(data) | %{ raw: <<0x57>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x5A, data::binary-size(143), tail::binary>>, pump_options = %{large_format: true}, events) do
+    event = {:bolus_wizard_setup, decode_bolus_wizard_setup(data) | %{ raw: <<0x5A>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x5B, data::binary-size(19), tail::binary>>, pump_options = %{large_format: false}, events) do
     event = {:bolus_wizard_estimate, decode_bolus_wizard_estimate(data) | %{ raw: <<0x5B>> <> data }}
@@ -192,7 +229,12 @@ defmodule Decocare.History do
 
   @save_settings                            0x5D
   @change_variable_bolus                    0x5E
-  @change_audio_bolus                       0x5F
+
+  def decode_page(<<0x5F, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_audio_bolus, decode_change_audio_bolus(data) | %{ raw: <<0x5F>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_bg_reminder_enable                0x60
   @change_alarm_clock_enable                0x61
   @change_temp_basal_type                   0x62
