@@ -14,11 +14,13 @@ defmodule Decocare.History do
 
   import Decocare.History.BolusNormal
   import Decocare.History.Prime
+  import Decocare.History.AlarmPump
   import Decocare.History.ResultDailyTotal
   import Decocare.History.ChangeBasalProfilePattern
   import Decocare.History.ChangeBasalProfile
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
+  import Decocare.History.ClearAlarm
   import Decocare.History.TempBasal
   import Decocare.History.TempBasalDuration
   import Decocare.History.ChangeTime
@@ -44,6 +46,8 @@ defmodule Decocare.History do
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
   import Decocare.History.ChangeAudioBolus
+  import Decocare.History.ChangeTempBasalType
+  import Decocare.History.ChangeTimeDisplay
   import Decocare.History.DailyTotal522
   import Decocare.History.DailyTotal523
   import Decocare.History.BasalProfileStart
@@ -82,7 +86,10 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @alarm_pump                               0x06
+  def decode_page(<<0x06, data::binary-size(8), tail::binary>>, pump_options, events) do
+    event = {:alarm_pump, decode_alarm_pump(data) | %{ raw: <<0x06>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x07, data::binary-size(6), tail::binary>>, pump_options = %{large_format: false}, events) do
     event = {:result_daily_total, decode_result_daily_total(data) | %{ raw: <<0x07>> <> data }}
@@ -114,7 +121,11 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @clear_alarm                              0x0C
+  def decode_page(<<0x0C, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:clear_alarm, decode_clear_alarm(data) | %{ raw: <<0x0C>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @select_basal_profile                     0x14
 
   def decode_page(<<0x16, data::binary-size(6), tail::binary>>, pump_options, events) do
@@ -282,9 +293,19 @@ defmodule Decocare.History do
 
   @change_bg_reminder_enable                0x60
   @change_alarm_clock_enable                0x61
-  @change_temp_basal_type                   0x62
+
+  def decode_page(<<0x62, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_temp_basal_type, decode_change_temp_basal_type(data) | %{ raw: <<0x62>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_alarm_notify_mode                 0x63
-  @change_time_format                       0x64
+
+  def decode_page(<<0x64, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_time_display, decode_change_time_display(data) | %{ raw: <<0x64>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_reservoir_warning_time            0x65
   @change_bolus_reminder_enable             0x66
   @change_bolus_reminder_time               0x67
