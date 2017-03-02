@@ -21,7 +21,9 @@ defmodule Decocare.History do
   import Decocare.History.CalBGForPH
   import Decocare.History.AlarmSensor
   import Decocare.History.ClearAlarm
+  import Decocare.History.SelectBasalProfile
   import Decocare.History.TempBasal
+  import Decocare.History.ChangeParadigmLinkID
   import Decocare.History.TempBasalDuration
   import Decocare.History.ChangeTime
   import Decocare.History.NewTime
@@ -56,10 +58,13 @@ defmodule Decocare.History do
   import Decocare.History.ChangeTempBasalType
   import Decocare.History.ChangeAlarmNotifyMode
   import Decocare.History.ChangeTimeDisplay
+  import Decocare.History.ChangeReservoirWarningTime
   import Decocare.History.ChangeBolusReminderEnable
   import Decocare.History.DailyTotal522
   import Decocare.History.DailyTotal523
+  import Decocare.History.ChangeCarbUnits
   import Decocare.History.BasalProfileStart
+  import Decocare.History.ChangeWatchdogEnable
   import Decocare.History.ChangeOtherDeviceID
   import Decocare.History.DeleteOtherDeviceID
   import Decocare.History.ChangeCaptureEventEnable
@@ -137,7 +142,11 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @select_basal_profile                     0x14
+  def decode_page(<<0x14, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:select_basal_profile, decode_select_basal_profile(data) | %{ raw: <<0x14>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x16, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:temp_basal_duration, decode_temp_basal_duration(data) | %{ raw: <<0x16>> <> data }}
@@ -229,7 +238,12 @@ defmodule Decocare.History do
   @alarm_clock_reminder                     0x35
   @change_meter_id                          0x36
   @questionable3b                           0x3B
-  @change_paradigm_link_id                  0x3C
+
+  def decode_page(<<0x3C, data::binary-size(20), tail::binary>>, pump_options, events) do
+    event = {:change_paradigm_link_id, decode_change_paradigm_link_id(data) | %{ raw: <<0x3C>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x3F, data::binary-size(9), tail::binary>>, pump_options, events) do
     event = {:bg_received, decode_bg_received(data) | %{ raw: <<0x3F>> <> data }}
@@ -352,7 +366,11 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_reservoir_warning_time            0x65
+  def decode_page(<<0x65, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_reservoir_warning_time, decode_change_reservoir_warning_time(data) | %{ raw: <<0x65>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x66, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:change_bolus_reminder_enable, decode_change_bolus_reminder_enable(data) | %{ raw: <<0x66>> <> data }}
@@ -375,14 +393,20 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_carb_units                        0x6F
+  def decode_page(<<0x6F, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_carb_units, decode_change_carb_units(data) | %{ raw: <<0x6F>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x7B, data::binary-size(9), tail::binary>>, pump_options, events) do
     event = {:basal_profile_start, decode_basal_profile_start(data) | %{ raw: <<0x7B>> <> data }}
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_watchdog_enable                   0x7C
+  def decode_page(<<0x7C, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_watchdog_enable, decode_change_watchdog_enable(data) | %{ raw: <<0x7C>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x7D, data::binary-size(36), tail::binary>>, pump_options, events) do
     event = {:change_other_device_id, decode_change_other_device_id(data) | %{ raw: <<0x7D>> <> data }}
