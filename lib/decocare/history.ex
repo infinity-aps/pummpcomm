@@ -27,10 +27,13 @@ defmodule Decocare.History do
   import Decocare.History.NewTime
   import Decocare.History.LowBattery
   import Decocare.History.Battery
+  import Decocare.History.SetAutoOff
   import Decocare.History.PumpSuspend
   import Decocare.History.PumpResume
   import Decocare.History.PumpRewind
+  import Decocare.History.ChangeMaxBolus
   import Decocare.History.EnableDisableRemote
+  import Decocare.History.ChangeMaxBasal
   import Decocare.History.EnableBolusWizard
   import Decocare.History.BGReceived
   import Decocare.History.ChangeBolusWizardSetup
@@ -47,10 +50,13 @@ defmodule Decocare.History do
   import Decocare.History.UnabsorbedInsulin
   import Decocare.History.ChangeAudioBolus
   import Decocare.History.ChangeTempBasalType
+  import Decocare.History.ChangeAlarmNotifyMode
   import Decocare.History.ChangeTimeDisplay
   import Decocare.History.DailyTotal522
   import Decocare.History.DailyTotal523
   import Decocare.History.BasalProfileStart
+  import Decocare.History.ChangeOtherDeviceID
+  import Decocare.History.DeleteOtherDeviceID
   import Decocare.History.ChangeCaptureEventEnable
 
   def decode(page, pump_model) do
@@ -153,7 +159,11 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @set_auto_off                             0x1B
+  def decode_page(<<0x1B, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:set_auto_off, decode_set_auto_off(data) | %{ raw: <<0x1B>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x1E, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:pump_suspend, decode_pump_suspend(data) | %{ raw: <<0x1E>> <> data }}
@@ -174,14 +184,23 @@ defmodule Decocare.History do
 
   @clear_settings                           0x22
   @change_child_block_enable                0x23
-  @change_max_bolus                         0x24
+
+  def decode_page(<<0x24, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_max_bolus, decode_change_max_bolus(data) | %{ raw: <<0x24>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x26, data::binary-size(20), tail::binary>>, pump_options, events) do
     event = {:enable_disable_remote, decode_enable_disable_remote(data) | %{ raw: <<0x26>> <> data }}
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_max_basal                         0x2C
+  def decode_page(<<0x2C, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_max_basal, decode_change_max_basal(data) | %{ raw: <<0x2C>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x2D, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:enable_bolus_wizard, decode_enable_bolus_wizard(data) | %{ raw: <<0x2D>> <> data }}
@@ -299,7 +318,11 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_alarm_notify_mode                 0x63
+  def decode_page(<<0x63, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:change_alarm_notify_mode, decode_change_alarm_notify_mode(data) | %{ raw: <<0x63>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x64, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:change_time_display, decode_change_time_display(data) | %{ raw: <<0x64>> <> data }}
@@ -331,11 +354,20 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-
   @change_watchdog_enable                   0x7C
-  @change_other_device_id                   0x7D
+
+  def decode_page(<<0x7D, data::binary-size(36), tail::binary>>, pump_options, events) do
+    event = {:change_other_device_id, decode_change_other_device_id(data) | %{ raw: <<0x7D>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
   @change_watchdog_marriage_profile         0x81
-  @delete_other_device_id                   0x82
+
+  def decode_page(<<0x82, data::binary-size(11), tail::binary>>, pump_options, events) do
+    event = {:delete_other_device_id, decode_delete_other_device_id(data) | %{ raw: <<0x82>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
 
   def decode_page(<<0x83, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:change_capture_event_enable, decode_change_capture_event_enable(data) | %{ raw: <<0x83>> <> data }}
