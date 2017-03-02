@@ -9,7 +9,6 @@ defmodule Decocare.History do
   use Bitwise
 
   alias Decocare.Crc16
-  alias Decocare.DateDecoder
   alias Decocare.PumpModel
 
   import Decocare.History.BolusNormal
