@@ -31,7 +31,9 @@ defmodule Decocare.History do
   import Decocare.History.SetAutoOff
   import Decocare.History.PumpSuspend
   import Decocare.History.PumpResume
+  import Decocare.History.SelfTest
   import Decocare.History.PumpRewind
+  import Decocare.History.ClearSettings
   import Decocare.History.ChangeChildBlockEnable
   import Decocare.History.ChangeMaxBolus
   import Decocare.History.EnableDisableRemote
@@ -92,6 +94,11 @@ defmodule Decocare.History do
   end
 
   def decode_page(<<0x01, data::binary-size(8), tail::binary>>, pump_options = %{large_format: false, strokes_per_unit: strokes_per_unit}, events) do
+    event = {:bolus_normal, decode_bolus_normal(data, strokes_per_unit) | %{ raw: <<0x01>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x01, data::binary-size(12), tail::binary>>, pump_options = %{large_format: true, strokes_per_unit: strokes_per_unit}, events) do
     event = {:bolus_normal, decode_bolus_normal(data, strokes_per_unit) | %{ raw: <<0x01>> <> data }}
     decode_page(tail, pump_options, [event | events])
   end
@@ -177,7 +184,6 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-
   def decode_page(<<0x1E, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:pump_suspend, decode_pump_suspend(data) | %{ raw: <<0x1E>> <> data }}
     decode_page(tail, pump_options, [event | events])
@@ -188,14 +194,20 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @selftest                                 0x20
+  def decode_page(<<0x20, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:self_test, decode_self_test(data) | %{ raw: <<0x20>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x21, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:pump_rewind, decode_pump_rewind(data) | %{ raw: <<0x21>> <> data }}
     decode_page(tail, pump_options, [event | events])
   end
 
-  @clear_settings                           0x22
+  def decode_page(<<0x22, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:clear_settings, decode_clear_settings(data) | %{ raw: <<0x22>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x23, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:change_child_block_enable, decode_change_child_block_enable(data) | %{ raw: <<0x23>> <> data }}
@@ -310,6 +322,11 @@ defmodule Decocare.History do
   end
 
   def decode_page(<<0x5B, data::binary-size(19), tail::binary>>, pump_options = %{large_format: false}, events) do
+    event = {:bolus_wizard_estimate, decode_bolus_wizard_estimate(data) | %{ raw: <<0x5B>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x5B, data::binary-size(21), tail::binary>>, pump_options = %{large_format: true}, events) do
     event = {:bolus_wizard_estimate, decode_bolus_wizard_estimate(data) | %{ raw: <<0x5B>> <> data }}
     decode_page(tail, pump_options, [event | events])
   end
