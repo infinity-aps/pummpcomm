@@ -331,7 +331,7 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  def decode_page(<<0x5C, length::8, tail::binary>>, pump_options = %{large_format: false}, events) do
+  def decode_page(<<0x5C, length::8, tail::binary>>, pump_options, events) do
     data_length = max((length - 2), 2)
     <<data::binary-size(data_length), tail::binary>> = tail
     event_info = %{
