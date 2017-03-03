@@ -46,6 +46,10 @@ defmodule Decocare.History do
   import Decocare.History.ChangeBGReminderOffset
   import Decocare.History.ChangeAlarmClockTime
   import Decocare.History.BGReceived
+  import Decocare.History.MealMarker
+  import Decocare.History.ExerciseMarker
+  import Decocare.History.InsulinMarker
+  import Decocare.History.OtherMarker
   import Decocare.History.ChangeBolusWizardSetup
   import Decocare.History.ChangeSensorSetup2
   import Decocare.History.RestoreMystery51
@@ -285,10 +289,25 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @journal_entry_meal_marker                0x40
-  @journal_entry_exercise_marker            0x41
-  @journal_entry_insulin_marker             0x42
-  @journal_entry_other_marker               0x43
+  def decode_page(<<0x40, data::binary-size(8), tail::binary>>, pump_options, events) do
+    event = {:meal_marker, decode_meal_marker(data) | %{ raw: <<0x40>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x41, data::binary-size(7), tail::binary>>, pump_options, events) do
+    event = {:exercise_marker, decode_exercise_marker(data) | %{ raw: <<0x41>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x42, data::binary-size(7), tail::binary>>, pump_options, events) do
+    event = {:insulin_marker, decode_insulin_marker(data) | %{ raw: <<0x42>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x43, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:other_marker, decode_other_marker(data) | %{ raw: <<0x43>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x4F, data::binary-size(38), tail::binary>>, pump_options, events) do
     event = {:change_bolus_wizard_setup, decode_change_bolus_wizard_setup(data) | %{ raw: <<0x4F>> <> data }}
