@@ -62,6 +62,7 @@ defmodule Decocare.History do
   import Decocare.History.BolusWizardSetup
   import Decocare.History.BolusWizardEstimate
   import Decocare.History.UnabsorbedInsulin
+  import Decocare.History.SaveSettings
   import Decocare.History.ChangeVariableBolus
   import Decocare.History.ChangeAudioBolus
   import Decocare.History.ChangeBGReminderEnable
@@ -71,6 +72,11 @@ defmodule Decocare.History do
   import Decocare.History.ChangeTimeDisplay
   import Decocare.History.ChangeReservoirWarningTime
   import Decocare.History.ChangeBolusReminderEnable
+  import Decocare.History.ChangeBolusReminderTime
+  import Decocare.History.DeleteBolusReminderTime
+  import Decocare.History.BolusReminder
+  import Decocare.History.DeleteAlarmClockTime
+  import Decocare.History.DailyTotal515
   import Decocare.History.DailyTotal522
   import Decocare.History.DailyTotal523
   import Decocare.History.ChangeCarbUnits
@@ -385,7 +391,10 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @save_settings                            0x5D
+  def decode_page(<<0x5D, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:save_settings, decode_save_settings(data) | %{ raw: <<0x5D>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x5E, data::binary-size(6), tail::binary>>, pump_options, events) do
     event = {:change_variable_bolus, decode_change_variable_bolus(data) | %{ raw: <<0x5E>> <> data }}
@@ -435,11 +444,30 @@ defmodule Decocare.History do
     decode_page(tail, pump_options, [event | events])
   end
 
-  @change_bolus_reminder_time               0x67
-  @delete_bolus_reminder_time               0x68
-  @bolus_reminder                           0x69
-  @delete_alarm_clock_time                  0x6A
-  @daily_total515                           0x6C
+  def decode_page(<<0x67, data::binary-size(8), tail::binary>>, pump_options, events) do
+    event = {:change_bolus_reminder_time, decode_change_bolus_reminder_time(data) | %{ raw: <<0x67>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x68, data::binary-size(8), tail::binary>>, pump_options, events) do
+    event = {:delete_bolus_reminder_time, decode_delete_bolus_reminder_time(data) | %{ raw: <<0x68>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x69, data::binary-size(8), tail::binary>>, pump_options = %{ large_format: true }, events) do
+    event = {:bolus_reminder, decode_bolus_reminder(data) | %{ raw: <<0x69>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x6A, data::binary-size(6), tail::binary>>, pump_options, events) do
+    event = {:delete_alarm_clock_time, decode_delete_alarm_clock_time(data) | %{ raw: <<0x6A>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
+
+  def decode_page(<<0x6C, data::binary-size(37), tail::binary>>, pump_options, events) do
+    event = {:daily_total_515, decode_daily_total_515(data) | %{ raw: <<0x6C>> <> data }}
+    decode_page(tail, pump_options, [event | events])
+  end
 
   def decode_page(<<0x6D, data::binary-size(43), tail::binary>>, pump_options, events) do
     event = {:daily_total_522, decode_daily_total_522(data) | %{ raw: <<0x6D>> <> data }}

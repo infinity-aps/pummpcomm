@@ -1,6 +1,7 @@
 defmodule Decocare.History.OtherMarkerTest do
   use ExUnit.Case
 
+  # TODO capture this in real life
   test "Other Marker" do
     {:ok, history_page} = Base.decode16("4300722713040F")
     decoded_events = Decocare.History.decode_page(history_page, %{})
