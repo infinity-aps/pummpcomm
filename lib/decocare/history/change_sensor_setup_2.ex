@@ -1,13 +1,15 @@
 defmodule Decocare.History.ChangeSensorSetup2 do
   alias Decocare.DateDecoder
 
-  def decode_change_sensor_setup_2(<<_::8, timestamp::binary-size(5), _::binary-size(30)>>) do
+  def event_type, do: :change_sensor_setup_2
+
+  def decode(<<_::8, timestamp::binary-size(5), _::binary-size(30)>>, _) do
     %{
       timestamp: DateDecoder.decode_history_timestamp(timestamp),
     }
   end
 
-  def decode_change_sensor_setup_2(<<_::8, timestamp::binary-size(5), _::binary-size(34)>>) do
+  def decode(<<_::8, timestamp::binary-size(5), _::binary-size(34)>>, _) do
     %{
       timestamp: DateDecoder.decode_history_timestamp(timestamp),
     }

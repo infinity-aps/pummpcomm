@@ -2,7 +2,7 @@ defmodule Decocare.History.MealMarker do
   use Bitwise
   alias Decocare.DateDecoder
 
-  def decode_meal_marker(<<_::7, carb_high_bit::1, timestamp::binary-size(5), carb_low_bits::8, _::6, unit_bit::1, _::1>>) do
+  def decode(<<_::7, carb_high_bit::1, timestamp::binary-size(5), carb_low_bits::8, _::6, unit_bit::1, _::1>>, _) do
     units = units(unit_bit)
     %{
       carbohydrates: carbohydrates(carb_high_bit, carb_low_bits, units),

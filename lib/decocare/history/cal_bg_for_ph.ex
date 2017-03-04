@@ -2,7 +2,7 @@ defmodule Decocare.History.CalBGForPH do
   use Bitwise
   alias Decocare.DateDecoder, as: DateDecoder
 
-  def decode_cal_bg_for_ph(<<amount::8, timestamp::binary-size(5)>>) do
+  def decode(<<amount::8, timestamp::binary-size(5)>>, _) do
     <<_::size(16), amount_high_bit::size(1), _::size(15), amount_medium_bit::size(1), _::size(7)>> = timestamp
     %{
       amount: (amount_high_bit <<< 9) + (amount_medium_bit <<< 8) + amount,

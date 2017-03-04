@@ -2,7 +2,7 @@ defmodule Decocare.History.TempBasal do
   use Bitwise
   alias Decocare.DateDecoder
 
-  def decode_temp_basal(<<rate_low_bits::8, timestamp::binary-size(5), raw_rate_type::5, rate_high_bits::3>>) do
+  def decode(<<rate_low_bits::8, timestamp::binary-size(5), raw_rate_type::5, rate_high_bits::3>>, _) do
     %{
       rate_type: rate_type(raw_rate_type),
       rate: rate(rate_type(raw_rate_type), rate_high_bits, rate_low_bits),

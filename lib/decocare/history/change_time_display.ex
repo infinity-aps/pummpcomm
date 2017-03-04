@@ -1,7 +1,7 @@
 defmodule Decocare.History.ChangeTimeDisplay do
   alias Decocare.DateDecoder
 
-  def decode_change_time_display(<<_::8, timestamp::binary-size(5)>>) do
+  def decode(<<_::8, timestamp::binary-size(5)>>, _) do
     %{
       timestamp: DateDecoder.decode_history_timestamp(timestamp),
     }
