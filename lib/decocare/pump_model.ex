@@ -18,6 +18,14 @@ defmodule Decocare.PumpModel do
   def model_number({model_number, _}) when div(model_number, 100) in [5, 7], do: {:ok, model_number}
   def model_number(_),                                                       do: {:error, "Bad Pump Model"}
 
+  def pump_options(pump_model) do
+    %{
+      large_format: large_format?(pump_model),
+      strokes_per_unit: strokes_per_unit(pump_model),
+      supports_low_suspend: supports_low_suspend?(pump_model)
+    }
+  end
+
   @doc """
   Return true if history records use larger format
 

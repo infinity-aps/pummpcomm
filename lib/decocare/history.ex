@@ -14,6 +14,7 @@ defmodule Decocare.History do
   require Decocare.HistoryDefinition
   use Bitwise
 
+  alias Decocare.History.PumpModel
   alias Decocare.Crc16
   alias Decocare.PumpModel
 
@@ -21,7 +22,7 @@ defmodule Decocare.History do
 
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
-      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_records(pump_options(pump_model)) |> Enum.reverse}
+      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_records(PumpModel.pump_options(pump_model)) |> Enum.reverse}
       other    -> other
     end
   end
@@ -120,14 +121,6 @@ defmodule Decocare.History do
       true  -> apply(module, :event_type, [])
       false -> module |> Module.split |> List.last |> Macro.underscore |> String.to_atom
     end
-  end
-
-  defp pump_options(pump_model) do
-    %{
-      large_format: PumpModel.large_format?(pump_model),
-      strokes_per_unit: PumpModel.strokes_per_unit(pump_model),
-      supports_low_suspend: PumpModel.supports_low_suspend?(pump_model)
-    }
   end
 
   defp calculate_length(length_fn, pump_options, body_and_tail) do
