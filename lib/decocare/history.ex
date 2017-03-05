@@ -30,12 +30,8 @@ defmodule Decocare.History do
 
   defp do_decode_records(<<>>, _, events), do: events
 
-  defp do_decode_records(<<0x00, tail::binary>>, pump_options, events) do
-    event = {:null_byte, raw: <<0x00>>}
-    do_decode_records(tail, pump_options, [event | events])
-  end
-
   #                      op    name                                byte length
+  define_record          0x00, NullByte,                           fixed_length(1)
   define_record          0x01, BolusNormal,                        length_by_format(9, 13)
   define_record          0x03, Prime,                              fixed_length( 10)
   define_record          0x06, AlarmPump,                          fixed_length(  9)
