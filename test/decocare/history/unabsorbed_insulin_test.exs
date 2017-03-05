@@ -3,7 +3,7 @@ defmodule Decocare.History.UnabsorbedInsulinTest do
 
   test "Unabsorbed Insulin - 1" do
     {:ok, history_page} = Base.decode16("5C11C8C30470F50402091436131470DB14")
-    decoded_events = Decocare.History.decode_page(history_page, %{ large_format: false })
+    decoded_events = Decocare.History.decode_page(history_page, %{})
     expected_event_info = %{
       data: [
         %{ age: 195, amount: 5.00 },
@@ -19,7 +19,7 @@ defmodule Decocare.History.UnabsorbedInsulinTest do
 
   test "Unabsorbed Insulin - 2" do
     {:ok, history_page} = Base.decode16("5C083C0B04505F14")
-    decoded_events = Decocare.History.decode_page(history_page, %{ large_format: true })
+    decoded_events = Decocare.History.decode_page(history_page, %{})
     expected_event_info = %{
       data: [
         %{ age:  11, amount: 1.50 },
