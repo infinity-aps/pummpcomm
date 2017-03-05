@@ -3,7 +3,7 @@ defmodule Decocare.History.BasalProfileStartTest do
 
   test "Basal Profile Start - 1" do
     {:ok, history_page} = Base.decode16("7B00572A13040F000400")
-    decoded_events = Decocare.History.decode_page(history_page, %{})
+    decoded_events = Decocare.History.decode_records(history_page, %{})
     expected_event_info = %{
       offset: 0,
       rate: 0.1,
@@ -16,7 +16,7 @@ defmodule Decocare.History.BasalProfileStartTest do
 
   test "Basal Profile Start - 2" do
     {:ok, history_page} = Base.decode16("7B066F3712050F253000")
-    decoded_events = Decocare.History.decode_page(history_page, %{})
+    decoded_events = Decocare.History.decode_records(history_page, %{})
     expected_event_info = %{
       offset: 66600000,
       rate: 1.2,

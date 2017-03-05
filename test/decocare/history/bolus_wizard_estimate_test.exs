@@ -3,7 +3,7 @@ defmodule Decocare.History.BolusWizardEstimateTest do
 
   test "Bolus Wizard Estimate - Smaller" do
     {:ok, history_page} = Base.decode16("5BD90685140D11005006234B2400000007001D5A")
-    decoded_events = Decocare.History.decode_page(history_page, %{ large_format: false })
+    decoded_events = Decocare.History.decode_records(history_page, %{ large_format: false })
     expected_event_info = %{
       bg: 217,
       bg_target_high: 90,
@@ -23,7 +23,7 @@ defmodule Decocare.History.BolusWizardEstimateTest do
 
   test "Bolus Wizard Estimate - Larger" do
     {:ok, history_page} = Base.decode16("5B0016E814790F5050003C285A000214000000021478")
-    decoded_events = Decocare.History.decode_page(history_page, %{ large_format: true })
+    decoded_events = Decocare.History.decode_records(history_page, %{ large_format: true })
     expected_event_info = %{
       bg: 0,
       bg_target_high: 120,

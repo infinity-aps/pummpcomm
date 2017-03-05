@@ -4,7 +4,7 @@ defmodule Decocare.History.SaveSettingsTest do
   # TODO capture this in real life
   test "Save Settings" do
     {:ok, history_page} = Base.decode16("5D00722713040F")
-    decoded_events = Decocare.History.decode_page(history_page, %{})
+    decoded_events = Decocare.History.decode_records(history_page, %{})
     assert {:save_settings, %{timestamp: ~N[2015-04-04 19:39:50], raw: ^history_page}} = Enum.at(decoded_events, 0)
   end
 end

@@ -1,6 +1,6 @@
 defmodule Decocare.History.AlarmSensor do
   use Bitwise
-  alias Decocare.DateDecoder, as: DateDecoder
+  alias Decocare.DateDecoder
 
   @alarm_types %{
     0x65 => "High Glucose",
@@ -13,19 +13,19 @@ defmodule Decocare.History.AlarmSensor do
     0x71 => "Lost Sensor",
     0x73 => "Low Glucose Predicted"
   }
-  def decode_alarm_sensor(<<0x65, amount::8, timestamp::binary-size(5)>>) do
-    decode_alarm_sensor(0x65, %{amount: amount(amount, timestamp)}, timestamp)
+  def decode(<<0x65, amount::8, timestamp::binary-size(5)>>, _) do
+    decode(0x65, %{amount: amount(amount, timestamp)}, timestamp)
   end
 
-  def decode_alarm_sensor(<<0x66, amount::8, timestamp::binary-size(5)>>) do
-    decode_alarm_sensor(0x66, %{amount: amount(amount, timestamp)}, timestamp)
+  def decode(<<0x66, amount::8, timestamp::binary-size(5)>>, _) do
+    decode(0x66, %{amount: amount(amount, timestamp)}, timestamp)
   end
 
-  def decode_alarm_sensor(<<alarm_type::8, _::8, timestamp::binary-size(5)>>) do
-    decode_alarm_sensor(alarm_type, %{}, timestamp)
+  def decode(<<alarm_type::8, _::8, timestamp::binary-size(5)>>, _) do
+    decode(alarm_type, %{}, timestamp)
   end
 
-  def decode_alarm_sensor(alarm_type, alarm_params, timestamp) do
+  def decode(alarm_type, alarm_params, timestamp) do
     Map.merge(%{
       timestamp: DateDecoder.decode_history_timestamp(timestamp),
       alarm_type: Map.get(@alarm_types, alarm_type, "Unknown")

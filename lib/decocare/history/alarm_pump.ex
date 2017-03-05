@@ -1,7 +1,7 @@
 defmodule Decocare.History.AlarmPump do
   alias Decocare.DateDecoder
 
-  def decode_alarm_pump(<<alarm_type::8, _::16, timestamp::binary-size(5)>>) do
+  def decode(<<alarm_type::8, _::16, timestamp::binary-size(5)>>, _) do
     %{
       timestamp: DateDecoder.decode_history_timestamp(timestamp),
       alarm_type: alarm_type(alarm_type)

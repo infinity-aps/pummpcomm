@@ -3,7 +3,7 @@ defmodule Decocare.History.BolusNormalTest do
 
   test "Bolus Normal - Smaller" do
     {:ok, history_page} = Base.decode16("011D1D000785340D11")
-    decoded_events = Decocare.History.decode_page(history_page, %{large_format: false, strokes_per_unit: 10})
+    decoded_events = Decocare.History.decode_records(history_page, %{large_format: false, strokes_per_unit: 10})
     expected_event_info = %{
       programmed: 2.9,
       amount: 2.9,
@@ -17,7 +17,7 @@ defmodule Decocare.History.BolusNormalTest do
 
   test "Bolus Normal - Larger" do
     {:ok, history_page} = Base.decode16("01003C003C00000012E154790F")
-    decoded_events = Decocare.History.decode_page(history_page, %{large_format: true, strokes_per_unit: 40})
+    decoded_events = Decocare.History.decode_records(history_page, %{large_format: true, strokes_per_unit: 40})
     expected_event_info = %{
       programmed: 1.5,
       amount: 1.5,
@@ -32,7 +32,7 @@ defmodule Decocare.History.BolusNormalTest do
 
   test "Bolus Square" do
     {:ok, history_page} = Base.decode16("011D1D010785340D11")
-    decoded_events = Decocare.History.decode_page(history_page, %{large_format: false, strokes_per_unit: 10})
+    decoded_events = Decocare.History.decode_records(history_page, %{large_format: false, strokes_per_unit: 10})
     expected_event_info = %{
       programmed: 2.9,
       amount: 2.9,

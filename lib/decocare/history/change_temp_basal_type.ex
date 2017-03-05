@@ -1,7 +1,7 @@
 defmodule Decocare.History.ChangeTempBasalType do
   alias Decocare.DateDecoder
 
-  def decode_change_temp_basal_type(<<basal_type::8, timestamp::binary-size(5)>>) do
+  def decode(<<basal_type::8, timestamp::binary-size(5)>>, _) do
     %{
       basal_type: basal_type(basal_type),
       timestamp: DateDecoder.decode_history_timestamp(timestamp)

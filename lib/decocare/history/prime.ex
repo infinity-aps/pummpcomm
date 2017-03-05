@@ -2,7 +2,7 @@ defmodule Decocare.History.Prime do
   use Bitwise
   alias Decocare.DateDecoder
 
-  def decode_prime(<<_::8, raw_programmed_amount::8, _::8, raw_amount::8, timestamp::binary-size(5)>>) do
+  def decode(<<_::8, raw_programmed_amount::8, _::8, raw_amount::8, timestamp::binary-size(5)>>, _) do
     programmed_amount = (raw_programmed_amount <<< 2) / 40
     %{
       programmed_amount: programmed_amount,

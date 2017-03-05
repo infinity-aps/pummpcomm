@@ -1,517 +1,151 @@
-defmodule MapMerge do
-  def a | b do
-    Map.merge(a, b)
+defmodule Decocare.HistoryDefinition do
+  defmacro define_record(opcode, module, size_fn) do
+    quote do
+      alias Decocare.History.unquote(module)
+      defp do_decode_records(<<unquote(opcode), body_and_tail::binary>>, pump_options, events) do
+        body_length = calculate_length(unquote(size_fn), pump_options, body_and_tail)
+        decode_record(unquote(module), unquote(opcode), body_length, body_and_tail, pump_options, events)
+      end
+    end
   end
 end
 
 defmodule Decocare.History do
-  import MapMerge
-  use Bitwise
+  require Decocare.HistoryDefinition
 
+  alias Decocare.History.PumpModel
   alias Decocare.Crc16
   alias Decocare.PumpModel
 
-  import Decocare.History.BolusNormal
-  import Decocare.History.Prime
-  import Decocare.History.AlarmPump
-  import Decocare.History.ResultDailyTotal
-  import Decocare.History.ChangeBasalProfilePattern
-  import Decocare.History.ChangeBasalProfile
-  import Decocare.History.CalBGForPH
-  import Decocare.History.AlarmSensor
-  import Decocare.History.ClearAlarm
-  import Decocare.History.SelectBasalProfile
-  import Decocare.History.TempBasal
-  import Decocare.History.LowReservoir
-  import Decocare.History.AlarmClockReminder
-  import Decocare.History.ChangeMeterID
-  import Decocare.History.Unknown3B
-  import Decocare.History.ChangeParadigmLinkID
-  import Decocare.History.TempBasalDuration
-  import Decocare.History.ChangeTime
-  import Decocare.History.NewTime
-  import Decocare.History.LowBattery
-  import Decocare.History.Battery
-  import Decocare.History.SetAutoOff
-  import Decocare.History.PumpSuspend
-  import Decocare.History.PumpResume
-  import Decocare.History.SelfTest
-  import Decocare.History.PumpRewind
-  import Decocare.History.ClearSettings
-  import Decocare.History.ChangeChildBlockEnable
-  import Decocare.History.ChangeMaxBolus
-  import Decocare.History.EnableDisableRemote
-  import Decocare.History.ChangeMaxBasal
-  import Decocare.History.EnableBolusWizard
-  import Decocare.History.ChangeBGReminderOffset
-  import Decocare.History.ChangeAlarmClockTime
-  import Decocare.History.BGReceived
-  import Decocare.History.MealMarker
-  import Decocare.History.ExerciseMarker
-  import Decocare.History.InsulinMarker
-  import Decocare.History.OtherMarker
-  import Decocare.History.ChangeBolusWizardSetup
-  import Decocare.History.ChangeSensorSetup2
-  import Decocare.History.RestoreMystery51
-  import Decocare.History.RestoreMystery52
-  import Decocare.History.RestoreMystery54
-  import Decocare.History.RestoreMystery55
-  import Decocare.History.ChangeSensorRateOfChangeAlertSetup
-  import Decocare.History.ChangeSensorAlarmSilenceConfig
-  import Decocare.History.ChangeBolusScrollStepSize
-  import Decocare.History.BolusWizardSetup
-  import Decocare.History.BolusWizardEstimate
-  import Decocare.History.UnabsorbedInsulin
-  import Decocare.History.SaveSettings
-  import Decocare.History.ChangeVariableBolus
-  import Decocare.History.ChangeAudioBolus
-  import Decocare.History.ChangeBGReminderEnable
-  import Decocare.History.ChangeAlarmClockEnable
-  import Decocare.History.ChangeTempBasalType
-  import Decocare.History.ChangeAlarmNotifyMode
-  import Decocare.History.ChangeTimeDisplay
-  import Decocare.History.ChangeReservoirWarningTime
-  import Decocare.History.ChangeBolusReminderEnable
-  import Decocare.History.ChangeBolusReminderTime
-  import Decocare.History.DeleteBolusReminderTime
-  import Decocare.History.BolusReminder
-  import Decocare.History.DeleteAlarmClockTime
-  import Decocare.History.DailyTotal515
-  import Decocare.History.DailyTotal522
-  import Decocare.History.DailyTotal523
-  import Decocare.History.ChangeCarbUnits
-  import Decocare.History.BasalProfileStart
-  import Decocare.History.ChangeWatchdogEnable
-  import Decocare.History.ChangeOtherDeviceID
-  import Decocare.History.ChangeWatchdogMarriageProfile
-  import Decocare.History.DeleteOtherDeviceID
-  import Decocare.History.ChangeCaptureEventEnable
+  import Decocare.HistoryDefinition
 
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
-      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_page(pump_options(pump_model)) |> Enum.reverse}
+      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_records(PumpModel.pump_options(pump_model)) |> Enum.reverse}
       other    -> other
     end
   end
 
-  defp pump_options(pump_model) do
-    %{
-      large_format: PumpModel.large_format?(pump_model),
-      strokes_per_unit: PumpModel.strokes_per_unit(pump_model),
-      supports_low_suspend: PumpModel.supports_low_suspend?(pump_model)
-    }
-  end
-
-  def decode_page(page_data, pump_options = %{}), do: decode_page(page_data, pump_options, [])
-  def decode_page(<<>>, _, events), do: events
-
-  def decode_page(<<0x00, tail::binary>>, pump_options, events) do
-    event = {:null_byte, raw: <<0x00>>}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x01, data::binary-size(8), tail::binary>>, pump_options = %{large_format: false, strokes_per_unit: strokes_per_unit}, events) do
-    event = {:bolus_normal, decode_bolus_normal(data, strokes_per_unit) | %{ raw: <<0x01>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x01, data::binary-size(12), tail::binary>>, pump_options = %{large_format: true, strokes_per_unit: strokes_per_unit}, events) do
-    event = {:bolus_normal, decode_bolus_normal(data, strokes_per_unit) | %{ raw: <<0x01>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x03, data::binary-size(9), tail::binary>>, pump_options, events) do
-    event = {:prime, decode_prime(data) | %{ raw: <<0x03>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x06, data::binary-size(8), tail::binary>>, pump_options, events) do
-    event = {:alarm_pump, decode_alarm_pump(data) | %{ raw: <<0x06>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x07, data::binary-size(6), tail::binary>>, pump_options = %{large_format: false}, events) do
-    event = {:result_daily_total, decode_result_daily_total(data) | %{ raw: <<0x07>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x07, data::binary-size(9), tail::binary>>, pump_options = %{large_format: true}, events) do
-    event = {:result_daily_total, decode_result_daily_total(data) | %{ raw: <<0x07>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x08, data::binary-size(151), tail::binary>>, pump_options, events) do
-    event = {:change_basal_profile_pattern, decode_change_basal_profile_pattern(data) | %{ raw: <<0x08>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x09, data::binary-size(151), tail::binary>>, pump_options, events) do
-    event = {:change_basal_profile, decode_change_basal_profile(data) | %{ raw: <<0x09>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x0A, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:cal_bg_for_ph, decode_cal_bg_for_ph(data) | %{ raw: <<0x0A>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x0B, data::binary-size(7), tail::binary>>, pump_options, events) do
-    event = {:alarm_sensor, decode_alarm_sensor(data) | %{ raw: <<0x0B>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x0C, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:clear_alarm, decode_clear_alarm(data) | %{ raw: <<0x0C>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x14, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:select_basal_profile, decode_select_basal_profile(data) | %{ raw: <<0x14>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x16, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:temp_basal_duration, decode_temp_basal_duration(data) | %{ raw: <<0x16>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x17, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_time, decode_change_time(data) | %{ raw: <<0x17>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x18, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:new_time, decode_new_time(data) | %{ raw: <<0x18>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x19, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:low_battery, decode_low_battery(data) | %{ raw: <<0x19>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x1A, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:battery, decode_battery(data) | %{ raw: <<0x1A>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x1B, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:set_auto_off, decode_set_auto_off(data) | %{ raw: <<0x1B>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x1E, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:pump_suspend, decode_pump_suspend(data) | %{ raw: <<0x1E>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x1F, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:pump_resume, decode_pump_resume(data) | %{ raw: <<0x1F>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x20, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:self_test, decode_self_test(data) | %{ raw: <<0x20>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x21, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:pump_rewind, decode_pump_rewind(data) | %{ raw: <<0x21>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x22, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:clear_settings, decode_clear_settings(data) | %{ raw: <<0x22>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x23, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_child_block_enable, decode_change_child_block_enable(data) | %{ raw: <<0x23>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x24, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_max_bolus, decode_change_max_bolus(data) | %{ raw: <<0x24>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x26, data::binary-size(20), tail::binary>>, pump_options, events) do
-    event = {:enable_disable_remote, decode_enable_disable_remote(data) | %{ raw: <<0x26>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x2C, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_max_basal, decode_change_max_basal(data) | %{ raw: <<0x2C>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x2D, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:enable_bolus_wizard, decode_enable_bolus_wizard(data) | %{ raw: <<0x2D>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x31, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_bg_reminder_offset, decode_change_bg_reminder_offset(data) | %{ raw: <<0x31>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x32, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_alarm_clock_time, decode_change_alarm_clock_time(data) | %{ raw: <<0x32>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x33, data::binary-size(7), tail::binary>>, pump_options, events) do
-    event = {:temp_basal, decode_temp_basal(data) | %{ raw: <<0x33>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x34, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:low_reservoir, decode_low_reservoir(data) | %{ raw: <<0x34>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x35, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:alarm_clock_reminder, decode_alarm_clock_reminder(data) | %{ raw: <<0x35>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x36, data::binary-size(20), tail::binary>>, pump_options, events) do
-    event = {:change_meter_id, decode_change_meter_id(data) | %{ raw: <<0x36>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x3B, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:unknown_3b, decode_unknown_3b(data) | %{ raw: <<0x3B>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x3C, data::binary-size(20), tail::binary>>, pump_options, events) do
-    event = {:change_paradigm_link_id, decode_change_paradigm_link_id(data) | %{ raw: <<0x3C>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x3F, data::binary-size(9), tail::binary>>, pump_options, events) do
-    event = {:bg_received, decode_bg_received(data) | %{ raw: <<0x3F>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x40, data::binary-size(8), tail::binary>>, pump_options, events) do
-    event = {:meal_marker, decode_meal_marker(data) | %{ raw: <<0x40>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x41, data::binary-size(7), tail::binary>>, pump_options, events) do
-    event = {:exercise_marker, decode_exercise_marker(data) | %{ raw: <<0x41>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x42, data::binary-size(7), tail::binary>>, pump_options, events) do
-    event = {:insulin_marker, decode_insulin_marker(data) | %{ raw: <<0x42>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x43, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:other_marker, decode_other_marker(data) | %{ raw: <<0x43>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x4F, data::binary-size(38), tail::binary>>, pump_options, events) do
-    event = {:change_bolus_wizard_setup, decode_change_bolus_wizard_setup(data) | %{ raw: <<0x4F>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x50, data::binary-size(36), tail::binary>>, pump_options = %{ supports_low_suspend: false }, events) do
-    event = {:change_sensor_setup_2, decode_change_sensor_setup_2(data) | %{ raw: <<0x50>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x50, data::binary-size(40), tail::binary>>, pump_options = %{ supports_low_suspend: true }, events) do
-    event = {:change_sensor_setup_2, decode_change_sensor_setup_2(data) | %{ raw: <<0x50>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x51, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:restore_mystery_51, decode_restore_mystery_51(data) | %{ raw: <<0x51>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x52, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:restore_mystery_52, decode_restore_mystery_52(data) | %{ raw: <<0x52>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x53, data::binary-size(7), tail::binary>>, pump_options, events) do
-    event = {:change_sensor_alarm_silence_config, decode_change_sensor_alarm_silence_config(data) | %{ raw: <<0x53>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x54, data::binary-size(63), tail::binary>>, pump_options, events) do
-    event = {:restore_mystery_54, decode_restore_mystery_54(data) | %{ raw: <<0x54>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x55, data::binary-size(54), tail::binary>>, pump_options, events) do
-    event = {:restore_mystery_55, decode_restore_mystery_55(data) | %{ raw: <<0x55>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x56, data::binary-size(11), tail::binary>>, pump_options, events) do
-    event = {:change_sensor_rate_of_change_alert_setup, decode_change_sensor_rate_of_change_alert_setup(data) | %{ raw: <<0x56>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x57, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_bolus_scroll_step_size, decode_change_bolus_scroll_step_size(data) | %{ raw: <<0x57>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x5A, data::binary-size(143), tail::binary>>, pump_options = %{large_format: true}, events) do
-    event = {:bolus_wizard_setup, decode_bolus_wizard_setup(data) | %{ raw: <<0x5A>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x5B, data::binary-size(19), tail::binary>>, pump_options = %{large_format: false}, events) do
-    event = {:bolus_wizard_estimate, decode_bolus_wizard_estimate(data) | %{ raw: <<0x5B>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x5B, data::binary-size(21), tail::binary>>, pump_options = %{large_format: true}, events) do
-    event = {:bolus_wizard_estimate, decode_bolus_wizard_estimate(data) | %{ raw: <<0x5B>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x5C, length::8, tail::binary>>, pump_options, events) do
-    data_length = max((length - 2), 2)
-    <<data::binary-size(data_length), tail::binary>> = tail
-    event_info = %{
-      data: decode_unabsorbed_insulin(data, []),
-      raw: <<0x5C, length::8>> <> data
-    }
-    event = {:unabsorbed_insulin, event_info}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x5D, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:save_settings, decode_save_settings(data) | %{ raw: <<0x5D>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x5E, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_variable_bolus, decode_change_variable_bolus(data) | %{ raw: <<0x5E>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x5F, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_audio_bolus, decode_change_audio_bolus(data) | %{ raw: <<0x5F>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x60, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_bg_reminder_enable, decode_change_bg_reminder_enable(data) | %{ raw: <<0x60>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-
-  def decode_page(<<0x61, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_alarm_clock_enable, decode_change_alarm_clock_enable(data) | %{ raw: <<0x61>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x62, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_temp_basal_type, decode_change_temp_basal_type(data) | %{ raw: <<0x62>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x63, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_alarm_notify_mode, decode_change_alarm_notify_mode(data) | %{ raw: <<0x63>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-
-  def decode_page(<<0x64, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_time_display, decode_change_time_display(data) | %{ raw: <<0x64>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x65, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_reservoir_warning_time, decode_change_reservoir_warning_time(data) | %{ raw: <<0x65>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-
-  def decode_page(<<0x66, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_bolus_reminder_enable, decode_change_bolus_reminder_enable(data) | %{ raw: <<0x66>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x67, data::binary-size(8), tail::binary>>, pump_options, events) do
-    event = {:change_bolus_reminder_time, decode_change_bolus_reminder_time(data) | %{ raw: <<0x67>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x68, data::binary-size(8), tail::binary>>, pump_options, events) do
-    event = {:delete_bolus_reminder_time, decode_delete_bolus_reminder_time(data) | %{ raw: <<0x68>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x69, data::binary-size(8), tail::binary>>, pump_options = %{ large_format: true }, events) do
-    event = {:bolus_reminder, decode_bolus_reminder(data) | %{ raw: <<0x69>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x6A, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:delete_alarm_clock_time, decode_delete_alarm_clock_time(data) | %{ raw: <<0x6A>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x6C, data::binary-size(37), tail::binary>>, pump_options, events) do
-    event = {:daily_total_515, decode_daily_total_515(data) | %{ raw: <<0x6C>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x6D, data::binary-size(43), tail::binary>>, pump_options, events) do
-    event = {:daily_total_522, decode_daily_total_522(data) | %{ raw: <<0x6D>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x6E, data::binary-size(51), tail::binary>>, pump_options, events) do
-    event = {:daily_total_523, decode_daily_total_523(data) | %{ raw: <<0x6E>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x6F, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_carb_units, decode_change_carb_units(data) | %{ raw: <<0x6F>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x7B, data::binary-size(9), tail::binary>>, pump_options, events) do
-    event = {:basal_profile_start, decode_basal_profile_start(data) | %{ raw: <<0x7B>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x7C, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_watchdog_enable, decode_change_watchdog_enable(data) | %{ raw: <<0x7C>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x7D, data::binary-size(36), tail::binary>>, pump_options, events) do
-    event = {:change_other_device_id, decode_change_other_device_id(data) | %{ raw: <<0x7D>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x81, data::binary-size(11), tail::binary>>, pump_options, events) do
-    event = {:change_watchdog_marriage_profile, decode_change_watchdog_marriage_profile(data) | %{ raw: <<0x81>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-  def decode_page(<<0x82, data::binary-size(11), tail::binary>>, pump_options, events) do
-    event = {:delete_other_device_id, decode_delete_other_device_id(data) | %{ raw: <<0x82>> <> data }}
-    decode_page(tail, pump_options, [event | events])
-  end
-
-
-  def decode_page(<<0x83, data::binary-size(6), tail::binary>>, pump_options, events) do
-    event = {:change_capture_event_enable, decode_change_capture_event_enable(data) | %{ raw: <<0x83>> <> data }}
-    decode_page(tail, pump_options, [event | events])
+  def decode_records(page_data, pump_options = %{}), do: do_decode_records(page_data, pump_options, [])
+
+  defp do_decode_records(<<>>, _, events), do: events
+
+  #                      op    name                                byte length
+  define_record          0x00, NullByte,                           fixed_length(1)
+  define_record          0x01, BolusNormal,                        length_by_format(9, 13)
+  define_record          0x03, Prime,                              fixed_length( 10)
+  define_record          0x06, AlarmPump,                          fixed_length(  9)
+  define_record          0x07, ResultDailyTotal,                   length_by_format(7, 10)
+  define_record          0x08, ChangeBasalProfilePattern,          fixed_length(152)
+  define_record          0x09, ChangeBasalProfile,                 fixed_length(152)
+  define_record          0x0A, CalBGForPH,                         fixed_length(  7)
+  define_record          0x0B, AlarmSensor,                        fixed_length(  8)
+  define_record          0x0C, ClearAlarm,                         fixed_length(  7)
+  define_record          0x14, SelectBasalProfile,                 fixed_length(  7)
+  define_record          0x16, TempBasalDuration,                  fixed_length(  7)
+  define_record          0x17, ChangeTime,                         fixed_length(  7)
+  define_record          0x18, NewTime,                            fixed_length(  7)
+  define_record          0x19, LowBattery,                         fixed_length(  7)
+  define_record          0x1A, Battery,                            fixed_length(  7)
+  define_record          0x1B, SetAutoOff,                         fixed_length(  7)
+  define_record          0x1E, PumpSuspend,                        fixed_length(  7)
+  define_record          0x1F, PumpResume,                         fixed_length(  7)
+  define_record          0x20, SelfTest,                           fixed_length(  7)
+  define_record          0x21, PumpRewind,                         fixed_length(  7)
+  define_record          0x22, ClearSettings,                      fixed_length(  7)
+  define_record          0x23, ChangeChildBlockEnable,             fixed_length(  7)
+  define_record          0x24, ChangeMaxBolus,                     fixed_length(  7)
+  define_record          0x26, EnableDisableRemote,                fixed_length( 21)
+  define_record          0x2C, ChangeMaxBasal,                     fixed_length(  7)
+  define_record          0x2D, EnableBolusWizard,                  fixed_length(  7)
+  define_record          0x31, ChangeBGReminderOffset,             fixed_length(  7)
+  define_record          0x32, ChangeAlarmClockTime,               fixed_length(  7)
+  define_record          0x33, TempBasal,                          fixed_length(  8)
+  define_record          0x34, LowReservoir,                       fixed_length(  7)
+  define_record          0x35, AlarmClockReminder,                 fixed_length(  7)
+  define_record          0x36, ChangeMeterID,                      fixed_length( 21)
+  define_record          0x3B, Unknown3B,                          fixed_length(  7)
+  define_record          0x3C, ChangeParadigmLinkID,               fixed_length( 21)
+  define_record          0x3F, BGReceived,                         fixed_length( 10)
+  define_record          0x40, MealMarker,                         fixed_length(  9)
+  define_record          0x41, ExerciseMarker,                     fixed_length(  8)
+  define_record          0x42, InsulinMarker,                      fixed_length(  8)
+  define_record          0x43, OtherMarker,                        fixed_length(  7)
+  define_record          0x4F, ChangeBolusWizardSetup,             fixed_length( 39)
+  define_record          0x50, ChangeSensorSetup2,                 length_by_low_suspend(37, 41)
+  define_record          0x51, RestoreMystery51,                   fixed_length(  7)
+  define_record          0x52, RestoreMystery52,                   fixed_length(  7)
+  define_record          0x53, ChangeSensorAlarmSilenceConfig,     fixed_length(  8)
+  define_record          0x54, RestoreMystery54,                   fixed_length( 64)
+  define_record          0x55, RestoreMystery55,                   fixed_length( 55)
+  define_record          0x56, ChangeSensorRateOfChangeAlertSetup, fixed_length( 12)
+  define_record          0x57, ChangeBolusScrollStepSize,          fixed_length(  7)
+  define_record          0x5A, BolusWizardSetup,                   fixed_length(144)
+  define_record          0x5B, BolusWizardEstimate,                length_by_format(20, 22)
+  define_record          0x5C, UnabsorbedInsulin,                  &Decocare.History.UnabsorbedInsulin.event_length/1
+  define_record          0x5D, SaveSettings,                       fixed_length(  7)
+  define_record          0x5E, ChangeVariableBolus,                fixed_length(  7)
+  define_record          0x5F, ChangeAudioBolus,                   fixed_length(  7)
+  define_record          0x60, ChangeBGReminderEnable,             fixed_length(  7)
+  define_record          0x61, ChangeAlarmClockEnable,             fixed_length(  7)
+  define_record          0x62, ChangeTempBasalType,                fixed_length(  7)
+  define_record          0x63, ChangeAlarmNotifyMode,              fixed_length(  7)
+  define_record          0x64, ChangeTimeDisplay,                  fixed_length(  7)
+  define_record          0x65, ChangeReservoirWarningTime,         fixed_length(  7)
+  define_record          0x66, ChangeBolusReminderEnable,          fixed_length(  7)
+  define_record          0x67, ChangeBolusReminderTime,            fixed_length(  9)
+  define_record          0x68, DeleteBolusReminderTime,            fixed_length(  9)
+  define_record          0x69, BolusReminder,                      fixed_length(  9)
+  define_record          0x6A, DeleteAlarmClockTime,               fixed_length(  7)
+  define_record          0x6C, DailyTotal515,                      fixed_length( 38)
+  define_record          0x6D, DailyTotal522,                      fixed_length( 44)
+  define_record          0x6E, DailyTotal523,                      fixed_length( 52)
+  define_record          0x6F, ChangeCarbUnits,                    fixed_length(  7)
+  define_record          0x7B, BasalProfileStart,                  fixed_length( 10)
+  define_record          0x7C, ChangeWatchdogEnable,               fixed_length(  7)
+  define_record          0x7D, ChangeOtherDeviceID,                fixed_length( 37)
+  define_record          0x81, ChangeWatchdogMarriageProfile,      fixed_length( 12)
+  define_record          0x82, DeleteOtherDeviceID,                fixed_length( 12)
+  define_record          0x83, ChangeCaptureEventEnable,           fixed_length(  7)
+
+  defp decode_record(module, head, body_length, body_and_tail, pump_options, events) do
+    <<body::binary-size(body_length), tail::binary>> = body_and_tail
+    event_info = apply(module, :decode, [body, pump_options]) |> Map.put(:raw, <<head::8>> <> body)
+    event = {event_type(module), event_info}
+    do_decode_records(tail, pump_options, [event | events])
+  end
+
+  defp event_type(module) do
+    case apply(module, :"__info__", [:exports]) |> Keyword.get_values(:event_type) |> Enum.member?(0) do
+      true  -> apply(module, :event_type, [])
+      false -> module |> Module.split |> List.last |> Macro.underscore |> String.to_atom
+    end
+  end
+
+  defp calculate_length(length_fn, pump_options, body_and_tail) do
+    context = %{pump_options: pump_options, body_and_tail: body_and_tail}
+    length_fn.(context) - 1
+  end
+
+  defp length_by_format(small_length, large_length) do
+    fn (%{pump_options: %{large_format: large_format}}) ->
+      case large_format do
+        true -> large_length
+        _    -> small_length
+      end
+    end
+  end
+
+  defp length_by_low_suspend(without_low_suspend_length, with_low_suspend_length) do
+    fn (%{pump_options: %{supports_low_suspend: supports_low_suspend}}) ->
+      case supports_low_suspend do
+        true -> with_low_suspend_length
+        _    -> without_low_suspend_length
+      end
+    end
+  end
+
+  defp fixed_length(length) do
+    fn (_) -> length end
   end
 end
