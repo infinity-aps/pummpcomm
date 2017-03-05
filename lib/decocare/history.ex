@@ -30,7 +30,7 @@ defmodule Decocare.History do
 
   defp do_decode_records(<<>>, _, events), do: events
 
-  #                      op    name                                byte length
+  #             op    name                                byte length
   define_record 0x00, NullByte,                           fixed_length(  1)
   define_record 0x01, BolusNormal,                        length_by_format(9, 13)
   define_record 0x03, Prime,                              fixed_length( 10)
