@@ -157,7 +157,7 @@ defmodule Decocare.History do
     end
   end
 
-  def fixed_length(length) do
+  defp fixed_length(length) do
     fn (_) -> length end
   end
 end
