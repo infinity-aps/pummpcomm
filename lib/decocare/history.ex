@@ -1,39 +1,10 @@
 defmodule Decocare.HistoryDefinition do
-  defmacro define_record(opcode, module, size_with_opcode, pump_matchers \\ %{}) do
-    body_size = size_with_opcode - 1
-
-    case pump_matchers do
-      large_format: large_format ->
-        quote do
-          alias Decocare.History.unquote(module)
-          def decode_page(<<unquote(opcode), body::binary-size(unquote(body_size)), tail::binary>>, pump_options = %{ large_format: unquote(large_format) }, events) do
-            decode_record(unquote(module), <<unquote(opcode)::8>>, body, tail, pump_options, events)
-          end
-        end
-      supports_low_suspend: supports_low_suspend ->
-        quote do
-          alias Decocare.History.unquote(module)
-          def decode_page(<<unquote(opcode), body::binary-size(unquote(body_size)), tail::binary>>, pump_options = %{ supports_low_suspend: unquote(supports_low_suspend) }, events) do
-            decode_record(unquote(module), <<unquote(opcode)::8>>, body, tail, pump_options, events)
-          end
-        end
-      _ ->
-        quote do
-          alias Decocare.History.unquote(module)
-          def decode_page(<<unquote(opcode), body::binary-size(unquote(body_size)), tail::binary>>, pump_options, events) do
-            decode_record(unquote(module), <<unquote(opcode)::8>>, body, tail, pump_options, events)
-          end
-        end
-    end
-  end
-
-  defmacro define_variable_record(opcode, module, length_fn) do
+  defmacro define_record(opcode, module, size_fn) do
     quote do
       alias Decocare.History.unquote(module)
-      def decode_page(<<unquote(opcode), length::8, rest::binary>>, pump_options, events) do
-        remaining_bytes = unquote(length_fn).(length)
-        <<body::binary-size(remaining_bytes), tail::binary>> = rest
-        decode_record(unquote(module), <<unquote(opcode)::8, length::8>>, body, tail, pump_options, events)
+      defp do_decode_page(<<unquote(opcode), body_and_tail::binary>>, pump_options, events) do
+        body_length = calculate_length(unquote(size_fn), pump_options, body_and_tail)
+        decode_record(unquote(module), unquote(opcode), body_length, body_and_tail, pump_options, events)
       end
     end
   end
@@ -55,6 +26,106 @@ defmodule Decocare.History do
     end
   end
 
+  def decode_page(page_data, pump_options = %{}), do: do_decode_page(page_data, pump_options, [])
+
+  defp do_decode_page(<<>>, _, events), do: events
+
+  defp do_decode_page(<<0x00, tail::binary>>, pump_options, events) do
+    event = {:null_byte, raw: <<0x00>>}
+    do_decode_page(tail, pump_options, [event | events])
+  end
+
+  #                      op    name                                byte length
+  define_record          0x01, BolusNormal,                        length_by_format(9, 13)
+  define_record          0x03, Prime,                              fixed_length( 10)
+  define_record          0x06, AlarmPump,                          fixed_length(  9)
+  define_record          0x07, ResultDailyTotal,                   length_by_format(7, 10)
+  define_record          0x08, ChangeBasalProfilePattern,          fixed_length(152)
+  define_record          0x09, ChangeBasalProfile,                 fixed_length(152)
+  define_record          0x0A, CalBGForPH,                         fixed_length(  7)
+  define_record          0x0B, AlarmSensor,                        fixed_length(  8)
+  define_record          0x0C, ClearAlarm,                         fixed_length(  7)
+  define_record          0x14, SelectBasalProfile,                 fixed_length(  7)
+  define_record          0x16, TempBasalDuration,                  fixed_length(  7)
+  define_record          0x17, ChangeTime,                         fixed_length(  7)
+  define_record          0x18, NewTime,                            fixed_length(  7)
+  define_record          0x19, LowBattery,                         fixed_length(  7)
+  define_record          0x1A, Battery,                            fixed_length(  7)
+  define_record          0x1B, SetAutoOff,                         fixed_length(  7)
+  define_record          0x1E, PumpSuspend,                        fixed_length(  7)
+  define_record          0x1F, PumpResume,                         fixed_length(  7)
+  define_record          0x20, SelfTest,                           fixed_length(  7)
+  define_record          0x21, PumpRewind,                         fixed_length(  7)
+  define_record          0x22, ClearSettings,                      fixed_length(  7)
+  define_record          0x23, ChangeChildBlockEnable,             fixed_length(  7)
+  define_record          0x24, ChangeMaxBolus,                     fixed_length(  7)
+  define_record          0x26, EnableDisableRemote,                fixed_length( 21)
+  define_record          0x2C, ChangeMaxBasal,                     fixed_length(  7)
+  define_record          0x2D, EnableBolusWizard,                  fixed_length(  7)
+  define_record          0x31, ChangeBGReminderOffset,             fixed_length(  7)
+  define_record          0x32, ChangeAlarmClockTime,               fixed_length(  7)
+  define_record          0x33, TempBasal,                          fixed_length(  8)
+  define_record          0x34, LowReservoir,                       fixed_length(  7)
+  define_record          0x35, AlarmClockReminder,                 fixed_length(  7)
+  define_record          0x36, ChangeMeterID,                      fixed_length( 21)
+  define_record          0x3B, Unknown3B,                          fixed_length(  7)
+  define_record          0x3C, ChangeParadigmLinkID,               fixed_length( 21)
+  define_record          0x3F, BGReceived,                         fixed_length( 10)
+  define_record          0x40, MealMarker,                         fixed_length(  9)
+  define_record          0x41, ExerciseMarker,                     fixed_length(  8)
+  define_record          0x42, InsulinMarker,                      fixed_length(  8)
+  define_record          0x43, OtherMarker,                        fixed_length(  7)
+  define_record          0x4F, ChangeBolusWizardSetup,             fixed_length( 39)
+  define_record          0x50, ChangeSensorSetup2,                 length_by_low_suspend(37, 41)
+  define_record          0x51, RestoreMystery51,                   fixed_length(  7)
+  define_record          0x52, RestoreMystery52,                   fixed_length(  7)
+  define_record          0x53, ChangeSensorAlarmSilenceConfig,     fixed_length(  8)
+  define_record          0x54, RestoreMystery54,                   fixed_length( 64)
+  define_record          0x55, RestoreMystery55,                   fixed_length( 55)
+  define_record          0x56, ChangeSensorRateOfChangeAlertSetup, fixed_length( 12)
+  define_record          0x57, ChangeBolusScrollStepSize,          fixed_length(  7)
+  define_record          0x5A, BolusWizardSetup,                   fixed_length(144)
+  define_record          0x5B, BolusWizardEstimate,                length_by_format(20, 22)
+  define_record          0x5C, UnabsorbedInsulin,                  &Decocare.History.UnabsorbedInsulin.event_length/1
+  define_record          0x5D, SaveSettings,                       fixed_length(  7)
+  define_record          0x5E, ChangeVariableBolus,                fixed_length(  7)
+  define_record          0x5F, ChangeAudioBolus,                   fixed_length(  7)
+  define_record          0x60, ChangeBGReminderEnable,             fixed_length(  7)
+  define_record          0x61, ChangeAlarmClockEnable,             fixed_length(  7)
+  define_record          0x62, ChangeTempBasalType,                fixed_length(  7)
+  define_record          0x63, ChangeAlarmNotifyMode,              fixed_length(  7)
+  define_record          0x64, ChangeTimeDisplay,                  fixed_length(  7)
+  define_record          0x65, ChangeReservoirWarningTime,         fixed_length(  7)
+  define_record          0x66, ChangeBolusReminderEnable,          fixed_length(  7)
+  define_record          0x67, ChangeBolusReminderTime,            fixed_length(  9)
+  define_record          0x68, DeleteBolusReminderTime,            fixed_length(  9)
+  define_record          0x69, BolusReminder,                      fixed_length(  9)
+  define_record          0x6A, DeleteAlarmClockTime,               fixed_length(  7)
+  define_record          0x6C, DailyTotal515,                      fixed_length( 38)
+  define_record          0x6D, DailyTotal522,                      fixed_length( 44)
+  define_record          0x6E, DailyTotal523,                      fixed_length( 52)
+  define_record          0x6F, ChangeCarbUnits,                    fixed_length(  7)
+  define_record          0x7B, BasalProfileStart,                  fixed_length( 10)
+  define_record          0x7C, ChangeWatchdogEnable,               fixed_length(  7)
+  define_record          0x7D, ChangeOtherDeviceID,                fixed_length( 37)
+  define_record          0x81, ChangeWatchdogMarriageProfile,      fixed_length( 12)
+  define_record          0x82, DeleteOtherDeviceID,                fixed_length( 12)
+  define_record          0x83, ChangeCaptureEventEnable,           fixed_length(  7)
+
+  defp decode_record(module, head, body_length, body_and_tail, pump_options, events) do
+    <<body::binary-size(body_length), tail::binary>> = body_and_tail
+    event_info = apply(module, :decode, [body, pump_options]) |> Map.put(:raw, <<head::8>> <> body)
+    event = {event_type(module), event_info}
+    do_decode_page(tail, pump_options, [event | events])
+  end
+
+  defp event_type(module) do
+    case apply(module, :"__info__", [:exports]) |> Keyword.get_values(:event_type) |> Enum.member?(0) do
+      true  -> apply(module, :event_type, [])
+      false -> module |> Module.split |> List.last |> Macro.underscore |> String.to_atom
+    end
+  end
+
   defp pump_options(pump_model) do
     %{
       large_format: PumpModel.large_format?(pump_model),
@@ -63,102 +134,30 @@ defmodule Decocare.History do
     }
   end
 
-  def decode_page(page_data, pump_options = %{}), do: decode_page(page_data, pump_options, [])
-  def decode_page(<<>>, _, events), do: events
-
-  def decode_page(<<0x00, tail::binary>>, pump_options, events) do
-    event = {:null_byte, raw: <<0x00>>}
-    decode_page(tail, pump_options, [event | events])
+  defp calculate_length(length_fn, pump_options, body_and_tail) do
+    context = %{pump_options: pump_options, body_and_tail: body_and_tail}
+    length_fn.(context) - 1
   end
 
-  #                      op    name                              bytes  pump attributes
-  define_record          0x01, BolusNormal,                          9, large_format: false
-  define_record          0x01, BolusNormal,                         13, large_format: true
-  define_record          0x03, Prime,                               10
-  define_record          0x06, AlarmPump,                            9
-  define_record          0x07, ResultDailyTotal,                     7, large_format: false
-  define_record          0x07, ResultDailyTotal,                    10, large_format: true
-  define_record          0x08, ChangeBasalProfilePattern,          152
-  define_record          0x09, ChangeBasalProfile,                 152
-  define_record          0x0A, CalBGForPH,                           7
-  define_record          0x0B, AlarmSensor,                          8
-  define_record          0x0C, ClearAlarm,                           7
-  define_record          0x14, SelectBasalProfile,                   7
-  define_record          0x16, TempBasalDuration,                    7
-  define_record          0x17, ChangeTime,                           7
-  define_record          0x18, NewTime,                              7
-  define_record          0x19, LowBattery,                           7
-  define_record          0x1A, Battery,                              7
-  define_record          0x1B, SetAutoOff,                           7
-  define_record          0x1E, PumpSuspend,                          7
-  define_record          0x1F, PumpResume,                           7
-  define_record          0x20, SelfTest,                             7
-  define_record          0x21, PumpRewind,                           7
-  define_record          0x22, ClearSettings,                        7
-  define_record          0x23, ChangeChildBlockEnable,               7
-  define_record          0x24, ChangeMaxBolus,                       7
-  define_record          0x26, EnableDisableRemote,                 21
-  define_record          0x2C, ChangeMaxBasal,                       7
-  define_record          0x2D, EnableBolusWizard,                    7
-  define_record          0x31, ChangeBGReminderOffset,               7
-  define_record          0x32, ChangeAlarmClockTime,                 7
-  define_record          0x33, TempBasal,                            8
-  define_record          0x34, LowReservoir,                         7
-  define_record          0x35, AlarmClockReminder,                   7
-  define_record          0x36, ChangeMeterID,                       21
-  define_record          0x3B, Unknown3B,                            7
-  define_record          0x3C, ChangeParadigmLinkID,                21
-  define_record          0x3F, BGReceived,                          10
-  define_record          0x40, MealMarker,                           9
-  define_record          0x41, ExerciseMarker,                       8
-  define_record          0x42, InsulinMarker,                        8
-  define_record          0x43, OtherMarker,                          7
-  define_record          0x4F, ChangeBolusWizardSetup,              39
-  define_record          0x50, ChangeSensorSetup2,                  37, supports_low_suspend: false
-  define_record          0x50, ChangeSensorSetup2,                  41, supports_low_suspend: true
-  define_record          0x51, RestoreMystery51,                     7
-  define_record          0x52, RestoreMystery52,                     7
-  define_record          0x53, ChangeSensorAlarmSilenceConfig,       8
-  define_record          0x54, RestoreMystery54,                    64
-  define_record          0x55, RestoreMystery55,                    55
-  define_record          0x56, ChangeSensorRateOfChangeAlertSetup,  12
-  define_record          0x57, ChangeBolusScrollStepSize,            7
-  define_record          0x5A, BolusWizardSetup,                   144
-  define_record          0x5B, BolusWizardEstimate,                 20, large_format: false
-  define_record          0x5B, BolusWizardEstimate,                 22, large_format: true
-  define_variable_record 0x5C, UnabsorbedInsulin,                       fn (length) -> max((length - 2), 2) end
-  define_record          0x5D, SaveSettings,                         7
-  define_record          0x5E, ChangeVariableBolus,                  7
-  define_record          0x5F, ChangeAudioBolus,                     7
-  define_record          0x60, ChangeBGReminderEnable,               7
-  define_record          0x61, ChangeAlarmClockEnable,               7
-  define_record          0x62, ChangeTempBasalType,                  7
-  define_record          0x63, ChangeAlarmNotifyMode,                7
-  define_record          0x64, ChangeTimeDisplay,                    7
-  define_record          0x65, ChangeReservoirWarningTime,           7
-  define_record          0x66, ChangeBolusReminderEnable,            7
-  define_record          0x67, ChangeBolusReminderTime,              9
-  define_record          0x68, DeleteBolusReminderTime,              9
-  define_record          0x69, BolusReminder,                        9
-  define_record          0x6A, DeleteAlarmClockTime,                 7
-  define_record          0x6C, DailyTotal515,                       38
-  define_record          0x6D, DailyTotal522,                       44
-  define_record          0x6E, DailyTotal523,                       52
-  define_record          0x6F, ChangeCarbUnits,                      7
-  define_record          0x7B, BasalProfileStart,                   10
-  define_record          0x7C, ChangeWatchdogEnable,                 7
-  define_record          0x7D, ChangeOtherDeviceID,                 37
-  define_record          0x81, ChangeWatchdogMarriageProfile,       12
-  define_record          0x82, DeleteOtherDeviceID,                 12
-  define_record          0x83, ChangeCaptureEventEnable,             7
+  defp length_by_format(small_length, large_length) do
+    fn (%{pump_options: %{large_format: large_format}}) ->
+      case large_format do
+        true -> large_length
+        _    -> small_length
+      end
+    end
+  end
 
-  defp decode_record(module, head, body, tail, pump_options, events) do
-    event_type = case apply(module, :"__info__", [:exports]) |> Keyword.get_values(:event_type) |> Enum.member?(0) do
-                   true  -> apply(module, :event_type, [])
-                   false -> module |> Module.split |> List.last |> Macro.underscore |> String.to_atom
-                 end
-    event_info = Map.put(apply(module, :decode, [body, pump_options]), :raw, head <> body)
-    event = {event_type, event_info}
-    decode_page(tail, pump_options, [event | events])
+  defp length_by_low_suspend(without_low_suspend_length, with_low_suspend_length) do
+    fn (%{pump_options: %{supports_low_suspend: supports_low_suspend}}) ->
+      case supports_low_suspend do
+        true -> with_low_suspend_length
+        _    -> without_low_suspend_length
+      end
+    end
+  end
+
+  def fixed_length(length) do
+    fn (_) -> length end
   end
 end
