@@ -1,6 +1,6 @@
 defmodule Decocare.History.AlarmSensor do
   use Bitwise
-  alias Decocare.DateDecoder, as: DateDecoder
+  alias Decocare.DateDecoder
 
   @alarm_types %{
     0x65 => "High Glucose",

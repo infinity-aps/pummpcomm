@@ -1,10 +1,3 @@
 defmodule Decocare.History.ChangeBolusScrollStepSize do
-  use Bitwise
-  alias Decocare.DateDecoder
-
-  def decode(<<_::8, timestamp::binary-size(5)>>, _) do
-    %{
-      timestamp: DateDecoder.decode_history_timestamp(timestamp)
-    }
-  end
+  defdelegate decode(body, pump_options), to: Decocare.History.StandardEvent
 end

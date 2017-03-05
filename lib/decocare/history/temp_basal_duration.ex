@@ -1,5 +1,4 @@
 defmodule Decocare.History.TempBasalDuration do
-  use Bitwise
   alias Decocare.DateDecoder
 
   def decode(<<duration::8, timestamp::binary-size(5)>>, _) do

@@ -1,5 +1,4 @@
 defmodule Decocare.History.DailyTotal523 do
-  use Bitwise
   alias Decocare.DateDecoder
 
   def event_type, do: :daily_total_523
