@@ -12,7 +12,6 @@ end
 
 defmodule Decocare.History do
   require Decocare.HistoryDefinition
-  use Bitwise
 
   alias Decocare.History.PumpModel
   alias Decocare.Crc16
