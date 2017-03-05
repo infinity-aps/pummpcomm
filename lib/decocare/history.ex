@@ -2,7 +2,7 @@ defmodule Decocare.HistoryDefinition do
   defmacro define_record(opcode, module, size_fn) do
     quote do
       alias Decocare.History.unquote(module)
-      defp do_decode_page(<<unquote(opcode), body_and_tail::binary>>, pump_options, events) do
+      defp do_decode_records(<<unquote(opcode), body_and_tail::binary>>, pump_options, events) do
         body_length = calculate_length(unquote(size_fn), pump_options, body_and_tail)
         decode_record(unquote(module), unquote(opcode), body_length, body_and_tail, pump_options, events)
       end
@@ -21,18 +21,18 @@ defmodule Decocare.History do
 
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
-      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_page(pump_options(pump_model)) |> Enum.reverse}
+      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_records(pump_options(pump_model)) |> Enum.reverse}
       other    -> other
     end
   end
 
-  def decode_page(page_data, pump_options = %{}), do: do_decode_page(page_data, pump_options, [])
+  def decode_records(page_data, pump_options = %{}), do: do_decode_records(page_data, pump_options, [])
 
-  defp do_decode_page(<<>>, _, events), do: events
+  defp do_decode_records(<<>>, _, events), do: events
 
-  defp do_decode_page(<<0x00, tail::binary>>, pump_options, events) do
+  defp do_decode_records(<<0x00, tail::binary>>, pump_options, events) do
     event = {:null_byte, raw: <<0x00>>}
-    do_decode_page(tail, pump_options, [event | events])
+    do_decode_records(tail, pump_options, [event | events])
   end
 
   #                      op    name                                byte length
@@ -116,7 +116,7 @@ defmodule Decocare.History do
     <<body::binary-size(body_length), tail::binary>> = body_and_tail
     event_info = apply(module, :decode, [body, pump_options]) |> Map.put(:raw, <<head::8>> <> body)
     event = {event_type(module), event_info}
-    do_decode_page(tail, pump_options, [event | events])
+    do_decode_records(tail, pump_options, [event | events])
   end
 
   defp event_type(module) do

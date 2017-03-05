@@ -3,7 +3,7 @@ defmodule Decocare.History.PrimeTest do
 
   test "Prime" do
     {:ok, history_page} = Base.decode16("030000000A4A2A33040F")
-    decoded_events = Decocare.History.decode_page(history_page, %{})
+    decoded_events = Decocare.History.decode_records(history_page, %{})
     expected_event_info = %{
       programmed_amount: 0.0,
       amount: 1.0,
