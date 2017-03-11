@@ -1,7 +1,3 @@
-# ExDecocare
+# Pummpcomm
 
-This is an Elixir implementation of portions of the decocare project https://github.com/openaps/decocare
-
-## Supported functionality
-
-- CGM page decoding
+Elixir library to perform pump comms and decode binary pump data
