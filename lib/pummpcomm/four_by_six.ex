@@ -11,7 +11,7 @@ defmodule Pummpcomm.FourBySix do
   """
   def encode(nibbles) do
     sixes = _encode(nibbles, <<>>)
-    conform_to_byte_boundary(sixes, bit_size(sixes))
+    conform_to_byte_boundary(sixes, bit_size(sixes)) <> <<0x00>>
   end
 
   def _encode(<<>>, sixes), do: sixes
@@ -32,7 +32,7 @@ defmodule Pummpcomm.FourBySix do
   def _decode(<<0b000000::6, _::bitstring>>, nibbles), do: nibbles
   def _decode(<<six_bits::6, tail::bitstring>>, nibbles) do
     nibble = Enum.find_index(@codes, fn (item) -> item == six_bits end)
-    _decode(tail, <<nibbles::bitstring, nibble::(4)>>)
+    _decode(tail, <<nibbles::bitstring, nibble::size(4)>>)
   end
 
   defp conform_to_byte_boundary(bits, bit_length) when rem(bit_length, 8) == 0, do: bits

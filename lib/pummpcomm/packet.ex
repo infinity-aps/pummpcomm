@@ -21,16 +21,17 @@ defmodule Pummpcomm.Packet do
   end
 
   def from_binary(bytes) when byte_size(bytes) <= 5, do: {:invalid_packet, "Packet too short"}
-  def from_binary(<<rf_type::8, serial::24, opcode::8, payload_and_crc::binary>>) do
+  def from_binary(<<rf_type::8, serial::binary-size(3), opcode::8, payload_and_crc::binary>>) do
     payload_size = byte_size(payload_and_crc) - 1
-    <<payload::size(payload_size), crc::8>> = payload_and_crc
+    <<payload::binary-size(payload_size), crc::8>> = payload_and_crc
     packet = %Pummpcomm.Packet{
-      pump_serial: serial,
+      pump_serial: decode_serial(serial),
       opcode: opcode,
       payload: payload,
       date: DateTime.to_naive(Timex.local),
       type: rf_type
     }
+    IO.inspect packet
     case crc == Crc8.crc_8(crc_components(packet)) do
       true  -> {:ok, packet}
                false -> {:invalid_packet, "CRC doesn't match"}
@@ -43,6 +44,15 @@ defmodule Pummpcomm.Packet do
   end
 
   def crc_components(packet) do
-    <<packet.type::8>> <> packet.pump_serial <> <<packet.opcode::8>> <> packet.payload
+    <<packet.type::8>> <> encode_serial(packet.pump_serial) <> <<packet.opcode::8>> <> packet.payload
+  end
+
+  defp encode_serial(serial) do
+    encoded = serial |> Integer.parse(16) |> elem(0)
+    <<encoded::size(24)>>
+  end
+
+  defp decode_serial(bytes) do
+    Base.encode16(bytes)
   end
 end
