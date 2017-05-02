@@ -135,7 +135,7 @@ defmodule Pummpcomm.Session.Pump do
         SerialLink.write(command_bytes)
         Context.sent_params(context)
     {:ok, response_packet} ->
-        message = "Received packet for another pump with serial #{packet.pump_serial}"
+        message = "Received packet for another pump with serial #{response_packet.pump_serial}"
         Logger.error message, context: context, packet: packet
         Context.add_error(context, message)
     end
