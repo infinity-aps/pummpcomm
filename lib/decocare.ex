@@ -1,2 +1,0 @@
-defmodule Decocare do
-end

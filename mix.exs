@@ -1,9 +1,9 @@
-defmodule ExDecocare.Mixfile do
+defmodule Pummpcomm.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :ex_decocare,
-     version: "1.0.0",
+    [app: :pummpcomm,
+     version: "0.1.0",
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -11,10 +11,11 @@ defmodule ExDecocare.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :timex]]
+    [applications: [:logger, :nerves_uart, :timex]]
   end
 
   defp deps do
-    [{:timex, "~> 3.0"}]
+    [{:nerves_uart, "~> 0.1.1"},
+     {:timex, "~> 3.0"}]
   end
 end
