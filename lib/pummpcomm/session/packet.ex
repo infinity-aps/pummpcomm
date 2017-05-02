@@ -1,9 +1,10 @@
-defmodule Pummpcomm.Packet do
-  alias Pummpcomm.Command
-  alias Pummpcomm.Crc.Crc8
-
+defmodule Pummpcomm.Session.Packet do
   @enforce_keys [:pump_serial, :opcode, :payload, :date, :type]
   defstruct pump_serial: nil, opcode: nil, payload: nil, date: nil, type: nil
+
+  alias Pummpcomm.Session.Command
+  alias Pummpcomm.Session.Packet
+  alias Pummpcomm.Crc.Crc8
 
   @types %{
     carelink: 0xA7
@@ -11,7 +12,7 @@ defmodule Pummpcomm.Packet do
   def from_command(command), do: from_command(command, Command.payload(command))
   def from_command(command, payload) do
     {:ok,
-     %Pummpcomm.Packet{
+     %Packet{
        pump_serial: command.pump_serial,
        opcode: command.opcode,
        payload: payload,
@@ -25,7 +26,7 @@ defmodule Pummpcomm.Packet do
   def from_binary(<<rf_type::8, serial::binary-size(3), opcode::8, payload_and_crc::binary>>) do
     payload_size = byte_size(payload_and_crc) - 1
     <<payload::binary-size(payload_size), crc::8>> = payload_and_crc
-    packet = %Pummpcomm.Packet{
+    packet = %Packet{
       pump_serial: decode_serial(serial),
       opcode: opcode,
       payload: payload,

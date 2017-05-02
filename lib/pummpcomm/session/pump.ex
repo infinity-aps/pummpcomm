@@ -1,8 +1,7 @@
-defmodule Pummpcomm.Session do
-  alias Pummpcomm.Context
-  alias Pummpcomm.Command
-  alias Pummpcomm.Response
-  alias Pummpcomm.Packet
+defmodule Pummpcomm.Session.Pump do
+  alias Pummpcomm.Session.Context
+  alias Pummpcomm.Session.Command
+  alias Pummpcomm.Session.Packet
   alias Pummpcomm.Driver.SerialLink
 
   def power_control(pump_serial) do
@@ -19,7 +18,8 @@ defmodule Pummpcomm.Session do
 
   def check_pump_awake(pump_serial) do
     case pump_serial |> Command.read_pump_model |> execute do
-      {:ok, %Context{response: response}} -> true
+      {:ok, %Context{response: nil}}      -> true
+      {:ok, %Context{response: _}}        -> true
       _                                   -> false
     end
   end
@@ -37,12 +37,11 @@ defmodule Pummpcomm.Session do
     end
   end
 
-  def send_command(command, retry_count \\ @retry_count) do
-    _send_command(command, retry_count)
+  def send_command(command) do
+    _send_command(command)
   end
 
-  defp _send_command(_, -1), do: {:error, "Max retries reached"}
-  defp _send_command(command, retry_count) do
+  defp _send_command(command) do
     context = %Context{command: command}
     |> do_prelude
     |> do_upload
@@ -58,12 +57,12 @@ defmodule Pummpcomm.Session do
     command_bytes = Packet.to_binary(command_packet)
 
     with {:ok, ""} <- SerialLink.write(command_bytes, times, 0, 24 * times) do
-      :timer.sleep 10000
       case wait_for_ack(%Context{command: command}, ack_wait_millis) do
-        context = %Context{error: error} ->
-          IO.inspect context
+        %Context{error: nil} -> true
+        %Context{error: reason} ->
+          message = "Errored with reason #{reason}"
+          IO.puts message
           false
-        _                      -> true
       end
     else
       {:error, reason} ->

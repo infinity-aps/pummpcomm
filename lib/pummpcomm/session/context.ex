@@ -1,7 +1,7 @@
-defmodule Pummpcomm.Context do
+defmodule Pummpcomm.Session.Context do
   defstruct command: nil, response: nil, received_ack: false, error: nil, sent_params: false
-  alias Pummpcomm.Context
-  alias Pummpcomm.Response
+  alias Pummpcomm.Session.Context
+  alias Pummpcomm.Session.Response
 
   def received_ack(context = %Context{}) do
     %{context | received_ack: true}

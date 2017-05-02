@@ -1,11 +1,11 @@
-defmodule Pummpcomm.Response do
+defmodule Pummpcomm.Session.Response do
   defstruct opcode: nil, data: <<>>, frames: []
 
-  alias Pummpcomm.Response
-  alias Pummpcomm.Packet
+  alias Pummpcomm.Session.Response
+  alias Pummpcomm.Session.Packet
 
   def add_packet(response = %Response{opcode: opcode}, packet = %Packet{opcode: opcode}) do
-    <<frame_number::8, rest::binary>> = packet.payload
+    <<_frame_number::8, rest::binary>> = packet.payload
     %{response | data: response.data <> rest, frames: [packet | response.frames]}
   end
 
