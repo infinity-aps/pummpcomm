@@ -127,10 +127,10 @@ defmodule Pummpcomm.Driver.SerialLink do
     end
   end
 
-  defp process_response({:ok, <<>>}),                            do: {:error, :empty}
-  defp process_response({:ok, data = <<@command_interrupted>>}), do: {:error, :command_interrupted}
-  defp process_response({:ok, data = <<@timeout>>}),             do: {:error, :timeout}
-  defp process_response({:ok, data = <<@zero_data>>}),           do: {:error, :zero_data}
+  defp process_response({:ok, <<>>}),                     do: {:error, :empty}
+  defp process_response({:ok, <<@command_interrupted>>}), do: {:error, :command_interrupted}
+  defp process_response({:ok, <<@timeout>>}),             do: {:error, :timeout}
+  defp process_response({:ok, <<@zero_data>>}),           do: {:error, :zero_data}
   defp process_response({:ok, <<raw_rssi::8, sequence::8, data::binary>>}) do
     case FourBySix.decode(data) do
       {:ok, decoded}      -> {:ok, %{rssi: rssi(raw_rssi), sequence: sequence, data: decoded}}
