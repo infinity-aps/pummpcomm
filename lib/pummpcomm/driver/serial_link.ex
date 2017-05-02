@@ -1,6 +1,6 @@
 defmodule Pummpcomm.Driver.SerialLink do
+  require Logger
   use GenServer
-
   alias Pummpcomm.Driver.SerialFraming
   alias Pummpcomm.Driver.FourBySix
 
@@ -60,8 +60,7 @@ defmodule Pummpcomm.Driver.SerialLink do
   end
 
   def handle_call({:write_and_read, command_bytes, timeout_ms}, _from, serial_pid) do
-    IO.puts "Command bytes"
-    IO.puts Base.encode16(command_bytes)
+    Logger.debug "Command bytes: #{Base.encode16(command_bytes)}"
     <<@channel::8, @repetitions::8, @repetition_delay::8,
       @channel::8, timeout_ms::size(32), @retry_count::8,
       FourBySix.encode(command_bytes)::binary>>
@@ -88,8 +87,7 @@ defmodule Pummpcomm.Driver.SerialLink do
 
   @max_repetition_batch_size 250
   defp write_batches(command_bytes, repetitions, repetition_delay, timeout_ms, serial_pid)  do
-    IO.puts "Command bytes"
-    IO.puts Base.encode16(command_bytes)
+    Logger.debug "Command bytes: #{Base.encode16(command_bytes)}"
     <<@channel::8, repetitions::8, repetition_delay::8, FourBySix.encode(command_bytes)::binary>>
     |> write_command(:send_packet, serial_pid, timeout_ms)
 
@@ -100,8 +98,7 @@ defmodule Pummpcomm.Driver.SerialLink do
 
   defp write_command(param, command_type, serial_pid, timeout_ms) do
     command = @commands[command_type]
-    IO.puts "Final command bytes look like:"
-    IO.puts(Base.encode16(<<command::8>> <> param))
+    Logger.debug "Final command bytes look like: #{Base.encode16(<<command::8>> <> param)}"
     Nerves.UART.write(serial_pid, <<command::8>> <> param, timeout_ms + 10000)
     Nerves.UART.flush(serial_pid)
     if command_type == :reset do
@@ -113,16 +110,15 @@ defmodule Pummpcomm.Driver.SerialLink do
   @command_interrupted 0xBB
   @zero_data           0xCC
   defp read_response(serial_pid, timeout_ms) do
-    IO.puts "Waiting for response with #{timeout_ms} timeout"
+    Logger.debug "Waiting for response with #{timeout_ms} timeout"
     response = Nerves.UART.read(serial_pid, timeout_ms + 10000)
-    IO.puts "Received response from UART:"
-    IO.inspect response
+    Logger.debug "Received response from UART: #{inspect response}"
     if {:ok, data} = response do
-      IO.puts Base.encode16(data)
+      Logger.debug "Response in hex: #{Base.encode16(data)}"
     end
     case response do
       {:ok, <<@command_interrupted>>} ->
-        IO.puts "Command Interrupted, continuing to read"
+        Logger.debug "Command Interrupted, continuing to read"
         read_response(serial_pid, timeout_ms)
       _ ->
         response

@@ -33,7 +33,6 @@ defmodule Pummpcomm.Session.Packet do
       date: DateTime.to_naive(Timex.local),
       type: rf_type
     }
-    IO.inspect packet
     case crc == Crc8.crc_8(crc_components(packet)) do
       true  -> {:ok, packet}
                false -> {:invalid_packet, "CRC doesn't match"}

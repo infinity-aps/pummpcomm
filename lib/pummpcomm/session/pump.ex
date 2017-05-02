@@ -1,4 +1,5 @@
 defmodule Pummpcomm.Session.Pump do
+  require Logger
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Command
   alias Pummpcomm.Session.Packet
@@ -8,17 +9,15 @@ defmodule Pummpcomm.Session.Pump do
     case check_pump_awake(pump_serial) do
       true  -> true
       false ->
-        IO.puts "Sending power control command"
-        result = Command.power_control(pump_serial)
+        Logger.info "Sending power control command"
+        Command.power_control(pump_serial)
         |> repeat_command(500, 12000)
-        IO.inspect result
-        result
     end
   end
 
   def check_pump_awake(pump_serial) do
     case pump_serial |> Command.read_pump_model |> execute do
-      {:ok, %Context{response: nil}}      -> true
+      {:ok, %Context{response: nil}}      -> false
       {:ok, %Context{response: _}}        -> true
       _                                   -> false
     end
@@ -32,24 +31,17 @@ defmodule Pummpcomm.Session.Pump do
   defp _execute(_, -1), do: {:error, "Max retries reached"}
   defp _execute(command, retry_count) do
     case send_command(command) do
-      {:error, _} -> _execute(command, retry_count - 1)
-      {:ok, context}     -> {:ok, context}
+      context = %Context{error: nil} ->
+        {:ok, context}
+      _ ->
+        _execute(command, retry_count - 1)
     end
   end
 
-  def send_command(command) do
-    _send_command(command)
-  end
-
-  defp _send_command(command) do
-    context = %Context{command: command}
+  defp send_command(command) do
+    %Context{command: command}
     |> do_prelude
     |> do_upload
-
-    case context do
-      %Context{error: nil} -> {:ok, context}
-      _ -> {:error, context}
-    end
   end
 
   defp repeat_command(command, times, ack_wait_millis) do
@@ -60,14 +52,12 @@ defmodule Pummpcomm.Session.Pump do
       case wait_for_ack(%Context{command: command}, ack_wait_millis) do
         %Context{error: nil} -> true
         %Context{error: reason} ->
-          message = "Errored with reason #{reason}"
-          IO.puts message
+          Logger.error "error with reason #{reason}", command: command
           false
       end
     else
       {:error, reason} ->
-        message = "Errored with reason #{reason}"
-        IO.puts message
+        Logger.error "errored with reason #{reason}", command: command
         false
     end
   end
@@ -75,8 +65,7 @@ defmodule Pummpcomm.Session.Pump do
   defp do_prelude(context = %Context{error: error}) when error != nil, do: context
   defp do_prelude(context = %Context{command: command}) do
     {:ok, packet} = Packet.from_command(command, <<0x00>>)
-    IO.puts "Sending prelude packet"
-    IO.inspect packet
+    Logger.info "Sending prelude packet", packet: packet
     command_bytes = Packet.to_binary(packet)
     with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes, 1000),
          {:ok, response_packet} <- Packet.from_binary(response_bytes),
@@ -86,11 +75,10 @@ defmodule Pummpcomm.Session.Pump do
         %{opcode: 0x06} -> Context.received_ack(context)
         _               -> Context.add_response(context, response_packet)
       end
-
     else
       {:error, reason} ->
-        message = "Errored with reason #{reason}"
-        IO.puts message
+        message = "error with reason #{reason}"
+        Logger.error message, context: context
         Context.add_error(context, message)
     end
   end
@@ -126,9 +114,9 @@ defmodule Pummpcomm.Session.Pump do
       end
     else
       {:error, reason} ->
-        message = "Errored with reason #{reason}"
-      IO.puts message
-      Context.add_error(context, message)
+        message = "error with reason #{reason}"
+        Logger.error message, context: context
+        Context.add_error(context, message)
     end
   end
 
@@ -138,11 +126,18 @@ defmodule Pummpcomm.Session.Pump do
     {:ok, command_bytes} = Packet.to_binary(packet)
     with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes),
          {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
-      Context.add_response(context, response_packet)
+
+      context
+      |> Context.sent_params()
+      |> Context.add_response(response_packet)
     else
-      {:error, _} -> SerialLink.write(command_bytes)
-      {:ok, response_packet} -> IO.puts "Received packet for another pump: #{IO.inspect(response_packet)}"
+      {:error, _} ->
+        SerialLink.write(command_bytes)
+        Context.sent_params(context)
+    {:ok, response_packet} ->
+        message = "Received packet for another pump with serial #{packet.pump_serial}"
+        Logger.error message, context: context, packet: packet
+        Context.add_error(context, message)
     end
-    %{context | sent_params: true}
   end
 end
