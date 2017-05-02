@@ -61,9 +61,10 @@ defmodule Pummpcomm.Driver.SerialLink do
 
   def handle_call({:write_and_read, command_bytes, timeout_ms}, _from, serial_pid) do
     Logger.debug "Command bytes: #{Base.encode16(command_bytes)}"
+    {:ok, encoded} = FourBySix.encode(command_bytes)
     <<@channel::8, @repetitions::8, @repetition_delay::8,
       @channel::8, timeout_ms::size(32), @retry_count::8,
-      FourBySix.encode(command_bytes)::binary>>
+      encoded::binary>>
     |> write_command(:send_and_listen, serial_pid, timeout_ms)
     response = read_response(serial_pid, timeout_ms) |> process_response()
     {:reply, response, serial_pid}
@@ -88,7 +89,8 @@ defmodule Pummpcomm.Driver.SerialLink do
   @max_repetition_batch_size 250
   defp write_batches(command_bytes, repetitions, repetition_delay, timeout_ms, serial_pid)  do
     Logger.debug "Command bytes: #{Base.encode16(command_bytes)}"
-    <<@channel::8, repetitions::8, repetition_delay::8, FourBySix.encode(command_bytes)::binary>>
+    {:ok, encoded} = FourBySix.encode(command_bytes)
+    <<@channel::8, repetitions::8, repetition_delay::8, encoded::binary>>
     |> write_command(:send_packet, serial_pid, timeout_ms)
 
     if repetitions > @max_repetition_batch_size do
@@ -130,8 +132,10 @@ defmodule Pummpcomm.Driver.SerialLink do
   defp process_response({:ok, data = <<@timeout>>}),             do: {:error, :timeout}
   defp process_response({:ok, data = <<@zero_data>>}),           do: {:error, :zero_data}
   defp process_response({:ok, <<raw_rssi::8, sequence::8, data::binary>>}) do
-    decoded = FourBySix.decode(data)
-    {:ok, %{rssi: rssi(raw_rssi), sequence: sequence, data: decoded}}
+    case FourBySix.decode(data) do
+      {:ok, decoded}      -> {:ok, %{rssi: rssi(raw_rssi), sequence: sequence, data: decoded}}
+      other = {:error, _} -> other
+    end
   end
 
   @rssi_offset 73
