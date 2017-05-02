@@ -1,5 +1,6 @@
 defmodule Pummpcomm.Packet do
   alias Pummpcomm.Command
+  alias Pummpcomm.Crc.Crc8
 
   @enforce_keys [:pump_serial, :opcode, :payload, :date, :type]
   defstruct pump_serial: nil, opcode: nil, payload: nil, date: nil, type: nil

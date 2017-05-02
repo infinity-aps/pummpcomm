@@ -1,8 +1,8 @@
 defmodule Pummpcomm.Cgm do
   use Bitwise
-  alias Pummpcomm.DateDecoder, as: DateDecoder
-  alias Pummpcomm.Crc16,       as: Crc16
-  alias Pummpcomm.Timestamper, as: Timestamper
+  alias Pummpcomm.DateDecoder
+  alias Pummpcomm.Crc.Crc16
+  alias Pummpcomm.Timestamper
 
   @data_end                  0x01
   @sensor_weak_signal        0x02

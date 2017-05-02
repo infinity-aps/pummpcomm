@@ -14,7 +14,7 @@ defmodule Pummpcomm.History do
   require Pummpcomm.HistoryDefinition
 
   alias Pummpcomm.History.PumpModel
-  alias Pummpcomm.Crc16
+  alias Pummpcomm.Crc.Crc16
   alias Pummpcomm.PumpModel
 
   import Pummpcomm.HistoryDefinition

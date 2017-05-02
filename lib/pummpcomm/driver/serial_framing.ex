@@ -1,4 +1,4 @@
-defmodule Pummpcomm.SerialFraming do
+defmodule Pummpcomm.Driver.SerialFraming do
   @behaviour Nerves.UART.Framing
 
   defmodule State do

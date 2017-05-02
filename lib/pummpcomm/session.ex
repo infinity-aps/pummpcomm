@@ -3,7 +3,7 @@ defmodule Pummpcomm.Session do
   alias Pummpcomm.Command
   alias Pummpcomm.Response
   alias Pummpcomm.Packet
-  alias Pummpcomm.SerialLink
+  alias Pummpcomm.Driver.SerialLink
 
   def power_control(pump_serial) do
     case check_pump_awake(pump_serial) do
@@ -18,22 +18,9 @@ defmodule Pummpcomm.Session do
   end
 
   def check_pump_awake(pump_serial) do
-    command = Command.read_pump_model(pump_serial)
-    IO.puts "Checking to see if the pump is awake"
-    IO.inspect(command)
-
-    case execute(command) do
-      {:ok, %Context{response: nil}} ->
-        IO.puts "Received no response"
-        false
-      {:ok, %Context{response: response}} ->
-        IO.puts "Received positive response"
-        IO.inspect Response.get_data(response)
-        true
-      result        ->
-        IO.puts "Received negative result"
-        IO.inspect result
-        false
+    case pump_serial |> Command.read_pump_model |> execute do
+      {:ok, %Context{response: response}} -> true
+      _                                   -> false
     end
   end
 

@@ -123,6 +123,6 @@ defmodule Pummpcomm.CgmTest do
     |> Enum.map(fn(event_map) -> Map.fetch!(event_map, :raw) end)
     |> Enum.reduce(<<>>, fn(raw, acc) -> acc <> raw end)
 
-    assert cgm_page == reconstituted_cgm_page <> <<Pummpcomm.Crc16.crc_16(reconstituted_cgm_page)::size(16)>>
+    assert cgm_page == reconstituted_cgm_page <> <<Pummpcomm.Crc.Crc16.crc_16(reconstituted_cgm_page)::size(16)>>
   end
 end

@@ -1,4 +1,4 @@
-defmodule Pummpcomm.FourBySix do
+defmodule Pummpcomm.Driver.FourBySix do
   @codes [0b010101, 0b110001, 0b110010, 0b100011,
           0b110100, 0b100101, 0b100110, 0b010110,
           0b011010, 0b011001, 0b101010, 0b001011,

@@ -1,5 +1,8 @@
-defmodule Pummpcomm.SerialLink do
+defmodule Pummpcomm.Driver.SerialLink do
   use GenServer
+
+  alias Pummpcomm.Driver.SerialFraming
+  alias Pummpcomm.Driver.FourBySix
 
   @genserver_timeout 60000
   @channel 0
@@ -22,7 +25,7 @@ defmodule Pummpcomm.SerialLink do
   def start_link(device) do
     {:ok, serial_pid} = Nerves.UART.start_link
     :ok = Nerves.UART.open(serial_pid, device, speed: 19200, active: false)
-    :ok = Nerves.UART.configure(serial_pid, framing: {Pummpcomm.SerialFraming, separator: <<0x00>>})
+    :ok = Nerves.UART.configure(serial_pid, framing: {SerialFraming, separator: <<0x00>>})
     :ok = Nerves.UART.flush(serial_pid)
 
     GenServer.start_link(__MODULE__, serial_pid, name: __MODULE__)
@@ -61,7 +64,7 @@ defmodule Pummpcomm.SerialLink do
     IO.puts Base.encode16(command_bytes)
     <<@channel::8, @repetitions::8, @repetition_delay::8,
       @channel::8, timeout_ms::size(32), @retry_count::8,
-      Pummpcomm.FourBySix.encode(command_bytes)::binary>>
+      FourBySix.encode(command_bytes)::binary>>
     |> write_command(:send_and_listen, serial_pid, timeout_ms)
     response = read_response(serial_pid, timeout_ms) |> process_response()
     {:reply, response, serial_pid}
@@ -87,7 +90,7 @@ defmodule Pummpcomm.SerialLink do
   defp write_batches(command_bytes, repetitions, repetition_delay, timeout_ms, serial_pid)  do
     IO.puts "Command bytes"
     IO.puts Base.encode16(command_bytes)
-    <<@channel::8, repetitions::8, repetition_delay::8, Pummpcomm.FourBySix.encode(command_bytes)::binary>>
+    <<@channel::8, repetitions::8, repetition_delay::8, FourBySix.encode(command_bytes)::binary>>
     |> write_command(:send_packet, serial_pid, timeout_ms)
 
     if repetitions > @max_repetition_batch_size do
@@ -131,7 +134,7 @@ defmodule Pummpcomm.SerialLink do
   defp process_response({:ok, data = <<@timeout>>}),             do: {:error, :timeout}
   defp process_response({:ok, data = <<@zero_data>>}),           do: {:error, :zero_data}
   defp process_response({:ok, <<raw_rssi::8, sequence::8, data::binary>>}) do
-    decoded = Pummpcomm.FourBySix.decode(data)
+    decoded = FourBySix.decode(data)
     {:ok, %{rssi: rssi(raw_rssi), sequence: sequence, data: decoded}}
   end
 
