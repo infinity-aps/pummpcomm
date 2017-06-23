@@ -20,4 +20,8 @@ defmodule Pummpcomm.Session.Command do
   def power_control(pump_serial, minutes \\ 10) do
     %Command{opcode: 0x5D, pump_serial: pump_serial, retries: 0, params: <<0x01, minutes::size(8)>>}
   end
+
+  def read_history_page(pump_serial, page) do
+    %Command{opcode: 0x80, pump_serial: pump_serial, params: <<0x01, page::size(8)>>, timeout: 5000}
+  end
 end

@@ -1,11 +1,13 @@
 defmodule Pummpcomm.Session.Response do
+  require Logger
   defstruct opcode: nil, data: <<>>, frames: []
 
   alias Pummpcomm.Session.Response
   alias Pummpcomm.Session.Packet
 
   def add_packet(response = %Response{opcode: opcode}, packet = %Packet{opcode: opcode}) do
-    <<_frame_number::8, rest::binary>> = packet.payload
+    <<last_frame::size(1), frame_number::size(7), rest::binary>> = packet.payload
+    Logger.info "Received packet with frame #{frame_number}. Last frame?: #{last_frame}"
     {:ok, %{response | data: response.data <> rest, frames: [packet | response.frames]}}
   end
 

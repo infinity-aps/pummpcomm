@@ -1,6 +1,7 @@
 defmodule Pummpcomm.Driver.SerialLink do
   require Logger
   use GenServer
+  use Bitwise
   alias Pummpcomm.Driver.SerialFraming
   alias Pummpcomm.Driver.FourBySix
 
@@ -20,6 +21,22 @@ defmodule Pummpcomm.Driver.SerialLink do
     reset:           0x07
   }
 
+  @registers %{
+    freq2:    0x09,
+    freq1:    0x0A,
+    freq0:    0x0B,
+    mdmcfg4:  0x0C,
+    mdmcfg3:  0x0D,
+    mdmcfg2:  0x0E,
+    mdmcfg1:  0x0F,
+    mdmcfg0:  0x10,
+    agcctrl2: 0x17,
+    agcctrl1: 0x18,
+    agcctrl0: 0x19,
+    frend1:   0x1A,
+    frend0:   0x1B
+  }
+
   # Public API
 
   def start_link(device) do
@@ -33,6 +50,10 @@ defmodule Pummpcomm.Driver.SerialLink do
 
   def update_register(register, value, timeout_ms \\ 1) do
     GenServer.call(__MODULE__, {:update_register, register, value, timeout_ms}, @genserver_timeout)
+  end
+
+  def set_base_frequency(mhz) do
+    GenServer.call(__MODULE__, {:set_base_frequency, mhz}, @genserver_timeout)
   end
 
   def read(timeout_ms \\ 5000) do
@@ -53,6 +74,21 @@ defmodule Pummpcomm.Driver.SerialLink do
 
   # GenServer implementation
 
+  def handle_call({:update_register, register, value, timeout_ms}, _from, serial_pid) do
+    _update_register(@registers[register], value, serial_pid)
+    {:reply, {:ok}, serial_pid}
+  end
+
+  def handle_call({:set_base_frequency, mhz}, _from, serial_pid) do
+    freq_xtal = 24000000
+    val = round((mhz * 1000000) / (freq_xtal / :math.pow(2, 16)))
+    #puts "Updating freq: 0x#{val.to_s(16)}"
+    _update_register(@registers[:freq0], val &&& 0xff, serial_pid)
+    _update_register(@registers[:freq1], (val >>> 8) &&& 0xff, serial_pid)
+    _update_register(@registers[:freq2], (val >>> 16) &&& 0xff, serial_pid)
+    {:reply, {:ok}, serial_pid}
+  end
+
   def handle_call({:read, timeout_ms}, _from, serial_pid) do
     write_command(<<@channel::8, timeout_ms::32>>, :get_packet, serial_pid, timeout_ms + 1000)
     response = read_response(serial_pid, timeout_ms) |> process_response()
@@ -63,7 +99,7 @@ defmodule Pummpcomm.Driver.SerialLink do
     Logger.debug "Command bytes: #{Base.encode16(command_bytes)}"
     {:ok, encoded} = FourBySix.encode(command_bytes)
     <<@channel::8, @repetitions::8, @repetition_delay::8,
-      @channel::8, timeout_ms::size(32), @retry_count::8,
+      @channel::8, (timeout_ms+1000)::size(32), @retry_count::8,
       encoded::binary>>
     |> write_command(:send_and_listen, serial_pid, timeout_ms)
     response = read_response(serial_pid, timeout_ms) |> process_response()
@@ -85,6 +121,10 @@ defmodule Pummpcomm.Driver.SerialLink do
   end
 
   # Private functions
+
+  defp _update_register(register, value, serial_pid) do
+    write_command(<<register::8, value::8>>, :update_register, serial_pid, 0)
+  end
 
   @max_repetition_batch_size 250
   defp write_batches(command_bytes, repetitions, repetition_delay, timeout_ms, serial_pid)  do
@@ -133,7 +173,9 @@ defmodule Pummpcomm.Driver.SerialLink do
   defp process_response({:ok, <<@zero_data>>}),           do: {:error, :zero_data}
   defp process_response({:ok, <<raw_rssi::8, sequence::8, data::binary>>}) do
     case FourBySix.decode(data) do
-      {:ok, decoded}      -> {:ok, %{rssi: rssi(raw_rssi), sequence: sequence, data: decoded}}
+      {:ok, decoded}      ->
+        Logger.debug "Decoded bytes: #{Base.encode16(decoded)}"
+        {:ok, %{rssi: rssi(raw_rssi), sequence: sequence, data: decoded}}
       other = {:error, _} -> other
     end
   end

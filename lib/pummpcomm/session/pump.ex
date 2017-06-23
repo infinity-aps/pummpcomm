@@ -65,12 +65,13 @@ defmodule Pummpcomm.Session.Pump do
   defp do_prelude(context = %Context{error: error}) when error != nil, do: context
   defp do_prelude(context = %Context{command: command}) do
     {:ok, packet} = Packet.from_command(command, <<0x00>>)
-    Logger.info "Sending prelude packet", packet: packet
+    Logger.info "Sending prelude packet: #{inspect(packet)}"
     command_bytes = Packet.to_binary(packet)
     with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes, 1000),
          {:ok, response_packet} <- Packet.from_binary(response_bytes),
          {:ok} <- validate_response_packet(command.pump_serial, response_packet) do
 
+      Logger.info "Response Packet: #{inspect(response_packet)}"
       case response_packet do
         %{opcode: 0x06} -> Context.received_ack(context)
         _               -> Context.add_response(context, response_packet)
@@ -108,6 +109,7 @@ defmodule Pummpcomm.Session.Pump do
       {:ok, response_packet} <- Packet.from_binary(response_bytes),
       {:ok} <- validate_response_packet(context.command.pump_serial, response_packet) do
 
+      Logger.info "Response Packet: #{inspect(response_packet)}"
       case response_packet do
         %{opcode: 0x06} -> Context.received_ack(context)
         _               -> wait_for_ack(context, timeout)
@@ -121,17 +123,22 @@ defmodule Pummpcomm.Session.Pump do
   end
 
   defp send_params(context = %Context{command: command}) do
+    Logger.info "Sending params: #{inspect(command)}"
     pump_serial = command.pump_serial
     {:ok, packet} = Packet.from_command(command)
-    {:ok, command_bytes} = Packet.to_binary(packet)
+    Logger.info "Sending params packet: #{inspect(packet)}"
+    command_bytes = Packet.to_binary(packet)
     with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes),
          {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
+
+      Logger.info "Response Packet from send params: #{inspect(response_packet)}"
 
       context
       |> Context.sent_params()
       |> Context.add_response(response_packet)
     else
-      {:error, _} ->
+      {:error, msg} ->
+        Logger.error "Error: #{inspect(msg)}"
         SerialLink.write(command_bytes)
         Context.sent_params(context)
     {:ok, response_packet} ->
