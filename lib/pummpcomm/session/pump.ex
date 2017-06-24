@@ -122,6 +122,30 @@ defmodule Pummpcomm.Session.Pump do
     end
   end
 
+  defp ack_and_listen(context = %Context{response: response}, timeout \\ @timeout) do
+    pump_serial = context.command.pump_serial
+    command = Command.ack(pump_serial)
+    {:ok, ack_packet} = Packet.from_command(command, Command.short_payload(command))
+    Logger.info "Sending ack packet: #{inspect(ack_packet)}"
+    command_bytes = Packet.to_binary(ack_packet)
+
+    case response.last_frame? do
+      true ->
+        {:ok, _} = SerialLink.write(command_bytes)
+        context
+      false ->
+        with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes),
+             {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
+          Logger.info "Response Packet from send params: #{inspect(response_packet)}"
+
+          context
+          |> Context.sent_params()
+          |> Context.add_response(response_packet)
+          |> ack_and_listen(context)
+        end
+    end
+  end
+
   defp send_params(context = %Context{command: command}) do
     Logger.info "Sending params: #{inspect(command)}"
     pump_serial = command.pump_serial
@@ -136,6 +160,7 @@ defmodule Pummpcomm.Session.Pump do
       context
       |> Context.sent_params()
       |> Context.add_response(response_packet)
+      |> ack_and_listen(context)
     else
       {:error, msg} ->
         Logger.error "Error: #{inspect(msg)}"
