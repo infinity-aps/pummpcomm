@@ -28,4 +28,12 @@ defmodule Pummpcomm.Session.Command do
   def read_history_page(pump_serial, page) do
     %Command{opcode: 0x80, pump_serial: pump_serial, params: <<page::size(8)>>, timeout: 5000}
   end
+
+  def get_current_cgm_page(pump_serial) do
+    %Command{opcode: 0xCD, pump_serial: pump_serial}
+  end
+
+  def read_cgm_page(pump_serial, page) do
+    %Command{opcode: 0x9A, pump_serial: pump_serial, params: <<page::size(32)>>, timeout: 5000}
+  end
 end
