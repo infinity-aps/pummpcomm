@@ -3,7 +3,7 @@ defmodule Pummpcomm.Session.Pump do
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Command
   alias Pummpcomm.Session.Packet
-  alias Pummpcomm.Driver.SerialLink
+  alias Pummpcomm.Driver.SubgRfspy
 
   def power_control(pump_serial) do
     case check_pump_awake(pump_serial) do
@@ -48,7 +48,7 @@ defmodule Pummpcomm.Session.Pump do
     {:ok, command_packet} = Packet.from_command(command, Command.short_payload(command))
     command_bytes = Packet.to_binary(command_packet)
 
-    with {:ok, ""} <- SerialLink.write(command_bytes, times, 0, 24 * times) do
+    with {:ok, ""} <- SubgRfspy.write(command_bytes, times, 0, 24 * times) do
       case wait_for_ack(%Context{command: command}, ack_wait_millis) do
         %Context{error: nil} -> true
         %Context{error: reason} ->
@@ -67,7 +67,7 @@ defmodule Pummpcomm.Session.Pump do
     {:ok, packet} = Packet.from_command(command, <<0x00>>)
     Logger.info "Sending prelude packet: #{inspect(packet)}"
     command_bytes = Packet.to_binary(packet)
-    with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes, 1000),
+    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes, 1000),
          {:ok, response_packet} <- Packet.from_binary(response_bytes),
          {:ok} <- validate_response_packet(command.pump_serial, response_packet) do
 
@@ -105,7 +105,7 @@ defmodule Pummpcomm.Session.Pump do
 
   @timeout 500
   defp wait_for_ack(context, timeout \\ @timeout) do
-    with {:ok, %{data: response_bytes}} <- SerialLink.read(timeout),
+    with {:ok, %{data: response_bytes}} <- SubgRfspy.read(timeout),
       {:ok, response_packet} <- Packet.from_binary(response_bytes),
       {:ok} <- validate_response_packet(context.command.pump_serial, response_packet) do
 
@@ -131,10 +131,10 @@ defmodule Pummpcomm.Session.Pump do
 
     case response.last_frame? do
       true ->
-        {:ok, _} = SerialLink.write(command_bytes)
+        {:ok, _} = SubgRfspy.write(command_bytes)
         context
       false ->
-        with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes),
+        with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
              {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
           Logger.info "Response Packet from send params: #{inspect(response_packet)}"
 
@@ -152,7 +152,7 @@ defmodule Pummpcomm.Session.Pump do
     {:ok, packet} = Packet.from_command(command)
     Logger.info "Sending params packet: #{inspect(packet)}"
     command_bytes = Packet.to_binary(packet)
-    with {:ok, %{data: response_bytes}} <- SerialLink.write_and_read(command_bytes),
+    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
          {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
 
       Logger.info "Response Packet from send params: #{inspect(response_packet)}"
@@ -164,7 +164,7 @@ defmodule Pummpcomm.Session.Pump do
     else
       {:error, msg} ->
         Logger.error "Error: #{inspect(msg)}"
-        SerialLink.write(command_bytes)
+        SubgRfspy.write(command_bytes)
         Context.sent_params(context)
     {:ok, response_packet} ->
         message = "Received packet for another pump with serial #{response_packet.pump_serial}"
