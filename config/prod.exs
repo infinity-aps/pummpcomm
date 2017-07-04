@@ -1,4 +1,5 @@
 use Mix.Config
 
 config :logger, level: :debug
-config :pummpcomm, :serial_driver, Pummpcomm.Driver.SubgRfspy.UART
+config :pummpcomm, Pummpcomm.Driver.SubgRfspy,
+  serial_driver: Pummpcomm.Driver.SubgRfspy.UART
