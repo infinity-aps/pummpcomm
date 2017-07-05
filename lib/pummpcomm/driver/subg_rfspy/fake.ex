@@ -64,7 +64,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
     new_interactions = [["read", expected_data, response] | interactions]
     {:ok, expected_data} = Base.decode16(expected_data)
     new_state = %{state | interactions: new_interactions, remaining_interactions: rest}
-    {:reply, {response, String.to_atom(expected_data)}, new_state}
+    {:reply, {String.to_atom(response), expected_data}, new_state}
   end
 
   # RECORD MODE
@@ -78,6 +78,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def handle_call({:read, timeout_ms}, _from, state = %{record: true, interactions: interactions}) do
     {response, data} = Pummpcomm.Driver.SubgRfspy.UART.read(timeout_ms)
+    Logger.debug "Received response from Real UART: {#{response}, #{data}}"
     interaction = ["read", Base.encode16(data), Atom.to_string(response)]
     state = %{state | interactions: [interaction | interactions]}
     {:reply, {response, data}, state}

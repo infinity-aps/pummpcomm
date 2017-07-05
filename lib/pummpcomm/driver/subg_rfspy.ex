@@ -72,11 +72,15 @@ defmodule Pummpcomm.Driver.SubgRfspy do
     read_response(timeout_ms) |> process_response()
   end
 
+  def reset do
+    :ok = write_command(<<>>, :reset, 100)
+  end
+
   def sync do
-    write_command(<<>>, :get_state, 1)
-    {:ok, status} = read_response(1)
-    write_command(<<>>, :get_version, 1)
-    {:ok, version} = read_response(1)
+    :ok = write_command(<<>>, :get_state, 100)
+    {:ok, status} = read_response(1000)
+    :ok = write_command(<<>>, :get_version, 100)
+    {:ok, version} = read_response(1000)
     %{status: status, version: version}
   end
 
@@ -94,10 +98,11 @@ defmodule Pummpcomm.Driver.SubgRfspy do
 
   defp write_command(param, command_type, timeout_ms) do
     command = @commands[command_type]
-    @serial_driver.write(<<command::8>> <> param, timeout_ms + 10000)
+    response = @serial_driver.write(<<command::8>> <> param, timeout_ms + 10000)
     if command_type == :reset do
       :timer.sleep(5000)
     end
+    response
   end
 
   @timeout             0xAA
@@ -106,10 +111,10 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   defp read_response(timeout_ms) do
     Logger.debug "Waiting for response with #{timeout_ms} timeout"
     response = @serial_driver.read(timeout_ms)
-    Logger.debug "Received response from UART: #{inspect response}"
-    if {:ok, data} = response do
-      Logger.debug "Response in hex: #{Base.encode16(data)}"
-    end
+    # Logger.debug "Received response from UART: #{inspect response}"
+    # if {:ok, data} = response do
+      # Logger.debug "Response in hex: #{Base.encode16(data)}"
+    # end
     case response do
       {:ok, <<@command_interrupted>>} ->
         Logger.debug "Command Interrupted, continuing to read"
