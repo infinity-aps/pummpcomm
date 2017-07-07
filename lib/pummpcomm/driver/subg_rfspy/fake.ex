@@ -7,15 +7,15 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def start_link(context_name) do
     File.mkdir_p("test/cassettes")
-    record = System.get_env("RECORD_CASSETTE")
-    initial_state = cond do
-      "true" == record ->
+    record = System.get_env("RECORD_CASSETTE") || "false"
+    initial_state = case record do
+      "true" ->
         _start_link(context_name, true)
-      "new" == record ->
+      "new" ->
         cassette_exists = File.exists?(cassette_filename(context_name))
         _start_link(context_name, !cassette_exists)
-      true ->
-        _start_link(context_name, true)
+      "false" ->
+        _start_link(context_name, false)
     end
 
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
