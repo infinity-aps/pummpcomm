@@ -31,7 +31,7 @@ defmodule Pummpcomm.Driver.SubgRfspyTest do
   end
 
   test "sync interacts with the chip firmware correctly" do
-    SubgRfspy.sync
+    SubgRfspy.sync()
 
     assert Enum.member?(Fake.interactions, ["write", "01", "ok"])
     assert Enum.member?(Fake.interactions, ["write", "02", "ok"])

@@ -10,6 +10,15 @@ defmodule Pummpcomm.Session.PumpExecutor do
     _execute(command, retry_count)
   end
 
+  def repeat_execute(command, times, ack_wait_millis) when times > 255 do
+    _repeat_execute(command, 255, 1)
+    repeat_execute(command, times - 255, ack_wait_millis)
+  end
+
+  def repeat_execute(command, times, ack_wait_millis) do
+    _repeat_execute(command, times, 1)
+  end
+
   defp _execute(_, -1), do: {:error, "Max retries reached"}
   defp _execute(command, retry_count) do
     case send_command(command) do
@@ -20,7 +29,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
     end
   end
 
-  def repeat_execute(command, times, ack_wait_millis) do
+  defp _repeat_execute(command, times, ack_wait_millis) do
     {:ok, command_packet} = Packet.from_command(command, Command.short_payload(command))
     command_bytes = Packet.to_binary(command_packet)
 
@@ -45,13 +54,13 @@ defmodule Pummpcomm.Session.PumpExecutor do
   defp do_prelude(context = %Context{error: error}) when error != nil, do: context
   defp do_prelude(context = %Context{command: command}) do
     {:ok, packet} = Packet.from_command(command, <<0x00>>)
-    Logger.info "Sending prelude packet: #{inspect(packet)}"
+    # Logger.info "Sending prelude packet: #{inspect(packet)}"
     command_bytes = Packet.to_binary(packet)
-    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes, 1000),
+    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
          {:ok, response_packet} <- Packet.from_binary(response_bytes),
          {:ok} <- validate_response_packet(command.pump_serial, response_packet) do
 
-      Logger.info "Response Packet: #{inspect(response_packet)}"
+      # Logger.info "Response Packet: #{inspect(response_packet)}"
       case response_packet do
         %{opcode: 0x06} -> Context.received_ack(context)
         _               -> Context.add_response(context, response_packet)
@@ -106,7 +115,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
     pump_serial = context.command.pump_serial
     command = Command.ack(pump_serial)
     {:ok, ack_packet} = Packet.from_command(command, Command.short_payload(command))
-    Logger.info "Sending ack packet: #{inspect(ack_packet)}"
+    # Logger.info "Sending ack packet: #{inspect(ack_packet)}"
     command_bytes = Packet.to_binary(ack_packet)
 
     case response.last_frame? do
@@ -114,9 +123,9 @@ defmodule Pummpcomm.Session.PumpExecutor do
         {:ok, _} = SubgRfspy.write(command_bytes)
         context
       false ->
-        with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
+        with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes, 100),
              {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
-          Logger.info "Response Packet from send params: #{inspect(response_packet)}"
+          # Logger.info "Response Packet from send params: #{inspect(response_packet)}"
 
           context
           |> Context.sent_params()
@@ -127,15 +136,15 @@ defmodule Pummpcomm.Session.PumpExecutor do
   end
 
   defp send_params(context = %Context{command: command}) do
-    Logger.info "Sending params: #{inspect(command)}"
+    # Logger.info "Sending params: #{inspect(command)}"
     pump_serial = command.pump_serial
     {:ok, packet} = Packet.from_command(command)
-    Logger.info "Sending params packet: #{inspect(packet)}"
+    # Logger.info "Sending params packet: #{inspect(packet)}"
     command_bytes = Packet.to_binary(packet)
     with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
          {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
 
-      Logger.info "Response Packet from send params: #{inspect(response_packet)}"
+      # Logger.info "Response Packet from send params: #{inspect(response_packet)}"
 
       context
       |> Context.sent_params()
