@@ -7,17 +7,30 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def start_link(context_name) do
     File.mkdir_p("test/cassettes")
-    record = System.get_env("RECORD_NEW") == "true"
-    initial_state = case record do
+    record = System.get_env("RECORD_CASSETTE")
+    initial_state = cond do
+      "true" == record ->
+        _start_link(context_name, true)
+      "new" == record ->
+        cassette_exists = File.exists?(cassette_filename(context_name))
+        _start_link(context_name, !cassette_exists)
       true ->
-        {:ok, _} = Pummpcomm.Driver.SubgRfspy.UART.start_link
-        %{record: true, interactions: [], context_name: context_name}
-      false ->
-        expected_interactions = File.stream!(cassette_filename(context_name)) |> CSV.decode! |> Enum.map(&(&1))
-        %{record: false, interactions: [], remaining_interactions: expected_interactions}
+        _start_link(context_name, true)
     end
 
     GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
+  end
+
+  def _start_link(context_name, true) do
+    Logger.debug "Starting #{context_name} in record mode"
+    {:ok, _} = Pummpcomm.Driver.SubgRfspy.UART.start_link
+    %{record: true, interactions: [], context_name: context_name}
+  end
+
+  def _start_link(context_name, false) do
+    Logger.debug "Starting #{context_name} in playback mode"
+    expected_interactions = File.stream!(cassette_filename(context_name)) |> CSV.decode! |> Enum.map(&(&1))
+    %{record: false, interactions: [], remaining_interactions: expected_interactions}
   end
 
   def write(data, timeout_ms) do
