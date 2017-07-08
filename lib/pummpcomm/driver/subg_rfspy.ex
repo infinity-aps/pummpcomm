@@ -4,6 +4,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   alias Pummpcomm.Driver.FourBySix
 
   @serial_driver Application.get_env(:pummpcomm, :serial_driver)
+  @serial_timeout_ms_padding 1000
 
   @channel 0
   @retry_count 0
@@ -39,7 +40,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   @fast_timeout 1
 
   def update_register(register, value) do
-    write_command(<<register::8, value::8>>, :update_register, 0)
+    write_command(<<register::8, value::8>>, :update_register, 1000)
     {:ok}
   end
 
@@ -52,12 +53,12 @@ defmodule Pummpcomm.Driver.SubgRfspy do
     {:ok}
   end
 
-  def read(timeout_ms \\ 5000) do
+  def read(timeout_ms \\ 1000) do
     write_command(<<@channel::8, timeout_ms::32>>, :get_packet, timeout_ms + 1000)
     read_response(timeout_ms) |> process_response()
   end
 
-  def write(packet, repetitions \\ 1, repetition_delay \\ 0, timeout_ms \\ 500) do
+  def write(packet, repetitions \\ 1, repetition_delay \\ 0, timeout_ms \\ 1000) do
     write_batches(packet, repetitions, repetition_delay, timeout_ms)
     read_response(timeout_ms)
   end
@@ -66,18 +67,37 @@ defmodule Pummpcomm.Driver.SubgRfspy do
     Logger.debug "Packet bytes: #{Base.encode16(packet)}"
     {:ok, encoded} = FourBySix.encode(packet)
     <<@channel::8, @repetitions::8, @repetition_delay::8,
-      @channel::8, (timeout_ms+1000)::size(32), @retry_count::8,
+      @channel::8, timeout_ms::size(32), @retry_count::8,
       encoded::binary>>
-      |> write_command(:send_and_listen, timeout_ms)
+      |> write_command(:send_and_listen, timeout_ms + @serial_timeout_ms_padding)
     read_response(timeout_ms) |> process_response()
   end
 
+  def reset do
+    :ok = write_command(<<>>, :reset, 100)
+  end
+
   def sync do
-    write_command(<<>>, :get_state, 1)
-    {:ok, status} = read_response(1)
-    write_command(<<>>, :get_version, 1)
-    {:ok, version} = read_response(1)
+    flush_response_buffer()
+    {:ok, status} = get_state()
+    {:ok, version} = get_version()
     %{status: status, version: version}
+  end
+
+  def get_version do
+    :ok = write_command(<<>>, :get_version, 100)
+    read_response(5000)
+  end
+
+  def get_state do
+    :ok = write_command(<<>>, :get_state, 100)
+    read_response(5000)
+  end
+
+  def flush_response_buffer do
+    Logger.debug "Flushing response buffer on chip"
+    read_response(50)
+    read_response(50)
   end
 
   @max_repetition_batch_size 250
@@ -94,10 +114,11 @@ defmodule Pummpcomm.Driver.SubgRfspy do
 
   defp write_command(param, command_type, timeout_ms) do
     command = @commands[command_type]
-    @serial_driver.write(<<command::8>> <> param, timeout_ms + 10000)
+    response = @serial_driver.write(<<command::8>> <> param, timeout_ms + 10000)
     if command_type == :reset do
       :timer.sleep(5000)
     end
+    response
   end
 
   @timeout             0xAA
@@ -106,7 +127,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   defp read_response(timeout_ms) do
     Logger.debug "Waiting for response with #{timeout_ms} timeout"
     response = @serial_driver.read(timeout_ms)
-    Logger.debug "Received response from UART: #{inspect response}"
+    # Logger.debug "Received response from UART: #{inspect response}"
     if {:ok, data} = response do
       Logger.debug "Response in hex: #{Base.encode16(data)}"
     end

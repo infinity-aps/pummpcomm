@@ -1,175 +1,91 @@
 defmodule Pummpcomm.Session.Pump do
+  use GenServer
   require Logger
-  alias Pummpcomm.Session.Context
+  alias Pummpcomm.Session.PumpExecutor
   alias Pummpcomm.Session.Command
-  alias Pummpcomm.Session.Packet
-  alias Pummpcomm.Driver.SubgRfspy
+  alias Pummpcomm.Session.Context
+  alias Pummpcomm.Session.Response
 
-  def power_control(pump_serial) do
-    case check_pump_awake(pump_serial) do
-      true  -> true
-      false ->
-        Logger.info "Sending power control command"
-        Command.power_control(pump_serial)
-        |> repeat_command(500, 12000)
+  @genserver_timeout 60000
+
+  def start_link do
+    pump_serial = System.get_env("PUMP_SERIAL") || config(:pump_serial)
+    {:ok, %{model_number: model_number}} = ensure_pump_awake(pump_serial)
+    state = %{
+      pump_serial: pump_serial,
+      model_number: model_number
+    }
+
+    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+  end
+
+  def get_current_cgm_page do
+    GenServer.call(__MODULE__, {:get_current_cgm_page}, @genserver_timeout)
+  end
+
+  def read_cgm_page(page_number) do
+    GenServer.call(__MODULE__, {:read_cgm_page, page_number}, @genserver_timeout)
+  end
+
+  def read_history_page(page_number) do
+    GenServer.call(__MODULE__, {:read_history_page, page_number}, @genserver_timeout)
+  end
+
+  def handle_call({:get_current_cgm_page}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> Command.get_current_cgm_page() |> PumpExecutor.execute(),
+           response <- Response.get_data(context.response) do
+      {:reply, response, state}
+    else
+      _ -> {:reply, {:error, "Get Current CGM Page Failed"}, state}
     end
   end
 
-  def check_pump_awake(pump_serial) do
-    case pump_serial |> Command.read_pump_model |> execute do
-      {:ok, %Context{response: nil}}      -> false
-      {:ok, %Context{response: _}}        -> true
-      _                                   -> false
+  def handle_call({:read_cgm_page, page_number}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> Command.read_cgm_page(page_number) |> PumpExecutor.execute(),
+           response <- Response.get_data(context.response) do
+      {:reply, response, state}
+    else
+      _ -> {:reply, {:error, "Read CGM Page Failed"}, state}
     end
   end
 
-  @retry_count 3
-  def execute(command, retry_count \\ @retry_count) do
-    _execute(command, retry_count)
+  def handle_call({:read_history_page, page_number}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> Command.read_history_page(page_number) |> PumpExecutor.execute(),
+         response <- Response.get_data(context.response) do
+      {:reply, response, state}
+    else
+      _ -> {:reply, {:error, "Read History Page Failed"}, state}
+    end
   end
 
-  defp _execute(_, -1), do: {:error, "Max retries reached"}
-  defp _execute(command, retry_count) do
-    case send_command(command) do
-      context = %Context{error: nil} ->
-        {:ok, context}
+  defp ensure_pump_awake(pump_serial) do
+    response = read_pump_model(pump_serial)
+    case response do
+      {:ok, _} -> response
       _ ->
-        _execute(command, retry_count - 1)
+        Logger.info "Sending power control command"
+        Command.power_control(pump_serial) |> PumpExecutor.repeat_execute(500, 12000)
+        read_pump_model(pump_serial)
     end
   end
 
-  defp send_command(command) do
-    %Context{command: command}
-    |> do_prelude
-    |> do_upload
-  end
-
-  defp repeat_command(command, times, ack_wait_millis) do
-    {:ok, command_packet} = Packet.from_command(command, Command.short_payload(command))
-    command_bytes = Packet.to_binary(command_packet)
-
-    with {:ok, ""} <- SubgRfspy.write(command_bytes, times, 0, 24 * times) do
-      case wait_for_ack(%Context{command: command}, ack_wait_millis) do
-        %Context{error: nil} -> true
-        %Context{error: reason} ->
-          Logger.error "error with reason #{reason}", command: command
-          false
-      end
-    else
-      {:error, reason} ->
-        Logger.error "errored with reason #{reason}", command: command
-        false
+  def read_pump_model(pump_serial) do
+    case %{Command.read_pump_model(pump_serial) | retries: 0} |> PumpExecutor.execute() do
+      {:ok, %Context{response: response}} ->
+        {:ok, Response.get_data(response)}
+      other                                   ->
+        other
     end
   end
 
-  defp do_prelude(context = %Context{error: error}) when error != nil, do: context
-  defp do_prelude(context = %Context{command: command}) do
-    {:ok, packet} = Packet.from_command(command, <<0x00>>)
-    Logger.info "Sending prelude packet: #{inspect(packet)}"
-    command_bytes = Packet.to_binary(packet)
-    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes, 1000),
-         {:ok, response_packet} <- Packet.from_binary(response_bytes),
-         {:ok} <- validate_response_packet(command.pump_serial, response_packet) do
-
-      Logger.info "Response Packet: #{inspect(response_packet)}"
-      case response_packet do
-        %{opcode: 0x06} -> Context.received_ack(context)
-        _               -> Context.add_response(context, response_packet)
-      end
-    else
-      {:error, reason} ->
-        message = "error with reason #{reason}"
-        Logger.error message, context: context
-        Context.add_error(context, message)
-    end
+  defp config(key) do
+    Keyword.get(config(), key)
   end
 
-  defp validate_response_packet(pump_serial, response_packet) do
-    case response_packet do
-      %{pump_serial: ^pump_serial} -> {:ok}
-      _                            -> {:error, :crosstalk}
-    end
-  end
-
-  defp do_upload(context = %Context{error: error}) when error != nil, do: context
-  defp do_upload(context = %Context{command: %Command{params: params}}) when byte_size(params) == 0 do
-    %{context | sent_params: true}
-  end
-
-  defp do_upload(context = %Context{received_ack: received_ack}) do
-    case received_ack do
-      false -> wait_for_ack(context)
-      true  -> send_params(context)
-    end
-  end
-
-  @timeout 500
-  defp wait_for_ack(context, timeout \\ @timeout) do
-    with {:ok, %{data: response_bytes}} <- SubgRfspy.read(timeout),
-      {:ok, response_packet} <- Packet.from_binary(response_bytes),
-      {:ok} <- validate_response_packet(context.command.pump_serial, response_packet) do
-
-      Logger.info "Response Packet: #{inspect(response_packet)}"
-      case response_packet do
-        %{opcode: 0x06} -> Context.received_ack(context)
-        _               -> wait_for_ack(context, timeout)
-      end
-    else
-      {:error, reason} ->
-        message = "error with reason #{reason}"
-        Logger.error message, context: context
-        Context.add_error(context, message)
-    end
-  end
-
-  defp ack_and_listen(context = %Context{response: response}, timeout \\ @timeout) do
-    pump_serial = context.command.pump_serial
-    command = Command.ack(pump_serial)
-    {:ok, ack_packet} = Packet.from_command(command, Command.short_payload(command))
-    Logger.info "Sending ack packet: #{inspect(ack_packet)}"
-    command_bytes = Packet.to_binary(ack_packet)
-
-    case response.last_frame? do
-      true ->
-        {:ok, _} = SubgRfspy.write(command_bytes)
-        context
-      false ->
-        with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
-             {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
-          Logger.info "Response Packet from send params: #{inspect(response_packet)}"
-
-          context
-          |> Context.sent_params()
-          |> Context.add_response(response_packet)
-          |> ack_and_listen(context)
-        end
-    end
-  end
-
-  defp send_params(context = %Context{command: command}) do
-    Logger.info "Sending params: #{inspect(command)}"
-    pump_serial = command.pump_serial
-    {:ok, packet} = Packet.from_command(command)
-    Logger.info "Sending params packet: #{inspect(packet)}"
-    command_bytes = Packet.to_binary(packet)
-    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
-         {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
-
-      Logger.info "Response Packet from send params: #{inspect(response_packet)}"
-
-      context
-      |> Context.sent_params()
-      |> Context.add_response(response_packet)
-      |> ack_and_listen(context)
-    else
-      {:error, msg} ->
-        Logger.error "Error: #{inspect(msg)}"
-        SubgRfspy.write(command_bytes)
-        Context.sent_params(context)
-    {:ok, response_packet} ->
-        message = "Received packet for another pump with serial #{response_packet.pump_serial}"
-        Logger.error message, context: context, packet: packet
-        Context.add_error(context, message)
-    end
+  defp config do
+    Application.get_env(:pummpcomm, Pummpcomm.Session.Pump)
   end
 end

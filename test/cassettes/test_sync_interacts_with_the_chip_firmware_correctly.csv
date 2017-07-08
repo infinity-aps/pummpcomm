@@ -1,0 +1,6 @@
+read,,ok
+read,,ok
+write,01,ok
+read,4F4B,ok
+write,02,ok
+read,737562675F726673707920302E39,ok
