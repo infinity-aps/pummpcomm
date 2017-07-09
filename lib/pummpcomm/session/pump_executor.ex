@@ -10,13 +10,14 @@ defmodule Pummpcomm.Session.PumpExecutor do
     _execute(command, retry_count)
   end
 
+  @fast_timeout 1
   def repeat_execute(command, times, ack_wait_millis) when times > 255 do
-    _repeat_execute(command, 255, 1)
+    _repeat_execute(command, 255, @fast_timeout)
     repeat_execute(command, times - 255, ack_wait_millis)
   end
 
   def repeat_execute(command, times, ack_wait_millis) do
-    _repeat_execute(command, times, 1)
+    _repeat_execute(command, times, ack_wait_millis)
   end
 
   defp _execute(_, -1), do: {:error, "Max retries reached"}
@@ -111,7 +112,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
     end
   end
 
-  defp ack_and_listen(context = %Context{response: response}, timeout \\ @timeout) do
+  defp ack_and_listen(context = %Context{response: response}) do
     pump_serial = context.command.pump_serial
     command = Command.ack(pump_serial)
     {:ok, ack_packet} = Packet.from_command(command, Command.short_payload(command))
@@ -130,7 +131,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
           context
           |> Context.sent_params()
           |> Context.add_response(response_packet)
-          |> ack_and_listen(context)
+          |> ack_and_listen()
         end
     end
   end
@@ -149,7 +150,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
       context
       |> Context.sent_params()
       |> Context.add_response(response_packet)
-      |> ack_and_listen(context)
+      |> ack_and_listen()
     else
       {:error, msg} ->
         Logger.error "Error: #{inspect(msg)}"

@@ -37,8 +37,6 @@ defmodule Pummpcomm.Driver.SubgRfspy do
     frend0:   0x1B
   }
 
-  @fast_timeout 1
-
   def update_register(register, value) do
     write_command(<<register::8, value::8>>, :update_register, 1000)
     {:ok}

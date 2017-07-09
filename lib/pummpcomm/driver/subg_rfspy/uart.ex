@@ -9,7 +9,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
     :ok = Nerves.UART.configure(serial_pid, framing: {SerialFraming, separator: <<0x00>>})
     :ok = Nerves.UART.flush(serial_pid)
 
-    result = GenServer.start_link(__MODULE__, serial_pid, name: __MODULE__)
+    GenServer.start_link(__MODULE__, serial_pid, name: __MODULE__)
   end
 
   def write(data, timeout_ms) do
