@@ -18,7 +18,8 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   defp fetch_and_filter_page(page_number, sensor_values, oldest_allowed, lowest_page_allowed) do
     {:ok, values} = @pump.read_cgm_page(page_number)
-    {oldest_reached, sensor_values} = Enum.filter_map(values, &filter_glucose_value/1, &process_cgm_entry/1) |> filter_by_date(sensor_values, oldest_allowed)
+    newest_first_values = Enum.reverse(values)
+    {oldest_reached, sensor_values} = Enum.filter_map(newest_first_values, &filter_glucose_value/1, &process_cgm_entry/1) |> filter_by_date(sensor_values, oldest_allowed)
     case oldest_reached do
       true -> Enum.reverse(sensor_values)
       false -> fetch_and_filter_page(page_number - 1, sensor_values, oldest_allowed, lowest_page_allowed)
