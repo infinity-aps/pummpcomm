@@ -7,7 +7,11 @@ defmodule Pummpcomm.Mixfile do
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     deps: deps(),
+     name: "Pummpcomm"
+     source_url: "https://github.com/tmecklem/pummpcomm",
+     description: description(),
+     package: package()]
   end
 
   def application do
@@ -18,5 +22,19 @@ defmodule Pummpcomm.Mixfile do
     [{:nerves_uart, "~> 0.1.1"},
      {:timex, "~> 3.0"},
      {:csv, "~> 2.0.0"}]
+  end
+
+  defp description do
+    """
+    Pummpcomm is a library to handle communication with a Medtronic insulin pump via a serial link to a cc1110 chip running subg_rfspy. It is inspired by the work of Ben West's decocare python project (https://github.com/openaps/decocare). It can run commands, receive responses, and decode multipacket history and cgm data.
+    """
+  end
+
+  defp package do
+    [
+      maintainers: ["Timothy Mecklem"],
+      licenses: ["MIT License"]
+      links: %{"Github" => "https://github.com/tmecklem/pummpcomm"}
+    ]
   end
 end
