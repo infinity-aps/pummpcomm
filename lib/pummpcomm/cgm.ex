@@ -1,5 +1,6 @@
 defmodule Pummpcomm.Cgm do
   use Bitwise
+  require Logger
   alias Pummpcomm.DateDecoder
   alias Pummpcomm.Crc.Crc16
   alias Pummpcomm.Timestamper
@@ -26,7 +27,10 @@ defmodule Pummpcomm.Cgm do
   # though the timestamper
   def decode(page) do
     case Crc16.check_crc_16(page) do
-      {:ok, _} -> {:ok, page |> Crc16.page_data |> reverse |> decode_page |> Timestamper.timestamp_events}
+      {:ok, _} ->
+        Logger.debug("Decoding page:")
+        Logger.debug(Base.encode16(page))
+        {:ok, page |> Crc16.page_data |> reverse |> decode_page |> Timestamper.timestamp_events}
       other    -> other
     end
   end
@@ -149,6 +153,16 @@ defmodule Pummpcomm.Cgm do
   def decode_page(<<unknown::8, tail::binary>>, events) do
     event = {:unknown, %{raw: <<unknown>>}}
     decode_page(tail, [event | events])
+  end
+
+  def needs_timestamp?(events), do: _needs_timestamp?(Enum.reverse(events))
+  def _needs_timestamp?([]), do: false
+  def _needs_timestamp?([event | rest]) do
+    case event do
+      {:sensor_glucose_value, %{timestamp: nil}} -> true
+      {:sensor_glucose_value, %{timestamp: _}}   -> false
+      _                                          -> _needs_timestamp?(rest)
+    end
   end
 
   defp calibration_type(0x00), do: :meter_bg_now
