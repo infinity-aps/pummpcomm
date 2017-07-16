@@ -34,10 +34,10 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
     end
   end
 
-  defp filter_glucose_value([:sensor_glucose_value, _]), do: true
-  defp filter_glucose_value(_),                          do: false
+  defp filter_glucose_value({:sensor_glucose_value, entry}), do: true
+  defp filter_glucose_value(_),                              do: false
 
-  defp process_cgm_entry([:sensor_glucose_value, glucose_entry]) do
+  defp process_cgm_entry({:sensor_glucose_value, glucose_entry}) do
     %{sgv: glucose_entry.sgv, timestamp: glucose_entry.timestamp}
   end
 

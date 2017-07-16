@@ -19,8 +19,8 @@ defmodule Pummpcomm.Session.PumpFake do
   end
 
   defp generate_sgv(minutes_back) do
-    [:sensor_glucose_value,
-     %{sgv: 200 - minutes_back, timestamp: time_for_minutes_back(minutes_back)}]
+    {:sensor_glucose_value,
+     %{sgv: 200 - minutes_back, timestamp: time_for_minutes_back(minutes_back)}}
   end
 
   defp time_for_minutes_back(minutes_back) do
