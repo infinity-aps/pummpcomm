@@ -5,6 +5,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   def get_sensor_values(minutes_back) do
     oldest_allowed = oldest_entry_allowed(minutes_back)
+    Logger.debug "Searching until we find an entry older than #{inspect(oldest_allowed)}"
 
     %{page_number: page_number} = @pump.get_current_cgm_page
     {:ok, fetch_and_filter_page(page_number, [], oldest_allowed, page_number - 5)}
@@ -34,11 +35,13 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
     end
   end
 
-  defp filter_glucose_value({:sensor_glucose_value, entry}), do: true
-  defp filter_glucose_value(_),                              do: false
+  defp filter_glucose_value({:sensor_glucose_value, _}), do: true
+  defp filter_glucose_value(_),                          do: false
 
   defp process_cgm_entry({:sensor_glucose_value, glucose_entry}) do
-    %{sgv: glucose_entry.sgv, timestamp: glucose_entry.timestamp}
+    entry = %{sgv: glucose_entry.sgv, timestamp: glucose_entry.timestamp}
+    Logger.debug "Looking at #{inspect(entry)}"
+    entry
   end
 
   defp oldest_entry_allowed(minutes_back) do
