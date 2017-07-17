@@ -10,10 +10,10 @@ defmodule Pummpcomm.Session.Pump do
 
   def start_link do
     pump_serial = System.get_env("PUMP_SERIAL") || config(:pump_serial)
-    {:ok, %{model_number: model_number}} = ensure_pump_awake(pump_serial)
     state = %{
       pump_serial: pump_serial,
-      model_number: model_number
+      model_number: nil,
+      initialized: false
     }
 
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
@@ -29,6 +29,15 @@ defmodule Pummpcomm.Session.Pump do
 
   def read_history_page(page_number) do
     GenServer.call(__MODULE__, {:read_history_page, page_number}, @genserver_timeout)
+  end
+
+  def handle_call(call_params, from, state = %{initialized: false, pump_serial: pump_serial}) do
+    case ensure_pump_awake(pump_serial) do
+      {:ok, %{model_number: model_number}} ->
+        handle_call(call_params, from, %{state | initialized: true, model_number: model_number})
+      _ ->
+        {:reply, {:error, "Pump did not respond to initial communication"}, state}
+    end
   end
 
   def handle_call({:get_current_cgm_page}, _from, state = %{pump_serial: pump_serial}) do
