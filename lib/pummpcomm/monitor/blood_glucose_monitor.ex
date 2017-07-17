@@ -36,20 +36,22 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   defp filter_by_date([], allowed_entries, _), do: {false, allowed_entries}
   defp filter_by_date([head | tail], allowed_entries, oldest_allowed) do
-    case Timex.before?(head.timestamp, oldest_allowed) do
+    {event_type, event_data} = head
+    case Timex.before?(event_data.timestamp, oldest_allowed) do
       true -> {true, allowed_entries}
       false -> filter_by_date(tail, [head | allowed_entries], oldest_allowed)
     end
   end
 
-  defp filter_glucose_value({:sensor_glucose_value, _}), do: true
-  defp filter_glucose_value(_),                          do: false
-
-  defp process_cgm_entry({:sensor_glucose_value, glucose_entry}) do
-    entry = %{sgv: glucose_entry.sgv, timestamp: glucose_entry.timestamp}
-    Logger.debug "Looking at #{inspect(entry)}"
-    entry
+  defp filter_glucose_value({event_key, _}) do
+    event_key in Pummpcomm.Timestamper.relative_events()
   end
+
+  # defp process_cgm_entry({:sensor_glucose_value, glucose_entry}) do
+  #   entry = %{sgv: glucose_entry.sgv, timestamp: glucose_entry.timestamp}
+  #   Logger.debug "Looking at #{inspect(entry)}"
+  #   entry
+  # end
 
   defp oldest_entry_allowed(minutes_back) do
     Timex.local |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
