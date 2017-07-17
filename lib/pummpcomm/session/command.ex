@@ -17,6 +17,10 @@ defmodule Pummpcomm.Session.Command do
     %Command{opcode: 0x06, pump_serial: pump_serial}
   end
 
+  def write_cgm_timestamp(pump_serial) do
+    %Command{opcode: 0x28, pump_serial: pump_serial}
+  end
+
   def read_pump_model(pump_serial) do
     %Command{opcode: 0x8D, pump_serial: pump_serial}
   end

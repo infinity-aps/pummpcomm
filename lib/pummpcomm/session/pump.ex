@@ -27,6 +27,10 @@ defmodule Pummpcomm.Session.Pump do
     GenServer.call(__MODULE__, {:read_cgm_page, page_number}, @genserver_timeout)
   end
 
+  def write_cgm_timestamp do
+    GenServer.call(__MODULE__, {:write_cgm_timestamp}, @genserver_timeout)
+  end
+
   def read_history_page(page_number) do
     GenServer.call(__MODULE__, {:read_history_page, page_number}, @genserver_timeout)
   end
@@ -57,6 +61,15 @@ defmodule Pummpcomm.Session.Pump do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Read CGM Page Failed"}, state}
+    end
+  end
+
+  def handle_call({:write_cgm_timestamp}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, %{received_ack: true}} <- state.pump_serial |> Command.write_cgm_timestamp() |> PumpExecutor.execute() do
+      {:reply, :ok, state}
+    else
+      _ -> {:reply, {:error, "Write CGM Timestamp Failed"}, state}
     end
   end
 
