@@ -11,7 +11,7 @@ defmodule Pummpcomm.Session.PumpFake do
   end
 
   def read_cgm_page(9) do
-    timestamp = [:sensor_timestamp, %{event_type: :page_end, raw: <<16, 40, 182, 20, 8>>, timestamp: time_for_minutes_back(23)}]
+    timestamp = {:sensor_timestamp, %{event_type: :page_end, raw: <<16, 40, 182, 20, 8>>, timestamp: time_for_minutes_back(23)}}
     {
       :ok,
       Enum.map(13..4, fn(item) -> generate_sgv((item * 5) + 3) end) ++ [timestamp]
