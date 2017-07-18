@@ -22,7 +22,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
     case Pummpcomm.Cgm.needs_timestamp?(values) do
       true ->
         Logger.debug "Writing cgm timestamp on page #{page_number}"
-        {:ok} = @pump.write_cgm_timestamp()
+        :ok = @pump.write_cgm_timestamp()
         fetch_and_filter_page(page_number, sensor_values, oldest_allowed, lowest_page_allowed)
       false ->
         newest_first_values = Enum.reverse(values)
