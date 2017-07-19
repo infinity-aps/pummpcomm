@@ -73,10 +73,10 @@ defmodule Pummpcomm.Session.Pump do
     end
   end
 
-  def handle_call({:read_history_page, page_number}, _from, state = %{pump_serial: pump_serial}) do
+  def handle_call({:read_history_page, page_number}, _from, state = %{pump_serial: pump_serial, model_number: model_number}) do
     with {:ok, _} <- ensure_pump_awake(pump_serial),
          {:ok, context} <- state.pump_serial |> Command.read_history_page(page_number) |> PumpExecutor.execute(),
-         response <- Response.get_data(context.response) do
+         response <- Response.get_data(context.response, model_number) do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Read History Page Failed"}, state}

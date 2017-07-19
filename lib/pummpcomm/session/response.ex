@@ -16,15 +16,16 @@ defmodule Pummpcomm.Session.Response do
   end
 
   def get_data(%Response{opcode: 0x8D, data: <<length::8, rest::binary>>}) do
-    %{model_number: binary_part(rest, 0, length)}
+    {:ok, model_number} = Pummpcomm.PumpModel.model_number(binary_part(rest, 0, length))
+    %{model_number: model_number}
   end
 
   def get_data(%Response{opcode: 0xCD, data: <<page_number::size(32), glucose::size(16), isig::size(16), _rest::binary>>}) do
     %{page_number: page_number, glucose: glucose, isig: isig}
   end
 
-  def get_data(%Response{opcode: 0x80, data: data}) do
-    Pummpcomm.History.decode(data, "751")
+  def get_data(%Response{opcode: 0x80, data: data}, pump_model) do
+    Pummpcomm.History.decode(data, pump_model)
   end
 
   def get_data(%Response{opcode: 0x9A, data: data}) do
