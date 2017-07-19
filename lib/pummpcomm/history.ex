@@ -12,6 +12,7 @@ end
 
 defmodule Pummpcomm.History do
   require Pummpcomm.HistoryDefinition
+  require Logger
 
   alias Pummpcomm.History.PumpModel
   alias Pummpcomm.Crc.Crc16
@@ -21,8 +22,12 @@ defmodule Pummpcomm.History do
 
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
-      {:ok, _} -> {:ok, page |> Crc16.page_data |> decode_records(PumpModel.pump_options(pump_model)) |> Enum.reverse}
-      other    -> other
+      {:ok, _} ->
+        Logger.debug("Decoding page:")
+        Logger.debug(Base.encode16(page))
+        {:ok, page |> Crc16.page_data |> decode_records(PumpModel.pump_options(pump_model)) |> Enum.reverse}
+      other    ->
+        other
     end
   end
 
