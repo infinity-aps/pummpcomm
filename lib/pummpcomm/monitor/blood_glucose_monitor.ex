@@ -47,12 +47,6 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
     event_key in Pummpcomm.Timestamper.relative_events()
   end
 
-  # defp process_cgm_entry({:sensor_glucose_value, glucose_entry}) do
-  #   entry = %{sgv: glucose_entry.sgv, timestamp: glucose_entry.timestamp}
-  #   Logger.debug "Looking at #{inspect(entry)}"
-  #   entry
-  # end
-
   defp oldest_entry_allowed(minutes_back) do
     Timex.local |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
   end

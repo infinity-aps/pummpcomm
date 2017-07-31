@@ -95,6 +95,7 @@ defmodule Pummpcomm.Session.Pump do
   end
 
   def read_pump_model(pump_serial) do
+    PumpExecutor.wait_for_silence()
     case %{Command.read_pump_model(pump_serial) | retries: 0} |> PumpExecutor.execute() do
       {:ok, %Context{response: response}} ->
         {:ok, Response.get_data(response)}

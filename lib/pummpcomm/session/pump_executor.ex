@@ -5,6 +5,16 @@ defmodule Pummpcomm.Session.PumpExecutor do
   alias Pummpcomm.Session.Packet
   alias Pummpcomm.Driver.SubgRfspy
 
+  def wait_for_silence() do
+    Logger.debug "Waiting for silence"
+    with {:ok, %{data: <<0xA7::size(8), _::binary>>}} <- SubgRfspy.read(5000) do
+      Logger.debug "Detected pump radio comms"
+      wait_for_silence()
+    else
+      other -> Logger.debug "No radio comms detected: #{inspect(other)}"
+    end
+  end
+
   @retry_count 3
   def execute(command, retry_count \\ @retry_count) do
     _execute(command, retry_count)
