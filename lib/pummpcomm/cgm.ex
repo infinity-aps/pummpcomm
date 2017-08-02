@@ -158,10 +158,14 @@ defmodule Pummpcomm.Cgm do
   def needs_timestamp?(events), do: _needs_timestamp?(Enum.reverse(events))
   def _needs_timestamp?([]), do: false
   def _needs_timestamp?([event | rest]) do
-    case event do
-      {:sensor_glucose_value, %{timestamp: nil}} -> true
-      {:sensor_glucose_value, %{timestamp: _}}   -> false
-      _                                          -> _needs_timestamp?(rest)
+    cond do
+      Pummpcomm.Timestamper.is_relative_event?(event) ->
+        case event do
+          {_, %{timestamp: nil}} -> true
+          {_, %{timestamp: _}}   -> false
+        end
+      true ->
+        _needs_timestamp?(rest)
     end
   end
 
