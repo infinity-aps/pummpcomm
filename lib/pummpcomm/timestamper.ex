@@ -7,6 +7,8 @@ defmodule Pummpcomm.Timestamper do
   end
 
   def relative_events(), do: @relative_events
+  def is_reference_event?(event), do: event_key(event) == :sensor_timestamp
+  def is_relative_event?(event), do:  event_key(event) in @relative_events
 
   defp process_events([], processed, _), do: processed
 
@@ -50,8 +52,4 @@ defmodule Pummpcomm.Timestamper do
 
   defp event_map(event) when tuple_size(event) == 1, do: %{}
   defp event_map(event) when tuple_size(event) >= 2, do: elem(event, 1)
-
-  defp is_reference_event?(event), do: event_key(event) == :sensor_timestamp
-
-  defp is_relative_event?(event), do:  event_key(event) in @relative_events
 end
