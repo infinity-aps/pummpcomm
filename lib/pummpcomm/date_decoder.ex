@@ -47,4 +47,10 @@ defmodule Pummpcomm.DateDecoder do
       {:ok, timestamp} -> timestamp
     end
   end
+
+  def decode_full_datetime(<<hour::8, minute::8, second::8, year::size(16), month::8, day::8>>) do
+    case NaiveDateTime.new(year, month, day, hour, minute, second) do
+      {:ok, timestamp} -> timestamp
+    end
+  end
 end

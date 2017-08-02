@@ -32,6 +32,10 @@ defmodule Pummpcomm.Session.Response do
     Pummpcomm.Cgm.decode(data)
   end
 
+  def get_data(%Response{opcode: 0x70, data: <<encoded_date::binary-size(7), _::binary>>}) do
+    Pummpcomm.DateDecoder.decode_full_datetime(encoded_date)
+  end
+
   defp convert_last_frame(0), do: false
   defp convert_last_frame(_), do: true
 end

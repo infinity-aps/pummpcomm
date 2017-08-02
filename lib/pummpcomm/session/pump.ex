@@ -35,6 +35,10 @@ defmodule Pummpcomm.Session.Pump do
     GenServer.call(__MODULE__, {:read_history_page, page_number}, @genserver_timeout)
   end
 
+  def read_time do
+    GenServer.call(__MODULE__, {:read_time}, @genserver_timeout)
+  end
+
   def handle_call(call_params, from, state = %{initialized: false, pump_serial: pump_serial}) do
     case ensure_pump_awake(pump_serial) do
       {:ok, %{model_number: model_number}} ->
@@ -80,6 +84,16 @@ defmodule Pummpcomm.Session.Pump do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Read History Page Failed"}, state}
+    end
+  end
+
+  def handle_call({:read_time}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> Command.read_time() |> PumpExecutor.execute(),
+         parsed_date <- Response.get_data(context.response) do
+      {:reply, {:ok, parsed_date}, state}
+    else
+      _ -> {:reply, {:error, "Read Time Failed"}, state}
     end
   end
 

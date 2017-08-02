@@ -40,4 +40,8 @@ defmodule Pummpcomm.Session.Command do
   def read_cgm_page(pump_serial, page) do
     %Command{opcode: 0x9A, pump_serial: pump_serial, params: <<page::size(32)>>, timeout: 5000}
   end
+
+  def read_time(pump_serial) do
+    %Command{opcode: 0x70, pump_serial: pump_serial}
+  end
 end
