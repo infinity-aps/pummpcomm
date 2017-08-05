@@ -24,16 +24,16 @@ defmodule Pummpcomm.Session.Response do
     %{page_number: page_number, glucose: glucose, isig: isig}
   end
 
-  def get_data(%Response{opcode: 0x80, data: data}, pump_model) do
-    Pummpcomm.History.decode(data, pump_model)
-  end
-
   def get_data(%Response{opcode: 0x9A, data: data}) do
     Pummpcomm.Cgm.decode(data)
   end
 
   def get_data(%Response{opcode: 0x70, data: <<encoded_date::binary-size(7), _::binary>>}) do
     Pummpcomm.DateDecoder.decode_full_datetime(encoded_date)
+  end
+
+  def get_data(%Response{opcode: 0x80, data: data}, pump_model) do
+    Pummpcomm.History.decode(data, pump_model)
   end
 
   defp convert_last_frame(0), do: false

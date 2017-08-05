@@ -36,7 +36,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   defp filter_by_date([], allowed_entries, _), do: {false, allowed_entries}
   defp filter_by_date([head | tail], allowed_entries, oldest_allowed) do
-    {event_type, event_data} = head
+    {_, event_data} = head
     case Timex.before?(event_data.timestamp, oldest_allowed) do
       true -> {true, allowed_entries}
       false -> filter_by_date(tail, [head | allowed_entries], oldest_allowed)
