@@ -21,9 +21,11 @@ defmodule Pummpcomm.Session.PumpFake do
   def write_cgm_timestamp(), do: :ok
 
   def read_history_page(0) do
-    events = [{:result_daily_total, %{strokes: 0, timestamp: ~N[2017-08-05 00:00:00], units: 0.0}},
+    events = [{:bg_received,
+               %{amount: 87, meter_link_id: "AAAAAA", timestamp: ~N[2017-08-04 23:54:01]}},
+              {:result_daily_total, %{strokes: 0, timestamp: ~N[2017-08-05 00:00:00], units: 0.0}},
               {:daily_total_523, %{timestamp: ~N[2017-08-05 00:00:00]}},
-              {:null_byte, %{raw: <<0>>}}]
+              {:null_byte, %{}}]
     |> Enum.map(fn (entry) -> shift_history(entry, history_page_offset()) end)
 
     {:ok, events}
@@ -55,8 +57,6 @@ defmodule Pummpcomm.Session.PumpFake do
                %{alarm_type: "Meter BG Now", timestamp: ~N[2017-08-04 08:15:00]}},
               {:cal_bg_for_ph,
                %{amount: 87, timestamp: ~N[2017-08-04 08:16:45]}},
-              {:bg_received,
-               %{amount: 87, meter_link_id: "AAAAAA", timestamp: ~N[2017-08-04 08:16:45]}},
               {:cal_bg_for_ph,
                %{amount: 103, timestamp: ~N[2017-08-04 17:50:07]}},
               {:bg_received,
