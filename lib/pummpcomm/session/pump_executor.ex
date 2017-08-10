@@ -6,12 +6,17 @@ defmodule Pummpcomm.Session.PumpExecutor do
   alias Pummpcomm.Driver.SubgRfspy
 
   def wait_for_silence() do
-    Logger.debug "Waiting for silence"
+    # Logger.debug "Waiting for silence"
     with {:ok, %{data: <<0xA7::size(8), _::binary>>}} <- SubgRfspy.read(5000) do
       Logger.debug "Detected pump radio comms"
       wait_for_silence()
     else
-      other -> Logger.debug "No radio comms detected: #{inspect(other)}"
+      {:error, :timeout} ->
+        # Logger.debug "No radio comms detected"
+        {:ok}
+      other              ->
+        Logger.debug "Detected an anomaly while waiting for silence, #{inspect(other)}. Retrying"
+        wait_for_silence()
     end
   end
 
@@ -48,7 +53,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
       case wait_for_ack(%Context{command: command}, ack_wait_millis) do
         %Context{error: nil} -> true
         %Context{error: reason} ->
-          Logger.error "error with reason #{reason}", command: command
+          Logger.error "Repeat execute errored with reason #{reason}", command: command
           false
       end
     else
@@ -78,8 +83,8 @@ defmodule Pummpcomm.Session.PumpExecutor do
       end
     else
       {:error, reason} ->
-        message = "error with reason #{reason}"
-        Logger.error message, context: context
+        message = "do_prelude errored with reason #{reason}"
+        # Logger.error message, context: context
         Context.add_error(context, message)
     end
   end
@@ -109,15 +114,15 @@ defmodule Pummpcomm.Session.PumpExecutor do
       {:ok, response_packet} <- Packet.from_binary(response_bytes),
       {:ok} <- validate_response_packet(context.command.pump_serial, response_packet) do
 
-      Logger.info "Response Packet: #{inspect(response_packet)}"
+      # Logger.info "Response Packet: #{inspect(response_packet)}"
       case response_packet do
         %{opcode: 0x06} -> Context.received_ack(context)
         _               -> wait_for_ack(context, timeout)
       end
     else
       {:error, reason} ->
-        message = "error with reason #{reason}"
-        Logger.error message, context: context
+        message = "wait_for_ack errored with reason #{reason}"
+        # Logger.error message, context: context
         Context.add_error(context, message)
     end
   end

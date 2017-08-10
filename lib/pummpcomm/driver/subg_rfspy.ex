@@ -62,7 +62,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   end
 
   def write_and_read(packet, timeout_ms \\ 500) do
-    Logger.debug "Packet bytes: #{Base.encode16(packet)}"
+    # Logger.debug "Packet bytes: #{Base.encode16(packet)}"
     {:ok, encoded} = FourBySix.encode(packet)
     <<@channel::8, @repetitions::8, @repetition_delay::8,
       @channel::8, timeout_ms::size(32), @retry_count::8,
@@ -93,14 +93,13 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   end
 
   def flush_response_buffer do
-    Logger.debug "Flushing response buffer on chip"
     read_response(50)
     read_response(50)
   end
 
   @max_repetition_batch_size 250
   defp write_batches(packet, repetitions, repetition_delay, timeout_ms)  do
-    Logger.debug "Packet bytes: #{Base.encode16(packet)}"
+    # Logger.debug "Packet bytes: #{Base.encode16(packet)}"
     {:ok, encoded} = FourBySix.encode(packet)
     <<@channel::8, repetitions::8, repetition_delay::8, encoded::binary>>
     |> write_command(:send_packet, timeout_ms)
@@ -123,12 +122,8 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   @command_interrupted 0xBB
   @zero_data           0xCC
   defp read_response(timeout_ms) do
-    Logger.debug "Waiting for response with #{timeout_ms} timeout"
+    # Logger.debug "Waiting for response with #{timeout_ms} timeout"
     response = @serial_driver.read(timeout_ms)
-    # Logger.debug "Received response from UART: #{inspect response}"
-    if {:ok, data} = response do
-      Logger.debug "Response in hex: #{Base.encode16(data)}"
-    end
     case response do
       {:ok, <<@command_interrupted>>} ->
         Logger.debug "Command Interrupted, continuing to read"
@@ -145,7 +140,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   defp process_response({:ok, <<raw_rssi::8, sequence::8, data::binary>>}) do
     case FourBySix.decode(data) do
       {:ok, decoded}      ->
-        Logger.debug "Decoded bytes: #{Base.encode16(decoded)}"
+        # Logger.debug "Decoded bytes: #{Base.encode16(decoded)}"
         {:ok, %{rssi: rssi(raw_rssi), sequence: sequence, data: decoded}}
       other = {:error, _} -> other
     end

@@ -40,6 +40,10 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
   end
 
   def handle_call({:read, timeout_ms}, _from, serial_pid) do
+    is_uart_running = System.cmd("ps", []) |> elem(0) |> String.contains?("uart")
+    if !is_uart_running do
+      Logger.debug("UART port is not running!")
+    end
     {:reply, Nerves.UART.read(serial_pid, timeout_ms + 1000), serial_pid}
   end
 
