@@ -23,8 +23,16 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def _start_link(context_name, true) do
     Logger.debug "Starting #{context_name} in record mode"
-    {:ok, _} = Pummpcomm.Driver.SubgRfspy.UART.start_link
-    %{record: true, interactions: [], context_name: context_name}
+    device = System.get_env("SUBG_RFSPY_DEVICE")
+    case device do
+      nil ->
+        message = "SUBG_RFSPY_DEVICE must be set for record mode"
+        Logger.error(message)
+        {:error, message}
+      _ ->
+        {:ok, _} = Pummpcomm.Driver.SubgRfspy.UART.start_link(device)
+        %{record: true, interactions: [], context_name: context_name}
+    end
   end
 
   def _start_link(context_name, false) do

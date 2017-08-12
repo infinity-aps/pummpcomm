@@ -8,8 +8,7 @@ defmodule Pummpcomm.Session.Pump do
 
   @genserver_timeout 60000
 
-  def start_link do
-    pump_serial = System.get_env("PUMP_SERIAL") || config(:pump_serial)
+  def start_link(pump_serial) do
     state = %{
       pump_serial: pump_serial,
       model_number: nil,

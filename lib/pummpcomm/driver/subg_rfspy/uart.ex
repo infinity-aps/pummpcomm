@@ -3,12 +3,11 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
   use GenServer
   alias Pummpcomm.Driver.SerialFraming
 
-  def start_link do
-    device = System.get_env("SUBG_RFSPY_DEVICE") || Keyword.get(Application.get_env(:pummpcomm, Pummpcomm.Driver.SubgRfspy.UART), :device)
-    GenServer.start_link(__MODULE__, [device], name: __MODULE__)
+  def start_link(device) do
+    GenServer.start_link(__MODULE__, device, name: __MODULE__)
   end
 
-  def init([device]) do
+  def init(device) do
     with {:ok, serial_pid} <- Nerves.UART.start_link,
          :ok <- Nerves.UART.open(serial_pid, device, speed: 19200, active: false),
          :ok <- Nerves.UART.configure(serial_pid, framing: {SerialFraming, separator: <<0x00>>}),
