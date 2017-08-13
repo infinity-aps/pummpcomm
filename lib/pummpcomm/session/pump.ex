@@ -116,12 +116,4 @@ defmodule Pummpcomm.Session.Pump do
         other
     end
   end
-
-  defp config(key) do
-    Keyword.get(config(), key)
-  end
-
-  defp config do
-    Application.get_env(:pummpcomm, Pummpcomm.Session.Pump)
-  end
 end

@@ -1,13 +1,11 @@
 defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
   require Logger
 
-  @pump Application.get_env(:pummpcomm, :pump)
-
   def get_sensor_values(minutes_back) do
     oldest_allowed = oldest_entry_allowed(minutes_back)
     Logger.debug "Searching until we find an entry older than #{inspect(oldest_allowed)}"
 
-    %{page_number: page_number} = @pump.get_current_cgm_page
+    %{page_number: page_number} = cgm().get_current_cgm_page
     {:ok, fetch_and_filter_page(page_number, [], oldest_allowed, page_number - 5)}
   end
 
@@ -18,11 +16,11 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
   end
 
   defp fetch_and_filter_page(page_number, sensor_values, oldest_allowed, lowest_page_allowed) do
-    {:ok, values} = @pump.read_cgm_page(page_number)
+    {:ok, values} = cgm().read_cgm_page(page_number)
     case Pummpcomm.Cgm.needs_timestamp?(values) do
       true ->
         Logger.debug "Writing cgm timestamp on page #{page_number}"
-        :ok = @pump.write_cgm_timestamp()
+        :ok = cgm().write_cgm_timestamp()
         fetch_and_filter_page(page_number, sensor_values, oldest_allowed, lowest_page_allowed)
       false ->
         newest_first_values = Enum.reverse(values)
@@ -49,5 +47,9 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   defp oldest_entry_allowed(minutes_back) do
     Timex.local |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
+  end
+
+  defp cgm do
+    Application.get_env(:pummpcomm, :cgm)
   end
 end
