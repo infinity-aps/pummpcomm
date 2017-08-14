@@ -6,7 +6,7 @@ defmodule Pummpcomm.Session.Pump do
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Response
 
-  @genserver_timeout 60000
+  @genserver_timeout 60_000
 
   def start_link(pump_serial) do
     state = %{

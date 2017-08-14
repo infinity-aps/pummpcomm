@@ -3,7 +3,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
   alias ExUnit.Assertions
   require Logger
 
-  @genserver_timeout 60000
+  @genserver_timeout 60_000
 
   def start_link(context_name) do
     File.mkdir_p("test/cassettes")

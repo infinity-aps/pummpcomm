@@ -43,8 +43,8 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   end
 
   def set_base_frequency(mhz) do
-    freq_xtal = 24000000
-    val = round((mhz * 1000000) / (freq_xtal / :math.pow(2, 16)))
+    freq_xtal = 24_000_000
+    val = round((mhz * 1_000_000) / (freq_xtal / :math.pow(2, 16)))
     update_register(@registers[:freq0], val &&& 0xff)
     update_register(@registers[:freq1], (val >>> 8) &&& 0xff)
     update_register(@registers[:freq2], (val >>> 16) &&& 0xff)
@@ -109,7 +109,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
 
   defp write_command(param, command_type, timeout_ms) do
     command = @commands[command_type]
-    response = @serial_driver.write(<<command::8>> <> param, timeout_ms + 10000)
+    response = @serial_driver.write(<<command::8>> <> param, timeout_ms + 10_000)
     if command_type == :reset do
       :timer.sleep(5000)
     end
