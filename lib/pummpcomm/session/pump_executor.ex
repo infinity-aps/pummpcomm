@@ -14,7 +14,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
       {:error, :timeout} ->
         # Logger.debug "No radio comms detected"
         {:ok}
-      other              ->
+      _ ->
         Logger.debug fn -> "Detected other comms. Retrying" end
         wait_for_silence()
     end
@@ -167,7 +167,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
       |> Context.add_response(response_packet)
       |> ack_and_listen()
     else
-      {:error, msg} ->
+      {:error, _msg} ->
         # Logger.error "Error: #{inspect(msg)}"
         SubgRfspy.write(command_bytes)
         Context.sent_params(context)

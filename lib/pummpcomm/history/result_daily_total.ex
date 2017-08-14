@@ -5,7 +5,7 @@ defmodule Pummpcomm.History.ResultDailyTotal do
     %{
       strokes: strokes,
       units: strokes / 40.0,
-      timestamp: DateDecoder.decode_history_timestamp(timestamp) |> Timex.shift(days: 1)
+      timestamp: timestamp |> DateDecoder.decode_history_timestamp() |> Timex.shift(days: 1)
     }
   end
 end

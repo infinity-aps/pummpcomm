@@ -13,7 +13,7 @@ defmodule Pummpcomm.PumpModel do
       iex> Pummpcomm.PumpModel.model_number("invalid")
       {:error, "Bad Pump Model"}
   """
-  def model_number(model_string) when is_binary(model_string),               do: Integer.parse(model_string) |> model_number
+  def model_number(model_string) when is_binary(model_string),               do: model_string |> Integer.parse() |> model_number
   def model_number(model_number) when model_number == :error,                do: {:error, "Bad Pump Model"}
   def model_number({model_number, _}) when div(model_number, 100) in [5, 7], do: {:ok, model_number}
   def model_number(_),                                                       do: {:error, "Bad Pump Model"}

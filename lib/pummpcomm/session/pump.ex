@@ -102,7 +102,7 @@ defmodule Pummpcomm.Session.Pump do
       {:ok, _} -> response
       _ ->
         Logger.info fn -> "Waking pump" end
-        Command.power_control(pump_serial) |> PumpExecutor.repeat_execute(500, 12_000)
+        pump_serial |> Command.power_control() |> PumpExecutor.repeat_execute(500, 12_000)
         read_pump_model(pump_serial)
     end
   end

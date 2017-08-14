@@ -116,13 +116,13 @@ defmodule Pummpcomm.History do
 
   defp decode_record(module, head, body_length, body_and_tail, pump_options, events) do
     <<body::binary-size(body_length), tail::binary>> = body_and_tail
-    event_info = apply(module, :decode, [body, pump_options]) |> Map.put(:raw, <<head::8>> <> body)
+    event_info = module |> apply(:decode, [body, pump_options]) |> Map.put(:raw, <<head::8>> <> body)
     event = {event_type(module), event_info}
     do_decode_records(tail, pump_options, [event | events])
   end
 
   defp event_type(module) do
-    case apply(module, :"__info__", [:exports]) |> Keyword.get_values(:event_type) |> Enum.member?(0) do
+    case module |> apply(:"__info__", [:exports]) |> Keyword.get_values(:event_type) |> Enum.member?(0) do
       true  -> apply(module, :event_type, [])
       false -> module |> Module.split |> List.last |> Macro.underscore |> String.to_atom
     end

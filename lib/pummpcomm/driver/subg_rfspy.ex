@@ -53,7 +53,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
 
   def read(timeout_ms \\ 1000) do
     write_command(<<@channel::8, timeout_ms::32>>, :get_packet, timeout_ms + 1000)
-    read_response(timeout_ms) |> process_response()
+    timeout_ms |> read_response() |> process_response()
   end
 
   def write(packet, repetitions \\ 1, repetition_delay \\ 0, timeout_ms \\ 1000) do
@@ -67,7 +67,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
       @channel::8, timeout_ms::size(32), @retry_count::8,
       encoded::binary>>
       |> write_command(:send_and_listen, timeout_ms + @serial_timeout_ms_padding)
-    read_response(timeout_ms) |> process_response()
+    timeout_ms |> read_response() |> process_response()
   end
 
   def reset do

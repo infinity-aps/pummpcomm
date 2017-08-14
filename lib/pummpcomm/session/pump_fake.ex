@@ -74,8 +74,8 @@ defmodule Pummpcomm.Session.PumpFake do
   def fake_rolling_cgm do
     today_midnight = Timex.local |> Timex.to_date |> Timex.to_naive_datetime
     yesterday_midnight = today_midnight |> Timex.shift(days: -1)
-    yesterday = Pummpcomm.Cgm.decode(@cgm_binary) |> offset_and_trim_cgm(yesterday_midnight)
-    today = Pummpcomm.Cgm.decode(@cgm_binary) |> offset_and_trim_cgm(today_midnight)
+    yesterday = @cgm_binary |> Pummpcomm.Cgm.decode() |> offset_and_trim_cgm(yesterday_midnight)
+    today = @cgm_binary |> Pummpcomm.Cgm.decode() |> offset_and_trim_cgm(today_midnight)
     {:ok, yesterday ++ today}
   end
 

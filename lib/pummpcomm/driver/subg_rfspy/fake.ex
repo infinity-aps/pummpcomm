@@ -40,7 +40,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def _start_link(context_name, false) do
     Logger.debug fn -> "Starting #{context_name} in playback mode" end
-    expected_interactions = File.stream!(cassette_filename(context_name)) |> CSV.decode! |> Enum.map(&(&1))
+    expected_interactions = context_name |> cassette_filename() |> File.stream!() |> CSV.decode! |> Enum.map(&(&1))
     %{record: false, interactions: [], remaining_interactions: expected_interactions}
   end
 
