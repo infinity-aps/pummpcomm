@@ -21,7 +21,8 @@ defmodule Pummpcomm.Mixfile do
   defp deps do
     [{:nerves_uart, "~> 0.1.1"},
      {:timex, "~> 3.0"},
-     {:csv, "~> 2.0.0"}]
+     {:csv, "~> 2.0.0"},
+     {:credo, "~> 0.8", only: [:dev, :test], runtime: false}]
   end
 
   defp description do
