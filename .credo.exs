@@ -79,7 +79,7 @@
         {Credo.Check.Readability.LargeNumbers, only_greater_than: 99_999},
         {Credo.Check.Readability.MaxLineLength, priority: :low, max_length: 120},
         {Credo.Check.Readability.ModuleAttributeNames},
-        {Credo.Check.Readability.ModuleDoc},
+        {Credo.Check.Readability.ModuleDoc, priority: :low},
         {Credo.Check.Readability.ModuleNames},
         {Credo.Check.Readability.ParenthesesOnZeroArityDefs},
         {Credo.Check.Readability.ParenthesesInCondition},

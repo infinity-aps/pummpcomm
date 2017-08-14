@@ -1,4 +1,9 @@
 defmodule Pummpcomm.Cgm do
+  @moduledoc """
+  This module provides binary page decoding for Medtronic pump cgm pages. The main entrypoint is `decode(page)` which
+  handles the crc check and parsing out event opcodes and translating those into event records.
+  """
+
   use Bitwise
   require Logger
   alias Pummpcomm.DateDecoder
@@ -22,9 +27,9 @@ defmodule Pummpcomm.Cgm do
   @ten_something             0x10
   @nineteen_something        0x13
 
-  # Takes a page of cgm data and decodes events from it. Relative events
-  # will not have timestamps, so the output from this needs to be run
-  # though the timestamper
+  @doc """
+  Takes a page of cgm data and decodes events from it.
+  """
   def decode(page) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->
