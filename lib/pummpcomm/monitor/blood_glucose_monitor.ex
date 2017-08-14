@@ -1,5 +1,7 @@
 defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
   require Logger
+  alias Pummpcomm.Cgm
+  alias Pummpcomm.Timestamper
 
   def get_sensor_values(minutes_back) do
     oldest_allowed = oldest_entry_allowed(minutes_back)
@@ -17,7 +19,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   defp fetch_and_filter_page(page_number, sensor_values, oldest_allowed, lowest_page_allowed) do
     {:ok, values} = cgm().read_cgm_page(page_number)
-    case Pummpcomm.Cgm.needs_timestamp?(values) do
+    case Cgm.needs_timestamp?(values) do
       true ->
         Logger.debug fn -> "Writing cgm timestamp on page #{page_number}" end
         :ok = cgm().write_cgm_timestamp()
@@ -42,7 +44,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
   end
 
   defp filter_glucose_value({event_key, _}) do
-    event_key in Pummpcomm.Timestamper.relative_events()
+    event_key in Timestamper.relative_events()
   end
 
   defp oldest_entry_allowed(minutes_back) do

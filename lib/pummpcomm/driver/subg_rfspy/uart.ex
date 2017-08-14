@@ -2,16 +2,17 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
   require Logger
   use GenServer
   alias Pummpcomm.Driver.SerialFraming
+  alias Nerves.UART
 
   def start_link(device) do
     GenServer.start_link(__MODULE__, device, name: __MODULE__)
   end
 
   def init(device) do
-    with {:ok, serial_pid} <- Nerves.UART.start_link,
-         :ok <- Nerves.UART.open(serial_pid, device, speed: 19_200, active: false),
-         :ok <- Nerves.UART.configure(serial_pid, framing: {SerialFraming, separator: <<0x00>>}),
-         :ok <- Nerves.UART.flush(serial_pid) do
+    with {:ok, serial_pid} <- UART.start_link,
+         :ok <- UART.open(serial_pid, device, speed: 19_200, active: false),
+         :ok <- UART.configure(serial_pid, framing: {SerialFraming, separator: <<0x00>>}),
+         :ok <- UART.flush(serial_pid) do
 
       {:ok, serial_pid}
     else
@@ -23,7 +24,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
 
   def terminate(reason, serial_pid) do
     Logger.warn fn -> "Exiting, reason: #{inspect reason}" end
-    Nerves.UART.close(serial_pid)
+    UART.close(serial_pid)
   end
 
   def write(data, timeout_ms) do
@@ -43,14 +44,14 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
     if !is_uart_running do
       Logger.debug fn -> "UART port is not running!" end
     end
-    {:reply, Nerves.UART.read(serial_pid, timeout_ms + 1_000), serial_pid}
+    {:reply, UART.read(serial_pid, timeout_ms + 1_000), serial_pid}
   end
 
   defp write_fully(data, timeout_ms, serial_pid) do
-    case Nerves.UART.write(serial_pid, data, timeout_ms) do
+    case UART.write(serial_pid, data, timeout_ms) do
       :ok ->
-        Nerves.UART.drain(serial_pid)
-        Nerves.UART.flush(serial_pid, :receive)
+        UART.drain(serial_pid)
+        UART.flush(serial_pid, :receive)
       err -> err
     end
   end

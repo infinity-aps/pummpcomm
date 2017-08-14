@@ -1,8 +1,12 @@
 defmodule Pummpcomm.Session.Response do
   defstruct opcode: nil, data: <<>>, frames: [], last_frame?: nil
 
-  alias Pummpcomm.Session.Response
+  alias Pummpcomm.Cgm
+  alias Pummpcomm.DateDecoder
+  alias Pummpcomm.History
+  alias Pummpcomm.PumpModel
   alias Pummpcomm.Session.Packet
+  alias Pummpcomm.Session.Response
 
   def add_packet(response = %Response{opcode: opcode}, packet = %Packet{opcode: opcode}) do
     <<last_frame::size(1), _frame_number::size(7), rest::binary>> = packet.payload
@@ -14,7 +18,7 @@ defmodule Pummpcomm.Session.Response do
   end
 
   def get_data(%Response{opcode: 0x8D, data: <<length::8, rest::binary>>}) do
-    {:ok, model_number} = Pummpcomm.PumpModel.model_number(binary_part(rest, 0, length))
+    {:ok, model_number} = PumpModel.model_number(binary_part(rest, 0, length))
     %{model_number: model_number}
   end
 
@@ -23,15 +27,15 @@ defmodule Pummpcomm.Session.Response do
   end
 
   def get_data(%Response{opcode: 0x9A, data: data}) do
-    Pummpcomm.Cgm.decode(data)
+    Cgm.decode(data)
   end
 
   def get_data(%Response{opcode: 0x70, data: <<encoded_date::binary-size(7), _::binary>>}) do
-    Pummpcomm.DateDecoder.decode_full_datetime(encoded_date)
+    DateDecoder.decode_full_datetime(encoded_date)
   end
 
   def get_data(%Response{opcode: 0x80, data: data}, pump_model) do
-    Pummpcomm.History.decode(data, pump_model)
+    History.decode(data, pump_model)
   end
 
   defp convert_last_frame(0), do: false

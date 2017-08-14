@@ -1,6 +1,7 @@
 defmodule Pummpcomm.Driver.SubgRfspy.Fake do
   use GenServer
   alias ExUnit.Assertions
+  alias Pummpcomm.Driver.SubgRfspy.UART
   require Logger
 
   @genserver_timeout 60_000
@@ -33,7 +34,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
         Logger.error fn -> message end
         {:error, message}
       _ ->
-        {:ok, _} = Pummpcomm.Driver.SubgRfspy.UART.start_link(device)
+        {:ok, _} = UART.start_link(device)
         %{record: true, interactions: [], context_name: context_name}
     end
   end
@@ -94,14 +95,14 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
   # RECORD MODE
 
   def handle_call({:write, data, timeout_ms}, _from, state = %{record: true, interactions: interactions}) do
-    response = Pummpcomm.Driver.SubgRfspy.UART.write(data, timeout_ms)
+    response = UART.write(data, timeout_ms)
     interaction = ["write", Base.encode16(data), Atom.to_string(response)]
     state = %{state | interactions: [interaction | interactions]}
     {:reply, response, state}
   end
 
   def handle_call({:read, timeout_ms}, _from, state = %{record: true, interactions: interactions}) do
-    {response, data} = Pummpcomm.Driver.SubgRfspy.UART.read(timeout_ms)
+    {response, data} = UART.read(timeout_ms)
     Logger.debug fn -> "Received response from Real UART: {#{response}, #{data}}" end
     interaction = ["read", Base.encode16(data), Atom.to_string(response)]
     state = %{state | interactions: [interaction | interactions]}

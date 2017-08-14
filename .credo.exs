@@ -58,7 +58,7 @@
         # For some checks, like AliasUsage, you can only customize the priority
         # Priority values are: `low, normal, high, higher`
         #
-        {Credo.Check.Design.AliasUsage, priority: :low},
+        {Credo.Check.Design.AliasUsage},
 
         # For others you can set parameters
 
@@ -77,7 +77,7 @@
 
         {Credo.Check.Readability.FunctionNames},
         {Credo.Check.Readability.LargeNumbers, only_greater_than: 99_999},
-        {Credo.Check.Readability.MaxLineLength, priority: :low, max_length: 80},
+        {Credo.Check.Readability.MaxLineLength, priority: :low, max_length: 120},
         {Credo.Check.Readability.ModuleAttributeNames},
         {Credo.Check.Readability.ModuleDoc},
         {Credo.Check.Readability.ModuleNames},
@@ -96,7 +96,7 @@
         {Credo.Check.Refactor.DoubleBooleanNegation},
         {Credo.Check.Refactor.CondStatements},
         {Credo.Check.Refactor.CyclomaticComplexity},
-        {Credo.Check.Refactor.FunctionArity},
+        {Credo.Check.Refactor.FunctionArity, max_arity: 6},
         {Credo.Check.Refactor.LongQuoteBlocks},
         {Credo.Check.Refactor.MatchInCondition},
         {Credo.Check.Refactor.NegatedConditionsInUnless},

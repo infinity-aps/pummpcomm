@@ -1,4 +1,6 @@
 defmodule Pummpcomm.Session.PumpFake do
+  alias Pummpcomm.Cgm
+
   def get_current_cgm_page do
     %{glucose: 32, isig: 32, page_number: 10}
   end
@@ -74,8 +76,8 @@ defmodule Pummpcomm.Session.PumpFake do
   def fake_rolling_cgm do
     today_midnight = Timex.local |> Timex.to_date |> Timex.to_naive_datetime
     yesterday_midnight = today_midnight |> Timex.shift(days: -1)
-    yesterday = @cgm_binary |> Pummpcomm.Cgm.decode() |> offset_and_trim_cgm(yesterday_midnight)
-    today = @cgm_binary |> Pummpcomm.Cgm.decode() |> offset_and_trim_cgm(today_midnight)
+    yesterday = @cgm_binary |> Cgm.decode() |> offset_and_trim_cgm(yesterday_midnight)
+    today = @cgm_binary |> Cgm.decode() |> offset_and_trim_cgm(today_midnight)
     {:ok, yesterday ++ today}
   end
 

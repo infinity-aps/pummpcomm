@@ -1,7 +1,9 @@
 defmodule Pummpcomm.HistoryDefinition do
+  alias Pummpcomm.History
+
   defmacro define_record(opcode, module, size_fn) do
     quote do
-      alias Pummpcomm.History.unquote(module)
+      alias History.unquote(module)
       defp do_decode_records(<<unquote(opcode), body_and_tail::binary>>, pump_options, events) do
         body_length = calculate_length(unquote(size_fn), pump_options, body_and_tail)
         decode_record(unquote(module), unquote(opcode), body_length, body_and_tail, pump_options, events)
@@ -17,6 +19,7 @@ defmodule Pummpcomm.History do
   alias Pummpcomm.History.PumpModel
   alias Pummpcomm.Crc.Crc16
   alias Pummpcomm.PumpModel
+  alias Pummpcomm.History.UnabsorbedInsulin
 
   import Pummpcomm.HistoryDefinition
 
@@ -88,7 +91,7 @@ defmodule Pummpcomm.History do
   define_record 0x57, ChangeBolusScrollStepSize,          fixed_length(  7)
   define_record 0x5A, BolusWizardSetup,                   fixed_length(144)
   define_record 0x5B, BolusWizardEstimate,                length_by_format(20, 22)
-  define_record 0x5C, UnabsorbedInsulin,                  &Pummpcomm.History.UnabsorbedInsulin.event_length/1
+  define_record 0x5C, UnabsorbedInsulin,                  &UnabsorbedInsulin.event_length/1
   define_record 0x5D, SaveSettings,                       fixed_length(  7)
   define_record 0x5E, ChangeVariableBolus,                fixed_length(  7)
   define_record 0x5F, ChangeAudioBolus,                   fixed_length(  7)
