@@ -1,6 +1,5 @@
 defmodule Pummpcomm.Driver.SubgRfspyTest do
   use ExUnit.Case, async: false
-  require Logger
 
   alias Pummpcomm.Driver.SubgRfspy
   alias Pummpcomm.Driver.SubgRfspy.Fake

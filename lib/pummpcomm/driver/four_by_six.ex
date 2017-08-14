@@ -1,5 +1,4 @@
 defmodule Pummpcomm.Driver.FourBySix do
-  require Logger
 
   @codes [0b010101, 0b110001, 0b110010, 0b100011,
           0b110100, 0b100101, 0b100110, 0b010110,
@@ -48,8 +47,4 @@ defmodule Pummpcomm.Driver.FourBySix do
     bits_to_add = 8 - rem(bit_length, 8)
     <<bits::bitstring, 0::size(bits_to_add)>>
   end
-
-  # def format_bits(code_bits) do
-  #   :io_lib.format("~6.2B", [code_bits]) |> List.to_string |> String.replace(" ", "0")
-  # end
 end

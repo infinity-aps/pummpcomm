@@ -101,8 +101,8 @@ defmodule Pummpcomm.Session.Pump do
     case response do
       {:ok, _} -> response
       _ ->
-        Logger.info "Sending power control command"
-        Command.power_control(pump_serial) |> PumpExecutor.repeat_execute(500, 12000)
+        Logger.info fn -> "Waking pump" end
+        Command.power_control(pump_serial) |> PumpExecutor.repeat_execute(500, 12_000)
         read_pump_model(pump_serial)
     end
   end
@@ -110,10 +110,8 @@ defmodule Pummpcomm.Session.Pump do
   def read_pump_model(pump_serial) do
     PumpExecutor.wait_for_silence()
     case %{Command.read_pump_model(pump_serial) | retries: 0} |> PumpExecutor.execute() do
-      {:ok, %Context{response: response}} ->
-        {:ok, Response.get_data(response)}
-      other                                   ->
-        other
+      {:ok, %Context{response: response}} -> {:ok, Response.get_data(response)}
+      other                               -> other
     end
   end
 end

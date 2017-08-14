@@ -22,12 +22,15 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
   end
 
   def _start_link(context_name, true) do
-    Logger.debug "Starting #{context_name} in record mode"
+    Logger.debug fn ->
+      "Starting #{context_name} in record mode"
+    end
+
     device = System.get_env("SUBG_RFSPY_DEVICE")
     case device do
       nil ->
         message = "SUBG_RFSPY_DEVICE must be set for record mode"
-        Logger.error(message)
+        Logger.error fn -> message end
         {:error, message}
       _ ->
         {:ok, _} = Pummpcomm.Driver.SubgRfspy.UART.start_link(device)
@@ -36,7 +39,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
   end
 
   def _start_link(context_name, false) do
-    Logger.debug "Starting #{context_name} in playback mode"
+    Logger.debug fn -> "Starting #{context_name} in playback mode" end
     expected_interactions = File.stream!(cassette_filename(context_name)) |> CSV.decode! |> Enum.map(&(&1))
     %{record: false, interactions: [], remaining_interactions: expected_interactions}
   end
@@ -99,7 +102,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def handle_call({:read, timeout_ms}, _from, state = %{record: true, interactions: interactions}) do
     {response, data} = Pummpcomm.Driver.SubgRfspy.UART.read(timeout_ms)
-    Logger.debug "Received response from Real UART: {#{response}, #{data}}"
+    Logger.debug fn -> "Received response from Real UART: {#{response}, #{data}}" end
     interaction = ["read", Base.encode16(data), Atom.to_string(response)]
     state = %{state | interactions: [interaction | interactions]}
     {:reply, {response, data}, state}

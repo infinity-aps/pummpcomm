@@ -8,14 +8,14 @@ defmodule Pummpcomm.Session.PumpExecutor do
   def wait_for_silence() do
     # Logger.debug "Waiting for silence"
     with {:ok, %{data: <<0xA7::size(8), _::binary>>}} <- SubgRfspy.read(5000) do
-      Logger.debug "Detected pump radio comms"
+      Logger.debug fn -> "Detected pump radio comms" end
       wait_for_silence()
     else
       {:error, :timeout} ->
         # Logger.debug "No radio comms detected"
         {:ok}
       other              ->
-        Logger.debug "Detected an anomaly while waiting for silence, #{inspect(other)}. Retrying"
+        Logger.debug fn -> "Detected other comms. Retrying" end
         wait_for_silence()
     end
   end
@@ -168,12 +168,12 @@ defmodule Pummpcomm.Session.PumpExecutor do
       |> ack_and_listen()
     else
       {:error, msg} ->
-        Logger.error "Error: #{inspect(msg)}"
+        # Logger.error "Error: #{inspect(msg)}"
         SubgRfspy.write(command_bytes)
         Context.sent_params(context)
     {:ok, response_packet} ->
         message = "Received packet for another pump with serial #{response_packet.pump_serial}"
-        Logger.error message, context: context, packet: packet
+        # Logger.error message, context: context, packet: packet
         Context.add_error(context, message)
     end
   end

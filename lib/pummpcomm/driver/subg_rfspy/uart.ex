@@ -9,20 +9,20 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
 
   def init(device) do
     with {:ok, serial_pid} <- Nerves.UART.start_link,
-         :ok <- Nerves.UART.open(serial_pid, device, speed: 19200, active: false),
+         :ok <- Nerves.UART.open(serial_pid, device, speed: 19_200, active: false),
          :ok <- Nerves.UART.configure(serial_pid, framing: {SerialFraming, separator: <<0x00>>}),
          :ok <- Nerves.UART.flush(serial_pid) do
 
       {:ok, serial_pid}
     else
       error ->
-        Logger.error("The UART failed to start: #{inspect(error)}")
-      {:error, "The UART failed to start"}
+        Logger.error fn -> "The UART failed to start: #{inspect(error)}" end
+        {:error, "The UART failed to start"}
     end
   end
 
   def terminate(reason, serial_pid) do
-    Logger.warn("Exiting, reason: #{inspect reason}")
+    Logger.warn fn -> "Exiting, reason: #{inspect reason}" end
     Nerves.UART.close(serial_pid)
   end
 
@@ -41,9 +41,9 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
   def handle_call({:read, timeout_ms}, _from, serial_pid) do
     is_uart_running = System.cmd("ps", []) |> elem(0) |> String.contains?("uart")
     if !is_uart_running do
-      Logger.debug("UART port is not running!")
+      Logger.debug fn -> "UART port is not running!" end
     end
-    {:reply, Nerves.UART.read(serial_pid, timeout_ms + 1000), serial_pid}
+    {:reply, Nerves.UART.read(serial_pid, timeout_ms + 1_000), serial_pid}
   end
 
   defp write_fully(data, timeout_ms, serial_pid) do
@@ -56,6 +56,6 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
   end
 
   defp genserver_timeout(timeout_ms) do
-    timeout_ms + 2000
+    timeout_ms + 2_000
   end
 end

@@ -3,7 +3,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   def get_sensor_values(minutes_back) do
     oldest_allowed = oldest_entry_allowed(minutes_back)
-    Logger.debug "Searching until we find an entry older than #{inspect(oldest_allowed)}"
+    Logger.debug fn -> "Searching until we find an entry older than #{inspect(oldest_allowed)}" end
 
     %{page_number: page_number} = cgm().get_current_cgm_page
     {:ok, fetch_and_filter_page(page_number, [], oldest_allowed, page_number - 5)}
@@ -11,7 +11,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
 
   defp fetch_and_filter_page(-1, sensor_values, _, _), do: Enum.reverse(sensor_values)
   defp fetch_and_filter_page(page_number, sensor_values, oldest_allowed, lowest_page_allowed) when page_number < lowest_page_allowed do
-    Logger.warn "Reached max page fetches before finding an entry older than #{inspect(oldest_allowed)}"
+    Logger.warn fn -> "Reached max page fetches before finding an entry older than #{inspect(oldest_allowed)}" end
     Enum.reverse(sensor_values)
   end
 
@@ -19,7 +19,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
     {:ok, values} = cgm().read_cgm_page(page_number)
     case Pummpcomm.Cgm.needs_timestamp?(values) do
       true ->
-        Logger.debug "Writing cgm timestamp on page #{page_number}"
+        Logger.debug fn -> "Writing cgm timestamp on page #{page_number}" end
         :ok = cgm().write_cgm_timestamp()
         fetch_and_filter_page(page_number, sensor_values, oldest_allowed, lowest_page_allowed)
       false ->

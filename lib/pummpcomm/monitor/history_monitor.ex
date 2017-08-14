@@ -5,13 +5,13 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
 
   def get_pump_history(minutes_back) do
     oldest_allowed = oldest_entry_allowed(minutes_back)
-    Logger.debug "Searching until we find an entry older than #{inspect(oldest_allowed)}"
+    Logger.debug fn -> "Searching until we find an entry older than #{inspect(oldest_allowed)}" end
 
     {:ok, fetch_and_filter_page(0, [], oldest_allowed, 5)}
   end
 
   defp fetch_and_filter_page(page_number, history_events, oldest_allowed, highest_page_allowed) when page_number > highest_page_allowed do
-    Logger.warn "Reached max page fetches before finding an event older than #{inspect(oldest_allowed)}"
+    Logger.warn fn -> "Reached max page fetches before finding an event older than #{inspect(oldest_allowed)}" end
     Enum.reverse(history_events)
   end
 
