@@ -1,7 +1,7 @@
 defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
   require Logger
   alias Pummpcomm.Cgm
-  alias Pummpcomm.Timestamper
+  alias Pummpcomm.Cgm.Timestamper
 
   def get_sensor_values(minutes_back) do
     oldest_allowed = oldest_entry_allowed(minutes_back)

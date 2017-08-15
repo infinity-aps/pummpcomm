@@ -1,4 +1,4 @@
-defmodule Pummpcomm.Timestamper do
+defmodule Pummpcomm.Cgm.Timestamper do
   @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low, :sensor_data_high, :sensor_error, :sensor_packet]
 
   def timestamp_events(events) do

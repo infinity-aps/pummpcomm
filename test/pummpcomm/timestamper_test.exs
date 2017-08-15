@@ -1,7 +1,7 @@
 defmodule Pummpcomm.TimestamperTest do
   use ExUnit.Case
-  alias Pummpcomm.Timestamper, as: Timestamper
-  alias Pummpcomm.Cgm,         as: Cgm
+  alias Pummpcomm.Cgm.Timestamper
+  alias Pummpcomm.Cgm
 
   doctest Timestamper
 
