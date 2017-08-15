@@ -1,4 +1,11 @@
 defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
+  @moduledoc """
+  This module provides high-level continuous glucose monitor functions, such as the ability to retrieve a specific
+  number of historical minutes of cgm data. It manages the process of pulling the right number of cgm pages from the
+  insulin pump, along with handling Medtronic cgm-specific details like writing reference timestamps for accurate cgm
+  decoding.
+  """
+
   require Logger
   alias Pummpcomm.Cgm
   alias Pummpcomm.Cgm.Timestamper

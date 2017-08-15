@@ -1,4 +1,11 @@
 defmodule Pummpcomm.Driver.SubgRfspy do
+  @moduledoc """
+  This module models the serial communications with a chip running the subg_rfspy firmware
+  (https://github.com/ps2/subg_rfspy) capable of talking to a wireless insulin pump. It takes packet commands destined
+  for the insulin pump, converts them to 4x6, and wraps them in a command that the subg_rfspy firmware knows how to
+  process. The lower level serial communication is handled by a serial driver such as Pummpcomm.Driver.SubgRfspy.UART.
+  """
+
   require Logger
   use Bitwise
   alias Pummpcomm.Driver.FourBySix

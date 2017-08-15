@@ -1,4 +1,10 @@
 defmodule Pummpcomm.Driver.SubgRfspy.UART do
+  @moduledoc """
+  This GenServer provides the most basic read and write operations to communicate with a wireless chip running
+  subg_rfspy firmware (https://github.com/ps2/subg_rfspy) over a UART. It is a thin wrapper around Nerves.UART
+  to isolate the Pummpcomm.Driver.SubgRfspy module from UART specific details and serial device IO.
+  """
+
   require Logger
   use GenServer
   alias Pummpcomm.Driver.SerialFraming

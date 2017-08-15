@@ -1,4 +1,8 @@
 defmodule Pummpcomm.Monitor.HistoryMonitor do
+  @moduledoc """
+  This module provides high-level access to the pump history information. It fetches history data to the specified
+  minutes back, fetching multiple pages of history if necessary until the desired timeframe has been decoded.
+  """
   require Logger
 
   @pump Application.get_env(:pummpcomm, :pump)

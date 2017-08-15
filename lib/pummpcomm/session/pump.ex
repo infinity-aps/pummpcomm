@@ -1,4 +1,14 @@
 defmodule Pummpcomm.Session.Pump do
+  @moduledoc """
+  This GenServer represents a logical pump session and wraps the commands and responses needed in order to communicate
+  with a pump so that execution happens as effortlessly as possible (including listening for silence, waking the pump,
+  and retries). The serial number of the pump is all that is needed to initialize the GenServer, and it will query and
+  store the model number upon the first interaction with the insulin pump.
+
+  Underneath this GenServer, Pummpcomm.Session.Pump delegates the nitty gritty details to
+  Pummpcomm.Session.PumpExecutor.
+  """
+
   use GenServer
   require Logger
   alias Pummpcomm.Session.PumpExecutor

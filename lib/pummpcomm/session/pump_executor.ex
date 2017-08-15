@@ -1,4 +1,10 @@
 defmodule Pummpcomm.Session.PumpExecutor do
+  @moduledoc """
+  This module provides basic pump command execution. Pump communication happens in packets, and there is often a short
+  prelude packet that the pump acks, followed by a full command packet containing the command parameters. This module is
+  where logical pump packet management happens.
+  """
+
   require Logger
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Command

@@ -13,6 +13,10 @@ defmodule Pummpcomm.HistoryDefinition do
 end
 
 defmodule Pummpcomm.History do
+  @moduledoc """
+  This module decodes a page of history from the pump into events and provides crc checking on the page.
+  """
+
   require Pummpcomm.HistoryDefinition
   require Logger
 
