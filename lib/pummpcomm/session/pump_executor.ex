@@ -2,6 +2,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
   require Logger
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Command
+  alias Pummpcomm.Session.Exchange.Ack
   alias Pummpcomm.Session.Packet
   alias Pummpcomm.Driver.SubgRfspy
 
@@ -129,7 +130,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
 
   defp ack_and_listen(context = %Context{response: response}) do
     pump_serial = context.command.pump_serial
-    command = Command.ack(pump_serial)
+    command = Ack.make(pump_serial)
     {:ok, ack_packet} = Packet.from_command(command, Command.short_payload(command))
     # Logger.info "Sending ack packet: #{inspect(ack_packet)}"
     command_bytes = Packet.to_binary(ack_packet)

@@ -2,9 +2,15 @@ defmodule Pummpcomm.Session.Pump do
   use GenServer
   require Logger
   alias Pummpcomm.Session.PumpExecutor
-  alias Pummpcomm.Session.Command
   alias Pummpcomm.Session.Context
-  alias Pummpcomm.Session.Response
+
+  alias Pummpcomm.Session.Exchange.GetCurrentCgmPage
+  alias Pummpcomm.Session.Exchange.PowerControl
+  alias Pummpcomm.Session.Exchange.ReadCgmPage
+  alias Pummpcomm.Session.Exchange.ReadHistoryPage
+  alias Pummpcomm.Session.Exchange.ReadPumpModel
+  alias Pummpcomm.Session.Exchange.ReadTime
+  alias Pummpcomm.Session.Exchange.WriteCgmTimestamp
 
   @genserver_timeout 60_000
 
@@ -49,8 +55,8 @@ defmodule Pummpcomm.Session.Pump do
 
   def handle_call({:get_current_cgm_page}, _from, state = %{pump_serial: pump_serial}) do
     with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> Command.get_current_cgm_page() |> PumpExecutor.execute(),
-           response <- Response.get_data(context.response) do
+         {:ok, context} <- state.pump_serial |> GetCurrentCgmPage.make() |> PumpExecutor.execute(),
+           response <- GetCurrentCgmPage.decode(context.response) do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Get Current CGM Page Failed"}, state}
@@ -59,8 +65,8 @@ defmodule Pummpcomm.Session.Pump do
 
   def handle_call({:read_cgm_page, page_number}, _from, state = %{pump_serial: pump_serial}) do
     with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> Command.read_cgm_page(page_number) |> PumpExecutor.execute(),
-           response <- Response.get_data(context.response) do
+         {:ok, context} <- state.pump_serial |> ReadCgmPage.make(page_number) |> PumpExecutor.execute(),
+           response <- ReadCgmPage.decode(context.response) do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Read CGM Page Failed"}, state}
@@ -69,7 +75,7 @@ defmodule Pummpcomm.Session.Pump do
 
   def handle_call({:write_cgm_timestamp}, _from, state = %{pump_serial: pump_serial}) do
     with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, %{received_ack: true}} <- state.pump_serial |> Command.write_cgm_timestamp() |> PumpExecutor.execute() do
+         {:ok, %{received_ack: true}} <- state.pump_serial |> WriteCgmTimestamp.make() |> PumpExecutor.execute() do
       {:reply, :ok, state}
     else
       _ -> {:reply, {:error, "Write CGM Timestamp Failed"}, state}
@@ -78,8 +84,8 @@ defmodule Pummpcomm.Session.Pump do
 
   def handle_call({:read_history_page, page_number}, _from, state = %{pump_serial: pump_serial, model_number: model_number}) do
     with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> Command.read_history_page(page_number) |> PumpExecutor.execute(),
-         response <- Response.get_data(context.response, model_number) do
+         {:ok, context} <- state.pump_serial |> ReadHistoryPage.make(page_number) |> PumpExecutor.execute(),
+         response <- ReadHistoryPage.decode(context.response, model_number) do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Read History Page Failed"}, state}
@@ -88,8 +94,8 @@ defmodule Pummpcomm.Session.Pump do
 
   def handle_call({:read_time}, _from, state = %{pump_serial: pump_serial}) do
     with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> Command.read_time() |> PumpExecutor.execute(),
-         parsed_date <- Response.get_data(context.response) do
+         {:ok, context} <- state.pump_serial |> ReadTime.make() |> PumpExecutor.execute(),
+         parsed_date <- ReadTime.decode(context.response) do
       {:reply, {:ok, parsed_date}, state}
     else
       _ -> {:reply, {:error, "Read Time Failed"}, state}
@@ -102,15 +108,15 @@ defmodule Pummpcomm.Session.Pump do
       {:ok, _} -> response
       _ ->
         Logger.info fn -> "Waking pump" end
-        pump_serial |> Command.power_control() |> PumpExecutor.repeat_execute(500, 12_000)
+        pump_serial |> PowerControl.make() |> PumpExecutor.repeat_execute(500, 12_000)
         read_pump_model(pump_serial)
     end
   end
 
   def read_pump_model(pump_serial) do
     PumpExecutor.wait_for_silence()
-    case %{Command.read_pump_model(pump_serial) | retries: 0} |> PumpExecutor.execute() do
-      {:ok, %Context{response: response}} -> {:ok, Response.get_data(response)}
+    case %{ReadPumpModel.make(pump_serial) | retries: 0} |> PumpExecutor.execute() do
+      {:ok, %Context{response: response}} -> {:ok, ReadPumpModel.decode(response)}
       other                               -> other
     end
   end
