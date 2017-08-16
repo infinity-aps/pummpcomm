@@ -17,6 +17,7 @@ defmodule Pummpcomm.Session.Pump do
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Exchange.GetCurrentCgmPage
   alias Pummpcomm.Session.Exchange.PowerControl
+  alias Pummpcomm.Session.Exchange.ReadBatteryStatus
   alias Pummpcomm.Session.Exchange.ReadCgmPage
   alias Pummpcomm.Session.Exchange.ReadHistoryPage
   alias Pummpcomm.Session.Exchange.ReadPumpModel
@@ -65,6 +66,10 @@ defmodule Pummpcomm.Session.Pump do
     GenServer.call(__MODULE__, {:read_temp_basal}, @genserver_timeout)
   end
 
+  def read_battery_status do
+    GenServer.call(__MODULE__, {:read_battery_status}, @genserver_timeout)
+  end
+
   def handle_call(call_params, from, state = %{initialized: false, pump_serial: pump_serial}) do
     case ensure_pump_awake(pump_serial) do
       {:ok, %{model_number: model_number}} ->
@@ -81,6 +86,16 @@ defmodule Pummpcomm.Session.Pump do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Get Current CGM Page Failed"}, state}
+    end
+  end
+
+  def handle_call({:read_battery_status}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> ReadBatteryStatus.make() |> PumpExecutor.execute(),
+           response <- ReadBatteryStatus.decode(context.response) do
+      {:reply, response, state}
+    else
+      _ -> {:reply, {:error, "ReadBatteryStatus Failed"}, state}
     end
   end
 
