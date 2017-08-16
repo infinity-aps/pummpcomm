@@ -19,6 +19,7 @@ defmodule Pummpcomm.Session.Pump do
   alias Pummpcomm.Session.Exchange.ReadCgmPage
   alias Pummpcomm.Session.Exchange.ReadHistoryPage
   alias Pummpcomm.Session.Exchange.ReadPumpModel
+  alias Pummpcomm.Session.Exchange.ReadTempBasal
   alias Pummpcomm.Session.Exchange.ReadTime
   alias Pummpcomm.Session.Exchange.WriteCgmTimestamp
 
@@ -52,6 +53,10 @@ defmodule Pummpcomm.Session.Pump do
 
   def read_time do
     GenServer.call(__MODULE__, {:read_time}, @genserver_timeout)
+  end
+
+  def read_temp_basal do
+    GenServer.call(__MODULE__, {:read_temp_basal}, @genserver_timeout)
   end
 
   def handle_call(call_params, from, state = %{initialized: false, pump_serial: pump_serial}) do
@@ -109,6 +114,16 @@ defmodule Pummpcomm.Session.Pump do
       {:reply, {:ok, parsed_date}, state}
     else
       _ -> {:reply, {:error, "Read Time Failed"}, state}
+    end
+  end
+
+  def handle_call({:read_temp_basal}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute(),
+         temp_basal <- ReadTempBasal.decode(context.response) do
+      {:reply, {:ok, temp_basal}, state}
+    else
+      _ -> {:reply, {:error, "Read Temp Basal Failed"}, state}
     end
   end
 
