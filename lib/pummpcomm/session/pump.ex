@@ -11,14 +11,16 @@ defmodule Pummpcomm.Session.Pump do
 
   use GenServer
   require Logger
+
+  alias Pummpcomm.PumpModel
   alias Pummpcomm.Session.PumpExecutor
   alias Pummpcomm.Session.Context
-
   alias Pummpcomm.Session.Exchange.GetCurrentCgmPage
   alias Pummpcomm.Session.Exchange.PowerControl
   alias Pummpcomm.Session.Exchange.ReadCgmPage
   alias Pummpcomm.Session.Exchange.ReadHistoryPage
   alias Pummpcomm.Session.Exchange.ReadPumpModel
+  alias Pummpcomm.Session.Exchange.ReadRemainingInsulin
   alias Pummpcomm.Session.Exchange.ReadTempBasal
   alias Pummpcomm.Session.Exchange.ReadTime
   alias Pummpcomm.Session.Exchange.WriteCgmTimestamp
@@ -53,6 +55,10 @@ defmodule Pummpcomm.Session.Pump do
 
   def read_time do
     GenServer.call(__MODULE__, {:read_time}, @genserver_timeout)
+  end
+
+  def read_remaining_insulin do
+    GenServer.call(__MODULE__, {:read_remaining_insulin}, @genserver_timeout)
   end
 
   def read_temp_basal do
@@ -114,6 +120,17 @@ defmodule Pummpcomm.Session.Pump do
       {:reply, {:ok, parsed_date}, state}
     else
       _ -> {:reply, {:error, "Read Time Failed"}, state}
+    end
+  end
+
+  def handle_call({:read_remaining_insulin}, _from, state = %{pump_serial: pump_serial, model_number: model_number}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> ReadRemainingInsulin.make() |> PumpExecutor.execute(),
+         %{strokes_per_unit: strokes_per_unit} = PumpModel.pump_options(model_number),
+         result <- ReadRemainingInsulin.decode(context.response, strokes_per_unit) do
+      {:reply, {:ok, result}, state}
+    else
+      _ -> {:reply, {:error, "Read Remaining Insulin Failed"}, state}
     end
   end
 
