@@ -21,6 +21,7 @@ defmodule Pummpcomm.Session.Pump do
   alias Pummpcomm.Session.Exchange.ReadCgmPage
   alias Pummpcomm.Session.Exchange.ReadHistoryPage
   alias Pummpcomm.Session.Exchange.ReadPumpModel
+  alias Pummpcomm.Session.Exchange.ReadPumpStatus
   alias Pummpcomm.Session.Exchange.ReadRemainingInsulin
   alias Pummpcomm.Session.Exchange.ReadTempBasal
   alias Pummpcomm.Session.Exchange.ReadTime
@@ -52,6 +53,10 @@ defmodule Pummpcomm.Session.Pump do
 
   def read_history_page(page_number) do
     GenServer.call(__MODULE__, {:read_history_page, page_number}, @genserver_timeout)
+  end
+
+  def read_pump_status() do
+    GenServer.call(__MODULE__, {:read_pump_status}, @genserver_timeout)
   end
 
   def read_time do
@@ -125,6 +130,16 @@ defmodule Pummpcomm.Session.Pump do
       {:reply, response, state}
     else
       _ -> {:reply, {:error, "Read History Page Failed"}, state}
+    end
+  end
+
+  def handle_call({:read_pump_status}, _from, state = %{pump_serial: pump_serial}) do
+    with {:ok, _} <- ensure_pump_awake(pump_serial),
+         {:ok, context} <- state.pump_serial |> ReadPumpStatus.make() |> PumpExecutor.execute(),
+           pump_status <- ReadPumpStatus.decode(context.response) do
+      {:reply, {:ok, pump_status}, state}
+    else
+      _ -> {:reply, {:error, "ReadPumpStatus Failed"}, state}
     end
   end
 
