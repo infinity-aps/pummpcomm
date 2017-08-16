@@ -20,11 +20,11 @@ defmodule Pummpcomm.Driver.ReadRemainingInsulinTest do
 
   test "decode on older pump uses 10 strokes per unit" do
     result = ReadRemainingInsulin.decode(%Response{opcode: 0x73, data: <<0x1BC5::16, 0x0000::16>>}, 10)
-    assert %{remaining_insulin: 7109 / 10} = result
+    assert %{remaining_insulin: 710.9} = result
   end
 
   test "decode on newer pump uses 40 strokes per unit" do
     result = ReadRemainingInsulin.decode(%Response{opcode: 0x73, data: <<0x0000::16, 0x1BC5::16>>}, 40)
-    assert %{remaining_insulin: 7109 / 40} = result
+    assert %{remaining_insulin: 177.725} = result
   end
 end
