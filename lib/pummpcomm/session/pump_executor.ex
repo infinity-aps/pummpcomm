@@ -60,7 +60,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
       case wait_for_ack(%Context{command: command}, ack_wait_millis) do
         %Context{error: nil} -> true
         %Context{error: reason} ->
-          Logger.error "Repeat execute errored with reason #{reason}", command: command
+          Logger.info "Repeat execute errored with reason #{reason}", command: command
           false
       end
     else
