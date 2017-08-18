@@ -9,10 +9,10 @@ defmodule Pummpcomm.Session.Exchange.ReadTempBasal do
 
   @strokes_per_unit 40 # X12 and above
   def decode(%Response{opcode: @opcode, data: <<0::8, _::8, raw_rate::16, duration::16, _::binary>>}) do
-    %{type: :absolute, rate: raw_rate / @strokes_per_unit, duration: duration}
+    %{type: :absolute, units_per_hour: raw_rate / @strokes_per_unit, duration: duration}
   end
 
   def decode(%Response{opcode: @opcode, data: <<1::8, rate::8, _::16, duration::16, _::binary>>}) do
-    %{type: :percent, rate: rate, duration: duration}
+    %{type: :percent, units_per_hour: rate, duration: duration}
   end
 end
