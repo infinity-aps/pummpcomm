@@ -9,6 +9,11 @@ defmodule Pummpcomm.Session.Response do
     {:ok, %{response | data: response.data <> rest, frames: [packet | response.frames], last_frame?: convert_last_frame(last_frame)}}
   end
 
+  @ack 0x06
+  def add_packet(response = %Response{opcode: opcode}, packet = %Packet{opcode: @ack}) do
+    {:ok, %Response{opcode: @ack, data: packet.payload, frames: [packet], last_frame?: true}}
+  end
+
   def add_packet(%Response{opcode: response_opcode}, %Packet{opcode: packet_opcode}) do
     {:error, "Packet's opcode #{packet_opcode} doesn't match expected response opcode #{response_opcode}"}
   end
