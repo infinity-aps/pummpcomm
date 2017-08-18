@@ -14,7 +14,7 @@ defmodule Pummpcomm.Session.Exchange.ReadBgTargets do
 
   defp decode_targets(_, _, decoded_targets, 0), do: Enum.reverse(decoded_targets)
 
-  defp decode_targets(_, <<0::8, _::binary>>, decoded_targets, count) when length(decoded_targets) > 0, do: Enum.reverse(decoded_targets)
+  defp decode_targets(_, <<0::8, _::binary>>, decoded_targets, _) when length(decoded_targets) > 0, do: Enum.reverse(decoded_targets)
 
   defp decode_targets(units, <<raw_start_time::8, bg_low::8, bg_high::8, rest::binary>>, decoded_targets, count) do
     target = %{start: basal_time(raw_start_time), bg_low: decode_bg(bg_low, units), bg_high: decode_bg(bg_high, units)}

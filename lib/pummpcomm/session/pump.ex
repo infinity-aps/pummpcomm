@@ -75,8 +75,8 @@ defmodule Pummpcomm.Session.Pump do
     GenServer.call(__MODULE__, {:read_battery_status}, @genserver_timeout)
   end
 
-  def handle_call(call_params, from, state = %{initialized: false, pump_serial: pump_serial}) do
-    case ensure_pump_awake(pump_serial) do
+  def handle_call(call_params, from, state = %{initialized: false}) do
+    case ensure_pump_awake(state.pump_serial) do
       {:ok, %{model_number: model_number}} ->
         handle_call(call_params, from, %{state | initialized: true, model_number: model_number})
       _ ->
@@ -84,93 +84,75 @@ defmodule Pummpcomm.Session.Pump do
     end
   end
 
-  def handle_call({:get_current_cgm_page}, _from, state = %{pump_serial: pump_serial}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> GetCurrentCgmPage.make() |> PumpExecutor.execute(),
-           response <- GetCurrentCgmPage.decode(context.response) do
+  def handle_call(pump_call, _from, state) do
+    with {:ok, _} <- ensure_pump_awake(state.pump_serial),
+         {:reply, response, state} <- make_pump_call(pump_call, state) do
       {:reply, response, state}
     else
-      _ -> {:reply, {:error, "Get Current CGM Page Failed"}, state}
+      _ -> {:reply, {:error, "#{Atom.to_string(elem(pump_call, 0))} Failed"}, state}
     end
   end
 
-  def handle_call({:read_battery_status}, _from, state = %{pump_serial: pump_serial}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> ReadBatteryStatus.make() |> PumpExecutor.execute(),
-           response <- ReadBatteryStatus.decode(context.response) do
+  def make_pump_call({:get_current_cgm_page}, state) do
+    with {:ok, context} <- state.pump_serial |> GetCurrentCgmPage.make() |> PumpExecutor.execute(),
+         response <- GetCurrentCgmPage.decode(context.response) do
       {:reply, response, state}
-    else
-      _ -> {:reply, {:error, "ReadBatteryStatus Failed"}, state}
     end
   end
 
-  def handle_call({:read_cgm_page, page_number}, _from, state = %{pump_serial: pump_serial}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> ReadCgmPage.make(page_number) |> PumpExecutor.execute(),
-           response <- ReadCgmPage.decode(context.response) do
+  def handle_call({:read_battery_status}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadBatteryStatus.make() |> PumpExecutor.execute(),
+         response <- ReadBatteryStatus.decode(context.response) do
       {:reply, response, state}
-    else
-      _ -> {:reply, {:error, "Read CGM Page Failed"}, state}
     end
   end
 
-  def handle_call({:write_cgm_timestamp}, _from, state = %{pump_serial: pump_serial}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, %{received_ack: true}} <- state.pump_serial |> WriteCgmTimestamp.make() |> PumpExecutor.execute() do
+  def handle_call({:read_cgm_page, page_number}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadCgmPage.make(page_number) |> PumpExecutor.execute(),
+         response <- ReadCgmPage.decode(context.response) do
+      {:reply, response, state}
+    end
+  end
+
+  def handle_call({:write_cgm_timestamp}, state) do
+    with {:ok, %{received_ack: true}} <- state.pump_serial |> WriteCgmTimestamp.make() |> PumpExecutor.execute() do
       {:reply, :ok, state}
-    else
-      _ -> {:reply, {:error, "Write CGM Timestamp Failed"}, state}
     end
   end
 
-  def handle_call({:read_history_page, page_number}, _from, state = %{pump_serial: pump_serial, model_number: model_number}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> ReadHistoryPage.make(page_number) |> PumpExecutor.execute(),
-         response <- ReadHistoryPage.decode(context.response, model_number) do
+  def handle_call({:read_history_page, page_number}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadHistoryPage.make(page_number) |> PumpExecutor.execute(),
+         response <- ReadHistoryPage.decode(context.response, state.model_number) do
       {:reply, response, state}
-    else
-      _ -> {:reply, {:error, "Read History Page Failed"}, state}
     end
   end
 
-  def handle_call({:read_pump_status}, _from, state = %{pump_serial: pump_serial}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> ReadPumpStatus.make() |> PumpExecutor.execute(),
-           pump_status <- ReadPumpStatus.decode(context.response) do
+  def handle_call({:read_pump_status}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadPumpStatus.make() |> PumpExecutor.execute(),
+         pump_status <- ReadPumpStatus.decode(context.response) do
       {:reply, {:ok, pump_status}, state}
-    else
-      _ -> {:reply, {:error, "ReadPumpStatus Failed"}, state}
     end
   end
 
-  def handle_call({:read_time}, _from, state = %{pump_serial: pump_serial}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> ReadTime.make() |> PumpExecutor.execute(),
+  def handle_call({:read_time}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadTime.make() |> PumpExecutor.execute(),
          parsed_date <- ReadTime.decode(context.response) do
       {:reply, {:ok, parsed_date}, state}
-    else
-      _ -> {:reply, {:error, "Read Time Failed"}, state}
     end
   end
 
-  def handle_call({:read_remaining_insulin}, _from, state = %{pump_serial: pump_serial, model_number: model_number}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> ReadRemainingInsulin.make() |> PumpExecutor.execute(),
-         %{strokes_per_unit: strokes_per_unit} = PumpModel.pump_options(model_number),
+  def handle_call({:read_remaining_insulin}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadRemainingInsulin.make() |> PumpExecutor.execute(),
+         %{strokes_per_unit: strokes_per_unit} = PumpModel.pump_options(state.model_number),
          result <- ReadRemainingInsulin.decode(context.response, strokes_per_unit) do
       {:reply, {:ok, result}, state}
-    else
-      _ -> {:reply, {:error, "Read Remaining Insulin Failed"}, state}
     end
   end
 
-  def handle_call({:read_temp_basal}, _from, state = %{pump_serial: pump_serial}) do
-    with {:ok, _} <- ensure_pump_awake(pump_serial),
-         {:ok, context} <- state.pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute(),
+  def handle_call({:read_temp_basal}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute(),
          temp_basal <- ReadTempBasal.decode(context.response) do
       {:reply, {:ok, temp_basal}, state}
-    else
-      _ -> {:reply, {:error, "Read Temp Basal Failed"}, state}
     end
   end
 

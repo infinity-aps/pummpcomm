@@ -10,7 +10,7 @@ defmodule Pummpcomm.Session.Response do
   end
 
   @ack 0x06
-  def add_packet(response = %Response{opcode: opcode}, packet = %Packet{opcode: @ack}) do
+  def add_packet(%Response{}, packet = %Packet{opcode: @ack}) do
     {:ok, %Response{opcode: @ack, data: packet.payload, frames: [packet], last_frame?: true}}
   end
 
