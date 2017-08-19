@@ -35,7 +35,8 @@ defmodule Pummpcomm.Session.Pump do
     state = %{
       pump_serial: pump_serial,
       model_number: nil,
-      initialized: false
+      initialized: false,
+      last_communication: Timex.epoch()
     }
 
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
@@ -59,18 +60,22 @@ defmodule Pummpcomm.Session.Pump do
   def write_cgm_timestamp,            do: GenServer.call(__MODULE__, {:write_cgm_timestamp},            @timeout)
 
   def handle_call(call_params, from, state = %{initialized: false}) do
-    case PumpExecutor.ensure_pump_awake(state.pump_serial) do
-      {:ok, %{model_number: model_number}} ->
-        handle_call(call_params, from, %{state | initialized: true, model_number: model_number})
-      _ ->
-        {:reply, {:error, "Pump did not respond to initial communication"}, state}
+    with :ok                                  <- maybe_wait_for_silence(state),
+         {:ok, %{model_number: model_number}} <- PumpExecutor.ensure_pump_awake(state.pump_serial) do
+
+      initialized_state = %{state | initialized: true, model_number: model_number} |> update_last_communication()
+      handle_call(call_params, from, initialized_state)
+    else
+      _ -> {:reply, {:error, "Pump did not respond to initial communication"}, state}
     end
   end
 
   def handle_call(pump_call, _from, state) do
-    with {:ok, _} <- PumpExecutor.ensure_pump_awake(state.pump_serial),
+    with :ok      <- maybe_wait_for_silence(state),
+         {:ok, _} <- PumpExecutor.ensure_pump_awake(state.pump_serial),
          {:reply, response, state} <- make_pump_call(pump_call, state) do
-      {:reply, response, state}
+
+      {:reply, response, update_last_communication(state)}
     else
       _ -> {:reply, {:error, "#{Atom.to_string(elem(pump_call, 0))} Failed"}, state}
     end
@@ -173,6 +178,20 @@ defmodule Pummpcomm.Session.Pump do
   def make_pump_call({:write_cgm_timestamp}, state) do
     with {:ok, %{received_ack: true}} <- state.pump_serial |> WriteCgmTimestamp.make() |> PumpExecutor.execute() do
       {:reply, :ok, state}
+    end
+  end
+
+  defp update_last_communication(state) do
+    %{state | last_communication: Timex.now()}
+  end
+
+  defp maybe_wait_for_silence(state) do
+    Logger.warn "Comparing #{inspect state.last_communication} with #{inspect Timex.shift(Timex.now(), seconds: -4)}"
+    case state.last_communication |> Timex.before?(Timex.shift(Timex.now(), seconds: -4)) do
+      true  ->
+        Logger.debug "Waiting for silence"
+        PumpExecutor.wait_for_silence()
+      false -> :ok
     end
   end
 end

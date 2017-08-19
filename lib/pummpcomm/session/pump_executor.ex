@@ -31,7 +31,6 @@ defmodule Pummpcomm.Session.PumpExecutor do
   end
 
   def read_pump_model(pump_serial) do
-    wait_for_silence()
     case %{ReadPumpModel.make(pump_serial) | retries: 0} |> execute() do
       {:ok, %Context{response: response}} -> {:ok, ReadPumpModel.decode(response)}
       other                               -> other
@@ -39,14 +38,13 @@ defmodule Pummpcomm.Session.PumpExecutor do
   end
 
   def wait_for_silence() do
-    # Logger.debug "Waiting for silence"
     with {:ok, %{data: <<0xA7::size(8), _::binary>>}} <- SubgRfspy.read(5000) do
       Logger.debug fn -> "Detected pump radio comms" end
       wait_for_silence()
     else
       {:error, :timeout} ->
         # Logger.debug "No radio comms detected"
-        {:ok}
+        :ok
       _ ->
         Logger.debug fn -> "Detected other comms. Retrying" end
       wait_for_silence()
