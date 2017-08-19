@@ -1,4 +1,10 @@
 defmodule Pummpcomm.Session.Tuner do
+  @moduledoc """
+  This module is responsible for scanning the known US or WW pump frequencies and searching for the best one for a given
+  pump. It samples 5 times in each of the 25 frequency steps within the range and measures the average rssi. The
+  frequency which results in 5 successful responses and has the highest (closest to 0) rssi wins.
+  """
+
   require Logger
 
   alias Pummpcomm.Driver.SubgRfspy
