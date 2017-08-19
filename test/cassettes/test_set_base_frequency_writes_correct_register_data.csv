@@ -1,3 +1,8 @@
 write,060B00,ok
 write,060A30,ok
 write,060926,ok
+read,01,ok
+read,01,ok
+read,01,ok
+read,,ok
+read,,ok

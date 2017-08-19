@@ -99,9 +99,8 @@ defmodule Pummpcomm.Driver.SubgRfspy do
     read_response(5000)
   end
 
-  def flush_response_buffer do
-    read_response(50)
-    read_response(50)
+  def flush_response_buffer(times \\ 4) do
+    (0..times) |> Enum.each(fn(_) -> read_response(50) end)
   end
 
   @max_repetition_batch_size 250
