@@ -27,15 +27,16 @@ defmodule Pummpcomm.Session.Tuner do
 
       Logger.info fn() -> "Best frequency is #{best_frequency} with an rssi of #{avg_rssi}" end
       SubgRfspy.set_base_frequency(best_frequency)
+      {:ok, best_frequency, avg_rssi}
 
     else
       result -> Logger.error fn() -> "Could not determine best frequency: #{inspect result}" end
     end
   end
 
-  defp select_best_frequency([], best_frequency), do: best_frequency
-  defp select_best_frequency([{_, successes, _} | tail], best_frequency) when successes < 5, do: select_best_frequency(tail, best_frequency)
-  defp select_best_frequency([{frequency, 5, rssi} | tail], best_frequency = {_, best_rssi}) do
+  def select_best_frequency([], best_frequency), do: best_frequency
+  def select_best_frequency([{_, successes, _} | tail], best_frequency) when successes < 5, do: select_best_frequency(tail, best_frequency)
+  def select_best_frequency([{frequency, 5, rssi} | tail], best_frequency = {_, best_rssi}) do
     case rssi > best_rssi do
       true  -> select_best_frequency(tail, {frequency, rssi})
       false -> select_best_frequency(tail, best_frequency)
