@@ -12,24 +12,25 @@ defmodule Pummpcomm.Session.Tuner do
   alias Pummpcomm.Session.PumpExecutor
   alias Pummpcomm.Session.Exchange.ReadPumpModel
 
-  @frequency_ranges %{
-    us: %{ start: 916.300, end: 916.900, default: 916.630 },
-    ww: %{ start: 868.150, end: 868.750, default: 868.328 }
+  @frequencies_by_region %{
+    us: [916.45, 916.50, 916.55, 916.60, 916.65, 916.70, 916.75, 916.80],
+    ww: [868.25, 868.30, 868.35, 868.40, 868.45, 868.50, 868.55, 868.60, 868.65]
   }
 
   def tune(pump_serial, radio_locale \\ :us) do
     Logger.info fn() -> "Tuning radio" end
 
-    with frequency_range <- @frequency_ranges[radio_locale],
-         {:ok} <- SubgRfspy.set_base_frequency(frequency_range[:default]),
+    with frequencies <- @frequencies_by_region[radio_locale],
+         default_frequency <- default_frequency(frequencies),
+         {:ok} <- SubgRfspy.set_base_frequency(default_frequency),
          _ <- PumpExecutor.ensure_pump_awake(pump_serial),
          test_command <- %{ReadPumpModel.make(pump_serial) | retries: 0},
          {:ok, test_packet} <- Packet.from_command(test_command, <<0x00>>),
          command_bytes <- Packet.to_binary(test_packet) do
 
-      {best_frequency, avg_rssi} = frequency_range
+      {best_frequency, avg_rssi} = frequencies
         |> scan_over_frequencies(command_bytes)
-        |> select_best_frequency({frequency_range[:default], -99})
+        |> select_best_frequency({default_frequency, -99})
 
       Logger.info fn() -> "Best frequency is #{best_frequency} with an rssi of #{avg_rssi}" end
       SubgRfspy.set_base_frequency(best_frequency)
@@ -41,23 +42,20 @@ defmodule Pummpcomm.Session.Tuner do
   end
 
   def select_best_frequency([], best_frequency), do: best_frequency
-  def select_best_frequency([{_, successes, _} | tail], best_frequency) when successes < 5, do: select_best_frequency(tail, best_frequency)
-  def select_best_frequency([{frequency, 5, rssi} | tail], best_frequency = {_, best_rssi}) do
+  def select_best_frequency([{_, successes, _} | tail], best_frequency) when successes == 0, do: select_best_frequency(tail, best_frequency)
+  def select_best_frequency([{frequency, _, rssi} | tail], best_frequency = {_, best_rssi}) do
     case rssi > best_rssi do
       true  -> select_best_frequency(tail, {frequency, rssi})
       false -> select_best_frequency(tail, best_frequency)
     end
   end
 
-  @steps 25
-  defp scan_over_frequencies(frequency_range, command_bytes, steps \\ @steps) do
-    frequencies = frequencies_to_try(frequency_range, steps)
-    Enum.map(frequencies, fn(frequency) -> scan_frequency(frequency, command_bytes) end)
+  defp default_frequency(frequencies) do
+    Enum.at(frequencies, round(length(frequencies) / 2))
   end
 
-  defp frequencies_to_try(%{start: start_frequency, end: end_frequency}, steps) do
-    step_size = (end_frequency - start_frequency) / steps
-    Enum.map((0..(steps - 1)), fn(step) -> start_frequency + (step_size * step) end)
+  defp scan_over_frequencies(frequencies, command_bytes) do
+    Enum.map(frequencies, fn(frequency) -> scan_frequency(frequency, command_bytes) end)
   end
 
   @samples 5

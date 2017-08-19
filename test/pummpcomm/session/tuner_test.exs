@@ -25,4 +25,13 @@ defmodule Pummpcomm.Session.TunerTest do
 
     assert {916.516, -47.5} == Tuner.select_best_frequency(example_frequency_scan_results, default_frequency)
   end
+
+  test "it picks the best of bad options" do
+    example_frequency_scan_results = [
+      {916.1, 0, -99.0}, {916.42, 1, -70.5}, {916.444, 1, -75.5}, {916.468, 2, -76.8}
+    ]
+    default_frequency = {915.9, -99.0}
+
+    assert {916.42, -70.5} == Tuner.select_best_frequency(example_frequency_scan_results, default_frequency)
+  end
 end
