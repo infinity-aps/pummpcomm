@@ -55,9 +55,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
 
   defp write_fully(data, timeout_ms, serial_pid) do
     case UART.write(serial_pid, data, timeout_ms) do
-      :ok ->
-        UART.drain(serial_pid)
-        UART.flush(serial_pid, :receive)
+      :ok -> UART.drain(serial_pid)
       err -> err
     end
   end
