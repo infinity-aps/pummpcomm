@@ -51,9 +51,6 @@ defmodule Pummpcomm.Session.PumpExecutor do
     end
   end
 
-  def scan_over_frequencies(start_frequency, end_frequency, steps) do
-  end
-
   @fast_timeout 1
   defp repeat_execute(command, times, ack_wait_millis) when times > 255 do
     _repeat_execute(command, 255, @fast_timeout)
@@ -82,7 +79,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
       case wait_for_ack(%Context{command: command}, ack_wait_millis) do
         %Context{error: nil} -> true
         %Context{error: reason} ->
-          Logger.info "Repeat execute errored with reason #{reason}", command: command
+          Logger.debug fn() -> "Repeat execute errored with reason #{inspect reason}" end
           false
       end
     else

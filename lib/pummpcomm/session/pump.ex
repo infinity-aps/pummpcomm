@@ -28,8 +28,9 @@ defmodule Pummpcomm.Session.Pump do
   alias Pummpcomm.Session.Exchange.ReadTime
   alias Pummpcomm.Session.Exchange.SetTempBasal
   alias Pummpcomm.Session.Exchange.WriteCgmTimestamp
+  alias Pummpcomm.Session.Tuner
 
-  @timeout 60_000
+  @timeout 300_000
 
   def start_link(pump_serial) do
     state = %{
@@ -60,7 +61,7 @@ defmodule Pummpcomm.Session.Pump do
   def write_cgm_timestamp,            do: GenServer.call(__MODULE__, {:write_cgm_timestamp},            @timeout)
 
   def handle_call(call_params, from, state = %{initialized: false}) do
-    with :ok                                  <- maybe_wait_for_silence(state),
+    with {:ok}                                <- Tuner.tune(state.pump_serial),
          {:ok, %{model_number: model_number}} <- PumpExecutor.ensure_pump_awake(state.pump_serial) do
 
       initialized_state = %{state | initialized: true, model_number: model_number} |> update_last_communication()

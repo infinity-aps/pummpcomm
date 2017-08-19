@@ -45,7 +45,8 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   }
 
   def update_register(register, value) do
-    write_command(<<register::8, value::8>>, :update_register, 1000)
+    write_command(<<register::8, value::8>>, :update_register, 100)
+    {:ok, <<1>>} = read_response(100)
     {:ok}
   end
 
@@ -82,7 +83,6 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   end
 
   def sync do
-    flush_response_buffer()
     {:ok, status} = get_state()
     {:ok, version} = get_version()
     %{status: status, version: version}
@@ -96,11 +96,6 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   def get_state do
     :ok = write_command(<<>>, :get_state, 100)
     read_response(5000)
-  end
-
-  def flush_response_buffer do
-    read_response(50)
-    read_response(50)
   end
 
   @max_repetition_batch_size 250
