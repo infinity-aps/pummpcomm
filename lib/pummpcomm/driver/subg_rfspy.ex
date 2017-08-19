@@ -55,6 +55,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
     update_register(@registers[:freq0], val &&& 0xff)
     update_register(@registers[:freq1], (val >>> 8) &&& 0xff)
     update_register(@registers[:freq2], (val >>> 16) &&& 0xff)
+    flush_response_buffer()
     {:ok}
   end
 
