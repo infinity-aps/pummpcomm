@@ -35,14 +35,18 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
         {:error, message}
       _ ->
         {:ok, _} = UART.start_link(device)
-        %{record: true, interactions: [], context_name: context_name}
+        %{record: true, interactions: [], context_name: context_name, recording: false}
     end
   end
 
   def _start_link(context_name, false) do
     Logger.debug fn -> "Starting #{context_name} in playback mode" end
-    expected_interactions = context_name |> cassette_filename() |> File.stream!() |> CSV.decode! |> Enum.map(&(&1))
-    %{record: false, interactions: [], remaining_interactions: expected_interactions}
+    filename = context_name |> cassette_filename()
+    expected_interactions = case File.exists?(filename) do
+                              true -> filename |> File.stream!() |> CSV.decode! |> Enum.map(&(&1))
+                              false -> []
+                            end
+    %{record: false, interactions: [], remaining_interactions: expected_interactions, recording: false}
   end
 
   def write(data, timeout_ms) do
@@ -51,6 +55,14 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def read(timeout_ms) do
     GenServer.call(__MODULE__, {:read, timeout_ms}, @genserver_timeout)
+  end
+
+  def record do
+    GenServer.call(__MODULE__, {:record}, @genserver_timeout)
+  end
+
+  def pause do
+    GenServer.call(__MODULE__, {:pause}, @genserver_timeout)
   end
 
   def interactions do
@@ -64,6 +76,7 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
     {:ok, initial_state}
   end
 
+  def terminate(_, %{record: true, interactions: []}), do: nil
   def terminate(_, %{record: true, interactions: interactions, context_name: context_name}) do
     file = File.open!(cassette_filename(context_name), [:write, :utf8])
     interactions |> Enum.reverse |> CSV.encode |> Enum.each(&IO.write(file, &1))
@@ -96,17 +109,33 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
 
   def handle_call({:write, data, timeout_ms}, _from, state = %{record: true, interactions: interactions}) do
     response = UART.write(data, timeout_ms)
-    interaction = ["write", Base.encode16(data), Atom.to_string(response)]
-    state = %{state | interactions: [interaction | interactions]}
+    state = case state.recording do
+              true ->
+                interaction = ["write", Base.encode16(data), Atom.to_string(response)]
+                %{state | interactions: [interaction | interactions]}
+              false -> state
+            end
     {:reply, response, state}
   end
 
   def handle_call({:read, timeout_ms}, _from, state = %{record: true, interactions: interactions}) do
     {response, data} = UART.read(timeout_ms)
     Logger.debug fn -> "Received response from Real UART: {#{response}, #{data}}" end
-    interaction = ["read", Base.encode16(data), Atom.to_string(response)]
-    state = %{state | interactions: [interaction | interactions]}
+    state = case state.recording do
+              true ->
+                interaction = ["read", Base.encode16(data), Atom.to_string(response)]
+                %{state | interactions: [interaction | interactions]}
+              false -> state
+            end
     {:reply, {response, data}, state}
+  end
+
+  def handle_call({:record}, _from, state) do
+    {:reply, :ok, %{state | recording: true}}
+  end
+
+  def handle_call({:pause}, _from, state) do
+    {:reply, :ok, %{state | recording: false}}
   end
 
   def handle_call(:interactions, _from, state = %{interactions: interactions}) do

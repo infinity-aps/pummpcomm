@@ -13,6 +13,7 @@ defmodule Pummpcomm.Driver.SubgRfspyTest do
 
   setup(context) do
     {:ok, pid} = Fake.start_link(context[:test])
+    Fake.record
     on_exit(fn() -> assert_down(pid) end)
     :ok
   end

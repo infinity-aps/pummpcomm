@@ -9,8 +9,34 @@ defmodule Pummpcomm.Session.PumpExecutor do
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Command
   alias Pummpcomm.Session.Exchange.Ack
+  alias Pummpcomm.Session.Exchange.PowerControl
+  alias Pummpcomm.Session.Exchange.ReadPumpModel
   alias Pummpcomm.Session.Packet
   alias Pummpcomm.Driver.SubgRfspy
+
+  @retry_count 3
+  def execute(command, retry_count \\ @retry_count) do
+    _execute(command, retry_count)
+  end
+
+  def ensure_pump_awake(pump_serial) do
+    response = read_pump_model(pump_serial)
+    case response do
+      {:ok, _} -> response
+      _ ->
+        Logger.info fn -> "Waking pump" end
+        pump_serial |> PowerControl.make() |> repeat_execute(500, 12_000)
+        read_pump_model(pump_serial)
+    end
+  end
+
+  def read_pump_model(pump_serial) do
+    wait_for_silence()
+    case %{ReadPumpModel.make(pump_serial) | retries: 0} |> execute() do
+      {:ok, %Context{response: response}} -> {:ok, ReadPumpModel.decode(response)}
+      other                               -> other
+    end
+  end
 
   def wait_for_silence() do
     # Logger.debug "Waiting for silence"
@@ -23,22 +49,20 @@ defmodule Pummpcomm.Session.PumpExecutor do
         {:ok}
       _ ->
         Logger.debug fn -> "Detected other comms. Retrying" end
-        wait_for_silence()
+      wait_for_silence()
     end
   end
 
-  @retry_count 3
-  def execute(command, retry_count \\ @retry_count) do
-    _execute(command, retry_count)
+  def scan_over_frequencies(start_frequency, end_frequency, steps) do
   end
 
   @fast_timeout 1
-  def repeat_execute(command, times, ack_wait_millis) when times > 255 do
+  defp repeat_execute(command, times, ack_wait_millis) when times > 255 do
     _repeat_execute(command, 255, @fast_timeout)
     repeat_execute(command, times - 255, ack_wait_millis)
   end
 
-  def repeat_execute(command, times, ack_wait_millis) do
+  defp repeat_execute(command, times, ack_wait_millis) do
     _repeat_execute(command, times, ack_wait_millis)
   end
 
