@@ -1,6 +1,6 @@
 ## v2.1.1
 
-Minor bugfixes and stability improvement in tuning funcationality.
+Minor bugfixes and stability improvement in tuning functionality.
 
 ## v2.1.0
 
