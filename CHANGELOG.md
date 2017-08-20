@@ -1,3 +1,7 @@
+## v2.1.1
+
+Minor bugfixes and stability improvement in tuning funcationality.
+
 ## v2.1.0
 
 Key changes:
