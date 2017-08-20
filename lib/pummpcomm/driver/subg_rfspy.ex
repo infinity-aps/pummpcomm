@@ -47,8 +47,8 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   def update_register(register, value) do
     @serial_driver.clear_buffers()
     write_command(<<register::8, value::8>>, :update_register, 100)
-    {:ok, <<1>>} = read_response(100)
-    {:ok}
+
+    true = read_until(<<1>>, 5)
   end
 
   def set_base_frequency(mhz) do
@@ -149,4 +149,12 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   @rssi_offset 73
   defp rssi(raw_rssi) when raw_rssi >= 128, do: rssi(raw_rssi - 256)
   defp rssi(raw_rssi), do: (raw_rssi / 2) - @rssi_offset
+
+  defp read_until(_, 0), do: false
+  defp read_until(expected, retries) do
+    case read_response(100) do
+      {:ok, ^expected} -> true
+      _                -> read_until(expected, retries - 1)
+    end
+  end
 end
