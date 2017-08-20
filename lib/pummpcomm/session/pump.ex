@@ -61,7 +61,7 @@ defmodule Pummpcomm.Session.Pump do
   def write_cgm_timestamp,            do: GenServer.call(__MODULE__, {:write_cgm_timestamp},            @timeout)
 
   def handle_call(call_params, from, state = %{initialized: false}) do
-    with {:ok}                                <- Tuner.tune(state.pump_serial),
+    with {:ok, _, _}                          <- Tuner.tune(state.pump_serial),
          {:ok, %{model_number: model_number}} <- PumpExecutor.ensure_pump_awake(state.pump_serial) do
 
       initialized_state = %{state | initialized: true, model_number: model_number} |> update_last_communication()
