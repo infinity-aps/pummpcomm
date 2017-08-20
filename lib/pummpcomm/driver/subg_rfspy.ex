@@ -45,6 +45,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   }
 
   def update_register(register, value) do
+    @serial_driver.clear_buffers()
     write_command(<<register::8, value::8>>, :update_register, 100)
     {:ok, <<1>>} = read_response(100)
     {:ok}
@@ -83,6 +84,7 @@ defmodule Pummpcomm.Driver.SubgRfspy do
   end
 
   def sync do
+    @serial_driver.clear_buffers()
     {:ok, status} = get_state()
     {:ok, version} = get_version()
     %{status: status, version: version}

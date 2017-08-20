@@ -41,6 +41,10 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
     GenServer.call(__MODULE__, {:read, timeout_ms}, genserver_timeout(timeout_ms))
   end
 
+  def clear_buffers do
+    GenServer.call(__MODULE__, {:clear_buffers})
+  end
+
   def handle_call({:write, data, timeout_ms}, _from, serial_pid) do
     {:reply, write_fully(data, timeout_ms, serial_pid), serial_pid}
   end
@@ -51,6 +55,10 @@ defmodule Pummpcomm.Driver.SubgRfspy.UART do
     #   Logger.debug fn -> "UART port is not running!" end
     # end
     {:reply, UART.read(serial_pid, timeout_ms + 1_000), serial_pid}
+  end
+
+  def handle_call({:clear_buffers}, _from, serial_pid) do
+    {:reply, UART.flush(serial_pid), serial_pid}
   end
 
   defp write_fully(data, timeout_ms, serial_pid) do

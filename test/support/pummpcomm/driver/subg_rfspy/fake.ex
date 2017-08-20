@@ -57,6 +57,10 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
     GenServer.call(__MODULE__, {:read, timeout_ms}, @genserver_timeout)
   end
 
+  def clear_buffers() do
+    GenServer.call(__MODULE__, {:clear_buffers}, @genserver_timeout)
+  end
+
   def record do
     GenServer.call(__MODULE__, {:record}, @genserver_timeout)
   end
@@ -105,6 +109,10 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
     {:reply, {String.to_atom(response), expected_data}, new_state}
   end
 
+  def handle_call({clear_buffers}, _from, state = %{record: false}) do
+    {:reply, :ok, state}
+  end
+
   # RECORD MODE
 
   def handle_call({:write, data, timeout_ms}, _from, state = %{record: true, interactions: interactions}) do
@@ -128,6 +136,10 @@ defmodule Pummpcomm.Driver.SubgRfspy.Fake do
               false -> state
             end
     {:reply, {response, data}, state}
+  end
+
+  def handle_call({clear_buffers}, _from, state = %{record: true}) do
+    {:reply, UART.clear_buffers(), state}
   end
 
   def handle_call({:record}, _from, state) do
