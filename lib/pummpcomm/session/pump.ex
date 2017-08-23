@@ -52,6 +52,7 @@ defmodule Pummpcomm.Session.Pump do
   def read_insulin_sensitivities,     do: GenServer.call(__MODULE__, {:read_insulin_sensitivities},     @timeout)
   def read_pump_status,               do: GenServer.call(__MODULE__, {:read_pump_status},               @timeout)
   def read_remaining_insulin,         do: GenServer.call(__MODULE__, {:read_remaining_insulin},         @timeout)
+  def read_settings,                  do: GenServer.call(__MODULE__, {:read_settings},                  @timeout)
   def read_temp_basal,                do: GenServer.call(__MODULE__, {:read_temp_basal},                @timeout)
   def read_time,                      do: GenServer.call(__MODULE__, {:read_time},                      @timeout)
 
