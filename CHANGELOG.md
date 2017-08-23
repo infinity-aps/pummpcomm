@@ -1,3 +1,7 @@
+## v2.1.2
+
+Add read_settings convenience function to `Pummpcomm.Session.Pump`
+
 ## v2.1.1
 
 Minor bugfixes and stability improvement in tuning functionality.
