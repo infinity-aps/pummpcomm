@@ -2,23 +2,32 @@
 
 Pummpcomm is an Elixir library to handle communication with a Medtronic insulin pump via a serial link to a cc1110 chip running subg_rfspy. It is inspired by the work of Ben West's [decocare](https://github.com/openaps/decocare). It can run commands, receive responses, and decode multipacket history and cgm data. Development discussion and questions are answered in the [Type 1 Diabetes + Elixir Discord server](https://discord.gg/XfJ78mA).
 
-[![Build Status](https://travis-ci.org/tmecklem/pummpcomm.svg?branch=master)](https://travis-ci.org/tmecklem/pummpcomm)
+[![Build Status](https://travis-ci.org/infinity-aps/pummpcomm.svg?branch=master)](https://travis-ci.org/infinity-aps/pummpcomm)
 
 ## Why does this program exist?
 
-Pummpcomm exists to support [Nerves APS](https://github.com/tmecklem/nerves_aps), an ambitious project to implement a closed loop using Elixir and Nerves.
+Pummpcomm exists to support [Infinity APS](https://github.com/infinity-aps/infinity_aps), an ambitious project to implement a closed loop using Elixir and Nerves.
 
 ## Goals of the project
 
-* Support the subset of pump commands needed to support Nerves APS
+* Support the subset of pump commands needed to support Infinity APS
 * Serve as a reference for developers who need to understand how Medtronic pump communications work
 
 ## Supported commands
 
-- [x] Read pump model
-- [x] Read pump date and time
-- [x] Fetch cgm
-- [x] Fetch pump history
+- [x] `get_current_cgm_page`
+- [x] `read_battery_status`
+- [x] `read_bg_targets`
+- [x] `read_carb_ratios`
+- [x] `read_cgm_page`
+- [x] `read_history_page`
+- [x] `read_insulin_sensitivities`
+- [x] `read_pump_status`
+- [x] `read_remaining_insulin`
+- [x] `read_temp_basal`
+- [x] `read_time`
+- [x] `set_temp_basal`
+- [x] `write_cgm_timestamp`
 
 ## Project structure
 

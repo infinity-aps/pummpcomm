@@ -3,13 +3,13 @@ defmodule Pummpcomm.Mixfile do
 
   def project do
     [app: :pummpcomm,
-     version: "2.1.2",
+     version: "2.1.3",
      elixir: ">= 1.4.5", elixirc_paths: elixirc_paths(Mix.env),
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps(),
      name: "Pummpcomm",
-     source_url: "https://github.com/tmecklem/pummpcomm",
+     source_url: "https://github.com/infinity-aps/pummpcomm",
      description: description(),
      package: package()]
   end
@@ -36,7 +36,7 @@ defmodule Pummpcomm.Mixfile do
     [
       maintainers: ["Timothy Mecklem"],
       licenses: ["MIT License"],
-      links: %{"Github" => "https://github.com/tmecklem/pummpcomm"}
+      links: %{"Github" => "https://github.com/infinity-aps/pummpcomm"}
     ]
   end
 
