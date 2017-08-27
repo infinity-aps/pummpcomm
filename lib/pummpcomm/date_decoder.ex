@@ -5,9 +5,7 @@ defmodule Pummpcomm.DateDecoder do
   This function decodes a full date and time as returned by the ReadTime command
   """
   def decode_full_datetime(<<hour::8, minute::8, second::8, year::size(16), month::8, day::8>>) do
-    case NaiveDateTime.new(year, month, day, hour, minute, second) do
-      {:ok, timestamp} -> timestamp
-    end
+    NaiveDateTime.new(year, month, day, hour, minute, second)
   end
 
   @doc """
