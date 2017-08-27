@@ -1,3 +1,10 @@
+## v2.1.4
+
+This release:
+
+* Adds get_model_number to Pummpcomm.Session.Pump
+* Unifies the response from all Pump genserver calls to return a tuple
+
 ## v2.1.3
 
 Move project to github.com/infinity-aps/pummpcomm
