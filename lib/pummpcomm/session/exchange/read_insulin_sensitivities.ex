@@ -10,7 +10,7 @@ defmodule Pummpcomm.Session.Exchange.ReadInsulinSensitivities do
 
   @max_count 8
   def decode(%Response{opcode: @opcode, data: <<units::8, rest::binary>>}) do
-    %{units: decode_units(units), sensitivities: decode_sensitivity(rest, [], @max_count, units)}
+    {:ok, %{units: decode_units(units), sensitivities: decode_sensitivity(rest, [], @max_count, units)}}
   end
 
   defp decode_sensitivity(_, decoded_sensitivities, 0, _), do: Enum.reverse(decoded_sensitivities)

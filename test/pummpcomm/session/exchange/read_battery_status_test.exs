@@ -8,6 +8,6 @@ defmodule Pummpcomm.Driver.ReadBatteryStatusTest do
 
   test "ReadBatteryStatus results in indicator and voltage", %{pump_serial: pump_serial} do
     {:ok, context} = pump_serial |> ReadBatteryStatus.make() |> PumpExecutor.execute()
-    assert %{indicator: _, voltage: _} = ReadBatteryStatus.decode(context.response)
+    assert {:ok, %{indicator: _, voltage: _}} = ReadBatteryStatus.decode(context.response)
   end
 end

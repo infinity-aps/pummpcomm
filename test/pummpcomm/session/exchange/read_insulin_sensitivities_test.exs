@@ -9,7 +9,7 @@ defmodule Pummpcomm.Driver.ReadInsulinSensitivitiesTest do
 
   test "ReadInsulinSensitivities results in units and sensitivities", %{pump_serial: pump_serial} do
     {:ok, context} = pump_serial |> ReadInsulinSensitivities.make() |> PumpExecutor.execute()
-    assert %{units: _, sensitivities: _} = ReadInsulinSensitivities.decode(context.response)
+    assert {:ok, %{units: _, sensitivities: _}} = ReadInsulinSensitivities.decode(context.response)
   end
 
   test "ReadInsulinSensitivities.decode returns correct information" do
@@ -19,6 +19,6 @@ defmodule Pummpcomm.Driver.ReadInsulinSensitivitiesTest do
       %{start: ~T[08:00:00], sensitivity: 34},
       %{start: ~T[21:00:00], sensitivity: 38}
     ]
-    assert %{units: "mg/dL", sensitivities: expected_sensitivities} == ReadInsulinSensitivities.decode(%Response{opcode: 0x8B, data: response_data})
+    assert {:ok, %{units: "mg/dL", sensitivities: expected_sensitivities}} == ReadInsulinSensitivities.decode(%Response{opcode: 0x8B, data: response_data})
   end
 end

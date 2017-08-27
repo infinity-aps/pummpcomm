@@ -8,7 +8,7 @@ defmodule Pummpcomm.Session.Exchange.ReadBatteryStatus do
   end
 
   def decode(%Response{opcode: @opcode, data: <<indicator::8, raw_voltage::size(16), _rest::binary>>}) do
-    %{indicator: decode_indicator(indicator), voltage: raw_voltage / 100.0}
+    {:ok, %{indicator: decode_indicator(indicator), voltage: raw_voltage / 100.0}}
   end
 
   defp decode_indicator(0), do: :normal

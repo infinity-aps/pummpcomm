@@ -8,6 +8,6 @@ defmodule Pummpcomm.Session.Exchange.GetCurrentCgmPage do
   end
 
   def decode(%Response{opcode: @opcode, data: <<page_number::size(32), glucose::size(16), isig::size(16), _rest::binary>>}) do
-    %{page_number: page_number, glucose: glucose, isig: isig}
+    {:ok, %{page_number: page_number, glucose: glucose, isig: isig}}
   end
 end

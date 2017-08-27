@@ -12,7 +12,7 @@ defmodule Pummpcomm.Driver.ReadCarbRatiosTest do
     with {:ok, pump_model_context} <- pump_serial |> ReadPumpModel.make() |> PumpExecutor.execute(),
          %{model_number: model_number} <- ReadPumpModel.decode(pump_model_context.response) do
       {:ok, context} = pump_serial |> ReadCarbRatios.make() |> PumpExecutor.execute()
-      assert %{units: _} = ReadCarbRatios.decode(context.response, model_number)
+      assert {:ok, %{units: _}} = ReadCarbRatios.decode(context.response, model_number)
     end
   end
 
@@ -26,7 +26,7 @@ defmodule Pummpcomm.Driver.ReadCarbRatiosTest do
       %{start: ~T[17:00:00], ratio: 5.0},
       %{start: ~T[20:00:00], ratio: 6.0}
     ]
-    assert %{units: :grams, schedule: expected_schedule} == ReadCarbRatios.decode(%Response{opcode: 0x8A, data: response_data}, 751)
+    assert {:ok, %{units: :grams, schedule: expected_schedule}} == ReadCarbRatios.decode(%Response{opcode: 0x8A, data: response_data}, 751)
   end
 
   test "ReadCarbRatios.decode works on smaller carb ratio format" do
@@ -39,6 +39,6 @@ defmodule Pummpcomm.Driver.ReadCarbRatiosTest do
       %{start: ~T[17:00:00], ratio: 5.0},
       %{start: ~T[20:00:00], ratio: 6.0}
     ]
-    assert %{units: :grams, schedule: expected_schedule} == ReadCarbRatios.decode(%Response{opcode: 0x8A, data: response_data}, 722)
+    assert {:ok, %{units: :grams, schedule: expected_schedule}} == ReadCarbRatios.decode(%Response{opcode: 0x8A, data: response_data}, 722)
   end
 end

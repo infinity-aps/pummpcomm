@@ -12,6 +12,6 @@ defmodule Pummpcomm.Driver.SetTempBasalTest do
     assert :ok == SetTempBasal.decode(context.response)
 
     {:ok, verify_context} = pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute()
-    assert %{units_per_hour: 1.05, duration: 30, type: :absolute} == ReadTempBasal.decode(verify_context.response)
+    assert {:ok, %{units_per_hour: 1.05, duration: 30, type: :absolute}} == ReadTempBasal.decode(verify_context.response)
   end
 end

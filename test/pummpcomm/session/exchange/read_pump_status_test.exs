@@ -8,6 +8,6 @@ defmodule Pummpcomm.Driver.ReadPumpStatusTest do
 
   test "ReadPumpStatus results in status, bolusing, and suspended", %{pump_serial: pump_serial} do
     {:ok, context} = pump_serial |> ReadPumpStatus.make() |> PumpExecutor.execute()
-    assert %{bolusing: _, suspended: _} = ReadPumpStatus.decode(context.response)
+    assert {:ok, %{bolusing: _, suspended: _}} = ReadPumpStatus.decode(context.response)
   end
 end

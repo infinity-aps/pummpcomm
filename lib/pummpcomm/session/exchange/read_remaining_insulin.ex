@@ -8,10 +8,10 @@ defmodule Pummpcomm.Session.Exchange.ReadRemainingInsulin do
   end
 
   def decode(%Response{opcode: @opcode, data: <<raw_remaining_insulin::16, _::binary>>}, strokes_per_unit = 10) do
-    %{remaining_insulin: raw_remaining_insulin / strokes_per_unit}
+    {:ok, %{remaining_insulin: raw_remaining_insulin / strokes_per_unit}}
   end
 
   def decode(%Response{opcode: @opcode, data: <<_::16, raw_remaining_insulin::16, _::binary>>}, strokes_per_unit = 40) do
-    %{remaining_insulin: raw_remaining_insulin / strokes_per_unit}
+    {:ok, %{remaining_insulin: raw_remaining_insulin / strokes_per_unit}}
   end
 end

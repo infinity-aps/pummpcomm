@@ -8,7 +8,7 @@ defmodule Pummpcomm.Session.Exchange.ReadPumpStatus do
   end
 
   def decode(%Response{opcode: @opcode, data: <<_::8, bolusing::8, suspended::8, _rest::binary>>}) do
-    %{bolusing: decode_bool(bolusing), suspended: decode_bool(suspended)}
+    {:ok, %{bolusing: decode_bool(bolusing), suspended: decode_bool(suspended)}}
   end
 
   defp decode_bool(0), do: false

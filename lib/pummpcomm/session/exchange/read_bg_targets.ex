@@ -9,7 +9,7 @@ defmodule Pummpcomm.Session.Exchange.ReadBgTargets do
 
   @targets_max_count 8
   def decode(%Response{opcode: @opcode, data: <<units::8, targets::binary>>}) do
-    %{units: decode_units(units), targets: decode_targets(units, targets, [], @targets_max_count)}
+    {:ok, %{units: decode_units(units), targets: decode_targets(units, targets, [], @targets_max_count)}}
   end
 
   defp decode_targets(_, _, decoded_targets, 0), do: Enum.reverse(decoded_targets)

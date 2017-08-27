@@ -8,11 +8,11 @@ defmodule Pummpcomm.Session.Exchange.ReadCarbRatios do
   end
 
   def decode(%Response{opcode: @opcode, data: <<units::8, count::8, rest::binary>>}, model_number) when rem(model_number, 100) >= 23 do
-    %{units: decode_units(units), schedule: decode_larger_carb_ratio(rest, [], count)}
+    {:ok, %{units: decode_units(units), schedule: decode_larger_carb_ratio(rest, [], count)}}
   end
 
   def decode(%Response{opcode: @opcode, data: <<units::8, rest::binary>>}, _) do
-    %{units: decode_units(units), schedule: decode_smaller_carb_ratio(rest, [], 8)}
+    {:ok, %{units: decode_units(units), schedule: decode_smaller_carb_ratio(rest, [], 8)}}
   end
 
   defp decode_larger_carb_ratio(_, carb_ratios, count) when count == 0, do: Enum.reverse(carb_ratios)
