@@ -1,3 +1,9 @@
+## v2.1.5
+
+Bugfix:
+
+* Fixes Pummpcomm.Monitor.BloodGlucoseMonitor to expect a tuple for `get_current_cgm_page`
+
 ## v2.1.4
 
 This release:

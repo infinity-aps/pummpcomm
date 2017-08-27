@@ -14,7 +14,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
     oldest_allowed = oldest_entry_allowed(minutes_back)
     Logger.debug fn -> "Searching until we find an entry older than #{inspect(oldest_allowed)}" end
 
-    %{page_number: page_number} = cgm().get_current_cgm_page
+    {:ok, %{page_number: page_number}} = cgm().get_current_cgm_page()
     {:ok, fetch_and_filter_page(page_number, [], oldest_allowed, page_number - 5)}
   end
 

@@ -2,7 +2,7 @@ defmodule Pummpcomm.Session.PumpFake do
   alias Pummpcomm.Cgm
 
   def get_current_cgm_page do
-    %{glucose: 32, isig: 32, page_number: 10}
+    {:ok, %{glucose: 32, isig: 32, page_number: 10}}
   end
 
   # returns 4 sensor glucose values starting at 3 minutes ago
