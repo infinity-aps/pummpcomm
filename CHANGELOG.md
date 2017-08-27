@@ -1,3 +1,7 @@
+## v2.1.6
+
+Remove additional :ok tuples from Pump response
+
 ## v2.1.5
 
 Bugfix:

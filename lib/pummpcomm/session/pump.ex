@@ -140,7 +140,7 @@ defmodule Pummpcomm.Session.Pump do
   def make_pump_call({:read_pump_status}, state) do
     with {:ok, context} <- state.pump_serial |> ReadPumpStatus.make() |> PumpExecutor.execute(),
          pump_status    <- ReadPumpStatus.decode(context.response) do
-      {:reply, {:ok, pump_status}, state}
+      {:reply, pump_status, state}
     end
   end
 
@@ -148,28 +148,28 @@ defmodule Pummpcomm.Session.Pump do
     with {:ok, context}                        <- state.pump_serial |> ReadRemainingInsulin.make() |> PumpExecutor.execute(),
          %{strokes_per_unit: strokes_per_unit} <- PumpModel.pump_options(state.model_number),
          result                                <- ReadRemainingInsulin.decode(context.response, strokes_per_unit) do
-      {:reply, {:ok, result}, state}
+      {:reply, result, state}
     end
   end
 
   def make_pump_call({:read_settings}, state) do
     with {:ok, context} <- state.pump_serial |> ReadSettings.make() |> PumpExecutor.execute(),
          pump_status    <- ReadSettings.decode(context.response) do
-      {:reply, {:ok, pump_status}, state}
+      {:reply, pump_status, state}
     end
   end
 
   def make_pump_call({:read_temp_basal}, state) do
     with {:ok, context} <- state.pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute(),
          temp_basal     <- ReadTempBasal.decode(context.response) do
-      {:reply, {:ok, temp_basal}, state}
+      {:reply, temp_basal, state}
     end
   end
 
   def make_pump_call({:read_time}, state) do
     with {:ok, context} <- state.pump_serial |> ReadTime.make() |> PumpExecutor.execute(),
          parsed_date    <- ReadTime.decode(context.response) do
-      {:reply, {:ok, parsed_date}, state}
+      {:reply, parsed_date, state}
     end
   end
 
@@ -178,7 +178,7 @@ defmodule Pummpcomm.Session.Pump do
          :ok            <- SetTempBasal.decode(context.response),
          {:ok, context} <- state.pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute(),
          temp_basal     <- ReadTempBasal.decode(context.response) do
-      {:reply, {:ok, temp_basal}, state}
+      {:reply, temp_basal, state}
     end
   end
 
