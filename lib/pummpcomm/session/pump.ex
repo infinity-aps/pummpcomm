@@ -44,6 +44,7 @@ defmodule Pummpcomm.Session.Pump do
   end
 
   def get_current_cgm_page,           do: GenServer.call(__MODULE__, {:get_current_cgm_page},           @timeout)
+  def get_model_number,               do: GenServer.call(__MODULE__, {:get_model_number},               @timeout)
   def read_battery_status,            do: GenServer.call(__MODULE__, {:read_battery_status},            @timeout)
   def read_bg_targets,                do: GenServer.call(__MODULE__, {:read_bg_targets},                @timeout)
   def read_carb_ratios,               do: GenServer.call(__MODULE__, {:read_carb_ratios},               @timeout)
@@ -88,6 +89,10 @@ defmodule Pummpcomm.Session.Pump do
          response       <- GetCurrentCgmPage.decode(context.response) do
       {:reply, response, state}
     end
+  end
+
+  def make_pump_call({:get_model_number}, state = %{model_number: model_number}) do
+    {:reply, {:ok, model_number}, state}
   end
 
   def make_pump_call({:read_battery_status}, state) do
