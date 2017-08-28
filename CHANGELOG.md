@@ -1,3 +1,7 @@
+## v2.1.7
+
+Use tuple for read_time response
+
 ## v2.1.6
 
 Remove additional :ok tuples from Pump response
