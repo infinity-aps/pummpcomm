@@ -30,7 +30,7 @@ defmodule Pummpcomm.History do
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->
-        Logger.debug fn ->
+        Logger.info fn ->
           "Decoding history page:\n#{Base.encode16(page)}"
         end
         {:ok, page |> Crc16.page_data |> decode_records(PumpModel.pump_options(pump_model)) |> Enum.reverse}

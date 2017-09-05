@@ -43,7 +43,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
       wait_for_silence()
     else
       {:error, :timeout} ->
-        # Logger.debug "No radio comms detected"
+        Logger.info "No radio comms detected, continuing with transmit"
         :ok
       _ ->
         Logger.debug fn -> "Detected other comms. Retrying" end

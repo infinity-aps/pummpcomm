@@ -9,7 +9,7 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
 
   def get_pump_history(minutes_back) do
     oldest_allowed = oldest_entry_allowed(minutes_back)
-    Logger.debug fn -> "Searching until we find an entry older than #{inspect(oldest_allowed)}" end
+    Logger.info fn -> "Searching until we find a history entry older than #{inspect(oldest_allowed)}" end
 
     {:ok, fetch_and_filter_page(0, [], oldest_allowed, 5)}
   end

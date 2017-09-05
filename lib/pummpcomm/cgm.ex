@@ -33,7 +33,7 @@ defmodule Pummpcomm.Cgm do
   def decode(page) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->
-        Logger.debug fn ->
+        Logger.info fn ->
           "Decoding CGM page:\n#{Base.encode16(page)}"
         end
         {:ok, page |> Crc16.page_data |> reverse |> decode_page |> Timestamper.timestamp_events}
