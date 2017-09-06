@@ -193,7 +193,6 @@ defmodule Pummpcomm.Session.Pump do
   end
 
   defp maybe_wait_for_silence(state) do
-    Logger.warn "Comparing #{inspect state.last_communication} with #{inspect Timex.shift(Timex.now(), seconds: -4)}"
     case state.last_communication |> Timex.before?(Timex.shift(Timex.now(), seconds: -4)) do
       true  ->
         Logger.info "Waiting for silence before transmitting"
