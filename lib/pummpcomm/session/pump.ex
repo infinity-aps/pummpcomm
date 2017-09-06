@@ -196,7 +196,7 @@ defmodule Pummpcomm.Session.Pump do
     Logger.warn "Comparing #{inspect state.last_communication} with #{inspect Timex.shift(Timex.now(), seconds: -4)}"
     case state.last_communication |> Timex.before?(Timex.shift(Timex.now(), seconds: -4)) do
       true  ->
-        Logger.debug "Waiting for silence"
+        Logger.info "Waiting for silence before transmitting"
         PumpExecutor.wait_for_silence()
       false -> :ok
     end
