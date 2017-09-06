@@ -40,13 +40,13 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitorTest do
   end
 
   test "fetch most recent glucose reading" do
-    {:ok, sensor_values} = BloodGlucoseMonitor.get_sensor_values(5, Timex.local())
+    {:ok, sensor_values} = BloodGlucoseMonitor.get_sensor_values(5, :local)
     assert length(sensor_values) == 1
     assert %{sgv: 197} = Enum.at(sensor_values, 0) |> elem(1)
   end
 
   test "fetch recent glucose readings across cgm pages" do
-    {:ok, sensor_values} = BloodGlucoseMonitor.get_sensor_values(30, Timex.local())
+    {:ok, sensor_values} = BloodGlucoseMonitor.get_sensor_values(30, :local)
     assert length(sensor_values) == 6
     assert %{sgv: 197} = Enum.at(sensor_values, 0) |> elem(1)
     assert %{sgv: 192} = Enum.at(sensor_values, 1) |> elem(1)
