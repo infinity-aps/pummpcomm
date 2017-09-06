@@ -55,7 +55,7 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
   end
 
   defp oldest_entry_allowed(minutes_back, timezone) do
-    timezone |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
+    timezone |> Timex.now() |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
   end
 
   defp cgm do

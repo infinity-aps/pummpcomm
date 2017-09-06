@@ -42,6 +42,6 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
   defp filter_history_event({_, _}), do: false
 
   defp oldest_entry_allowed(minutes_back, timezone) do
-    timezone |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
+    timezone |> Timex.now() |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
   end
 end
