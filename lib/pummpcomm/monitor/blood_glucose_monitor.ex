@@ -10,8 +10,8 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
   alias Pummpcomm.Cgm
   alias Pummpcomm.Cgm.Timestamper
 
-  def get_sensor_values(minutes_back) do
-    oldest_allowed = oldest_entry_allowed(minutes_back)
+  def get_sensor_values(minutes_back, timezone) do
+    oldest_allowed = oldest_entry_allowed(minutes_back, timezone)
     Logger.info fn -> "Searching until we find a cgm entry older than #{inspect(oldest_allowed)}" end
 
     {:ok, %{page_number: page_number}} = cgm().get_current_cgm_page()
@@ -54,8 +54,8 @@ defmodule Pummpcomm.Monitor.BloodGlucoseMonitor do
     event_key in Timestamper.relative_events()
   end
 
-  defp oldest_entry_allowed(minutes_back) do
-    Timex.local |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
+  defp oldest_entry_allowed(minutes_back, timezone) do
+    timezone |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
   end
 
   defp cgm do

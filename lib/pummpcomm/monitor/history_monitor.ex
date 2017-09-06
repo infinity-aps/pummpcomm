@@ -7,8 +7,8 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
 
   @pump Application.get_env(:pummpcomm, :pump)
 
-  def get_pump_history(minutes_back) do
-    oldest_allowed = oldest_entry_allowed(minutes_back)
+  def get_pump_history(minutes_back, timezone) do
+    oldest_allowed = oldest_entry_allowed(minutes_back, timezone)
     Logger.info fn -> "Searching until we find a history entry older than #{inspect(oldest_allowed)}" end
 
     {:ok, fetch_and_filter_page(0, [], oldest_allowed, 5)}
@@ -41,7 +41,7 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
   defp filter_history_event({_, %{timestamp: _}}), do: true
   defp filter_history_event({_, _}), do: false
 
-  defp oldest_entry_allowed(minutes_back) do
-    Timex.local |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
+  defp oldest_entry_allowed(minutes_back, timezone) do
+    timezone |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
   end
 end

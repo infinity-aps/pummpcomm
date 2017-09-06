@@ -30,8 +30,7 @@ defmodule Pummpcomm.Session.Exchange.ReadBgTargets do
   defp decode_bg(bg, @mmol), do: bg / 10
 
   defp basal_time(raw_time) do
-    :local
-    |> Timex.now()
+    Timex.now()
     |> Timex.beginning_of_day()
     |> Timex.shift(minutes: 30 * raw_time)
     |> DateTime.to_time()

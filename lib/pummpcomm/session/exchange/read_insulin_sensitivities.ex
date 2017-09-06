@@ -30,8 +30,7 @@ defmodule Pummpcomm.Session.Exchange.ReadInsulinSensitivities do
   defp convert_sensitivity_value(@mmol, sensitivity), do: sensitivity / 10
 
   defp basal_time(raw_time) do
-    :local
-    |> Timex.now()
+    Timex.now()
     |> Timex.beginning_of_day()
     |> Timex.shift(minutes: 30 * raw_time)
     |> DateTime.to_time()

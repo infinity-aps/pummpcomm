@@ -1,5 +1,5 @@
 defmodule Pummpcomm.Session.Packet do
-  @enforce_keys [:pump_serial, :opcode, :payload, :date, :type]
+  @enforce_keys [:pump_serial, :opcode, :payload, :type]
   defstruct pump_serial: nil, opcode: nil, payload: nil, date: nil, type: nil
 
   alias Pummpcomm.Session.Command
@@ -16,7 +16,6 @@ defmodule Pummpcomm.Session.Packet do
        pump_serial: command.pump_serial,
        opcode: command.opcode,
        payload: payload,
-       date: DateTime.to_naive(Timex.local),
        type: @types[:carelink]
      }
     }
@@ -30,7 +29,6 @@ defmodule Pummpcomm.Session.Packet do
       pump_serial: decode_serial(serial),
       opcode: opcode,
       payload: payload,
-      date: DateTime.to_naive(Timex.local),
       type: rf_type
     }
     case crc == Crc8.crc_8(crc_components(packet)) do

@@ -33,8 +33,7 @@ defmodule Pummpcomm.Session.Exchange.ReadCarbRatios do
   defp decode_ratio(<<raw_ratio::16>>), do: raw_ratio / 1000
 
   defp basal_time(raw_time) do
-    :local
-    |> Timex.now()
+    Timex.now()
     |> Timex.beginning_of_day()
     |> Timex.shift(minutes: 30 * raw_time)
     |> DateTime.to_time()
