@@ -93,7 +93,7 @@ defmodule Pummpcomm.History do
   define_record 0x55, RestoreMystery55,                   fixed_length( 55)
   define_record 0x56, ChangeSensorRateOfChangeAlertSetup, fixed_length( 12)
   define_record 0x57, ChangeBolusScrollStepSize,          fixed_length(  7)
-  define_record 0x5A, BolusWizardSetup,                   fixed_length(144)
+  define_record 0x5A, BolusWizardSetup,                   length_by_format(124, 144)
   define_record 0x5B, BolusWizardEstimate,                length_by_format(20, 22)
   define_record 0x5C, UnabsorbedInsulin,                  &UnabsorbedInsulin.event_length/1
   define_record 0x5D, SaveSettings,                       fixed_length(  7)
