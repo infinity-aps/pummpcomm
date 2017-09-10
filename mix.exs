@@ -3,7 +3,7 @@ defmodule Pummpcomm.Mixfile do
 
   def project do
     [app: :pummpcomm,
-     version: "2.1.7",
+     version: "2.2.0",
      elixir: ">= 1.4.5", elixirc_paths: elixirc_paths(Mix.env),
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,

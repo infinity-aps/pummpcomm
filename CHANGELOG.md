@@ -1,3 +1,10 @@
+## v2.2.0
+
+This release contains the following changes:
+
+* Removes reliance on local system timezone and makes timezone application explicit
+* Fixes BolusWizardSetup decoding on older x22 pumps (Use 124 bytes instead of longer format)
+
 ## v2.1.7
 
 Use tuple for read_time response
