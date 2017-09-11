@@ -1,7 +1,7 @@
-defmodule Pummpcomm.Driver.FourBySixTest do
+defmodule Pummpcomm.Session.FourBySixTest do
   use ExUnit.Case
 
-  alias Pummpcomm.Driver.FourBySix
+  alias Pummpcomm.Session.FourBySix
 
   doctest FourBySix
 
