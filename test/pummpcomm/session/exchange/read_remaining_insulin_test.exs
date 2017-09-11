@@ -10,12 +10,12 @@ defmodule Pummpcomm.Driver.ReadRemainingInsulinTest do
   doctest ReadRemainingInsulin
 
   test "ReadRemainingInsulin results in units remaining", %{pump_serial: pump_serial} do
-    with {:ok, pump_model_context} <- pump_serial |> ReadPumpModel.make() |> PumpExecutor.execute(),
-         %{model_number: model_number} <- ReadPumpModel.decode(pump_model_context.response),
-         %{strokes_per_unit: strokes_per_unit} <- PumpModel.pump_options(model_number) do
-      {:ok, context} = pump_serial |> ReadRemainingInsulin.make() |> PumpExecutor.execute()
-      assert {:ok, %{remaining_insulin: _}} = ReadRemainingInsulin.decode(context.response, strokes_per_unit)
-    end
+    {:ok, pump_model_context} = pump_serial |> ReadPumpModel.make() |> PumpExecutor.execute()
+    %{model_number: model_number} = ReadPumpModel.decode(pump_model_context.response)
+    %{strokes_per_unit: strokes_per_unit} = PumpModel.pump_options(model_number)
+
+    {:ok, context} = pump_serial |> ReadRemainingInsulin.make() |> PumpExecutor.execute()
+    assert {:ok, %{remaining_insulin: _}} = ReadRemainingInsulin.decode(context.response, strokes_per_unit)
   end
 
   test "decode on older pump uses 10 strokes per unit" do

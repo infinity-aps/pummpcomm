@@ -9,11 +9,11 @@ defmodule Pummpcomm.Driver.ReadCarbRatiosTest do
   doctest ReadCarbRatios
 
   test "ReadCarbRatios results in Map", %{pump_serial: pump_serial} do
-    with {:ok, pump_model_context} <- pump_serial |> ReadPumpModel.make() |> PumpExecutor.execute(),
-         %{model_number: model_number} <- ReadPumpModel.decode(pump_model_context.response) do
-      {:ok, context} = pump_serial |> ReadCarbRatios.make() |> PumpExecutor.execute()
-      assert {:ok, %{units: _}} = ReadCarbRatios.decode(context.response, model_number)
-    end
+    {:ok, pump_model_context} = pump_serial |> ReadPumpModel.make() |> PumpExecutor.execute()
+    %{model_number: model_number} = ReadPumpModel.decode(pump_model_context.response)
+
+    {:ok, context} = pump_serial |> ReadCarbRatios.make() |> PumpExecutor.execute()
+    assert {:ok, %{units: _}} = ReadCarbRatios.decode(context.response, model_number)
   end
 
   test "ReadCarbRatios.decode works on larger carb ratio format" do
