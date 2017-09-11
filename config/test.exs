@@ -1,6 +1,6 @@
 use Mix.Config
 
 config :logger, level: :warn
-config :pummpcomm, :serial_driver, Pummpcomm.Driver.SubgRfspy.Fake
+config :subg_rfspy, :serial_driver, SubgRfspy.UARTProxy
 config :pummpcomm, :pump, Pummpcomm.Session.PumpFake
 config :pummpcomm, :cgm, Pummpcomm.Session.PumpFake
