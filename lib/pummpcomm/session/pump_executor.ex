@@ -11,8 +11,8 @@ defmodule Pummpcomm.Session.PumpExecutor do
   alias Pummpcomm.Session.Exchange.Ack
   alias Pummpcomm.Session.Exchange.PowerControl
   alias Pummpcomm.Session.Exchange.ReadPumpModel
+  alias Pummpcomm.Session.FourBySix
   alias Pummpcomm.Session.Packet
-  alias Pummpcomm.Driver.SubgRfspy
 
   @retry_count 3
   def execute(command, retry_count \\ @retry_count) do
@@ -38,7 +38,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
   end
 
   def wait_for_silence() do
-    with {:ok, %{data: <<0xA7::size(8), _::binary>>}} <- SubgRfspy.read(5000) do
+    with {:ok, %{data: <<0xA7::size(8), _::binary>>}} <- read(5000) do
       Logger.debug fn -> "Detected pump radio comms" end
       wait_for_silence()
     else
@@ -75,7 +75,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
     {:ok, command_packet} = Packet.from_command(command, Command.short_payload(command))
     command_bytes = Packet.to_binary(command_packet)
 
-    with {:ok, ""} <- SubgRfspy.write(command_bytes, times, 0, 24 * times) do
+    with {:ok, ""} <- write(command_bytes, times, 0, 24 * times) do
       case wait_for_ack(%Context{command: command}, ack_wait_millis) do
         %Context{error: nil} -> true
         %Context{error: reason} ->
@@ -98,7 +98,8 @@ defmodule Pummpcomm.Session.PumpExecutor do
     {:ok, packet} = Packet.from_command(command, <<0x00>>)
     # Logger.info "Sending prelude packet: #{inspect(packet)}"
     command_bytes = Packet.to_binary(packet)
-    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
+
+    with {:ok, %{data: response_bytes}} <- write_and_read(command_bytes, 500),
          {:ok, response_packet} <- Packet.from_binary(response_bytes),
          {:ok} <- validate_response_packet(command.pump_serial, response_packet) do
 
@@ -136,7 +137,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
 
   @timeout 500
   defp wait_for_ack(context, timeout \\ @timeout) do
-    with {:ok, %{data: response_bytes}} <- SubgRfspy.read(timeout),
+    with {:ok, %{data: response_bytes}} <- read(timeout),
       {:ok, response_packet} <- Packet.from_binary(response_bytes),
       {:ok} <- validate_response_packet(context.command.pump_serial, response_packet) do
 
@@ -162,10 +163,10 @@ defmodule Pummpcomm.Session.PumpExecutor do
 
     case response.last_frame? do
       true ->
-        {:ok, _} = SubgRfspy.write(command_bytes)
+        {:ok, _} = write(command_bytes)
         context
       false ->
-        with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes, 100),
+        with {:ok, %{data: response_bytes}} <- write_and_read(command_bytes, 100),
              {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
           # Logger.info "Response Packet from send params: #{inspect(response_packet)}"
 
@@ -183,7 +184,8 @@ defmodule Pummpcomm.Session.PumpExecutor do
     {:ok, packet} = Packet.from_command(command)
     # Logger.info "Sending params packet: #{inspect(packet)}"
     command_bytes = Packet.to_binary(packet)
-    with {:ok, %{data: response_bytes}} <- SubgRfspy.write_and_read(command_bytes),
+
+    with {:ok, %{data: response_bytes}} <- write_and_read(command_bytes, 500),
          {:ok, response_packet = %{pump_serial: ^pump_serial}} <- Packet.from_binary(response_bytes) do
 
       # Logger.info "Response Packet from send params: #{inspect(response_packet)}"
@@ -195,12 +197,36 @@ defmodule Pummpcomm.Session.PumpExecutor do
     else
       {:error, _msg} ->
         # Logger.error "Error: #{inspect(msg)}"
-        SubgRfspy.write(command_bytes)
+        write(command_bytes)
         Context.sent_params(context)
     {:ok, response_packet} ->
         message = "Received packet for another pump with serial #{response_packet.pump_serial}"
         # Logger.error message, context: context, packet: packet
         Context.add_error(context, message)
+    end
+  end
+
+  defp write_and_read(command_bytes, timeout_ms) do
+    with {:ok, encoded}                          <- FourBySix.encode(command_bytes),
+         {:ok, response = %{data: encoded_data}} <- SubgRfspy.write_and_read(encoded, timeout_ms),
+         {:ok, decoded}                          <- FourBySix.decode(encoded_data) do
+      {:ok, %{response | data: decoded}}
+    else
+      other -> other
+    end
+  end
+
+  def write(command_bytes, repetitions \\ 1, repetition_delay \\ 0, timeout_ms \\ 1000) do
+    {:ok, encoded} = FourBySix.encode(command_bytes)
+    SubgRfspy.write(encoded, repetitions, repetition_delay, timeout_ms)
+  end
+
+  defp read(timeout_ms) do
+    with {:ok, response = %{data: encoded}} <- SubgRfspy.read(timeout_ms),
+         {:ok, decoded}                     <- FourBySix.decode(encoded) do
+      {:ok, %{response | data: decoded}}
+    else
+      other -> other
     end
   end
 end

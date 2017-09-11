@@ -1,4 +1,4 @@
-defmodule Pummpcomm.Driver.FourBySix do
+defmodule Pummpcomm.Session.FourBySix do
   @moduledoc """
   Encodes and decodes data using 4x6 conversion. 4 bit nibbles are encoded into 6 bit sequences on the way out and
   decoded from 6 bit sequences into nibbles on the way back.

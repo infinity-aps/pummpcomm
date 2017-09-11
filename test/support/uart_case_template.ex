@@ -1,7 +1,7 @@
 defmodule UartCaseTemplate do
   use ExUnit.CaseTemplate
 
-  alias Pummpcomm.Driver.SubgRfspy.Fake
+  alias SubgRfspy.UARTProxy
   alias Pummpcomm.Session.PumpExecutor
 
   defp assert_down(pid) do
@@ -12,7 +12,7 @@ defmodule UartCaseTemplate do
   setup(context) do
     record = System.get_env("RECORD_CASSETTE") || "false"
 
-    {:ok, pid} = Fake.start_link(context[:test])
+    {:ok, pid} = UARTProxy.start_link(context[:test])
     on_exit(fn() -> assert_down(pid) end)
 
     pump_serial = pump_serial(context, record)
@@ -21,7 +21,7 @@ defmodule UartCaseTemplate do
       PumpExecutor.ensure_pump_awake(pump_serial)
     end
 
-    Fake.record
+    UARTProxy.record
     %{pump_serial: pump_serial}
   end
 

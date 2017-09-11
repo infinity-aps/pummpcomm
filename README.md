@@ -43,9 +43,7 @@ This is also the layer where page decoding happens. CGM and pump history comes i
 
 ### Low Level
 
-At the lowest level, Pummpcomm has a Pummpcomm.Driver.SubgRfspy driver layer that sits on top of nerves_uart and talks serial at 19200 baud to the cc1110 chip.
-
-Pummpcomm currently supports communication with insulin pumps through the TI cc1110 chip. The chip needs to run the subg_rfspy firmware [subg_rfspy](https://github.com/ps2/subg_rfspy). There are several hardware options available that come pre-loaded with the firmware, or you can reach out to someone in the Discord channel to learn more.
+At the lowest level, Pummpcomm has a driver layer to talk to the pump. Currently the only supported chip/serial combination is a cc111x chip running the subg_rfspy firmware. The hex package to talk to that chip can be found at [elixir_subg_rfspy](https://github.com/infinity-aps/elixir_subg_rfspy).
 
 ### Tests
 

@@ -7,7 +7,7 @@ defmodule Pummpcomm.Session.Tuner do
 
   require Logger
 
-  alias Pummpcomm.Driver.SubgRfspy
+  alias Pummpcomm.Session.FourBySix
   alias Pummpcomm.Session.Packet
   alias Pummpcomm.Session.PumpExecutor
   alias Pummpcomm.Session.Exchange.ReadPumpModel
@@ -72,7 +72,8 @@ defmodule Pummpcomm.Session.Tuner do
   end
 
   defp measure_communication(command_bytes) do
-    with {:ok, %{rssi: rssi}} <- SubgRfspy.write_and_read(command_bytes, 80) do
+    with {:ok, encoded} <- FourBySix.encode(command_bytes),
+         {:ok, %{rssi: rssi}} <- SubgRfspy.write_and_read(encoded, 80) do
       {:ok, rssi}
     else
       _ -> {:error, -99}

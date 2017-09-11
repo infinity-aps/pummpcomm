@@ -15,13 +15,12 @@ defmodule Pummpcomm.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :nerves_uart, :timex]]
+    [extra_applications: [:logger]]
   end
 
   defp deps do
-    [{:nerves_uart, "~> 0.1.1"},
-     {:timex, "~> 3.0"},
-     {:csv, "~> 2.0.0"},
+    [{:timex, "~> 3.0"},
+     {:subg_rfspy, github: "infinity-aps/elixir_subg_rfspy"},
      {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
      {:ex_doc, ">= 0.0.0", only: :dev}]
   end
