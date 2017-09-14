@@ -1,4 +1,8 @@
 defmodule Pummpcomm.Session.PumpFake do
+  @moduledoc """
+  Fakes `Pummpcomm.Session`
+  """
+
   alias Pummpcomm.Cgm
 
   def get_current_cgm_page do

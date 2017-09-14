@@ -10,6 +10,8 @@ defmodule Pummpcomm.Cgm do
   alias Pummpcomm.Crc.Crc16
   alias Pummpcomm.Cgm.Timestamper
 
+  # Constants
+
   @data_end                  0x01
   @sensor_weak_signal        0x02
   @sensor_calibration        0x03
@@ -27,9 +29,21 @@ defmodule Pummpcomm.Cgm do
   @ten_something             0x10
   @nineteen_something        0x13
 
+  # Types
+
+  @type event :: %{}
+
+  @typedoc """
+  The ISIG (short for Insterstitial Signal) is an electrical reading that is proportional to BG.
+  """
+  @type isig :: non_neg_integer
+
+  # Functions
+
   @doc """
   Takes a page of cgm data and decodes events from it.
   """
+  @spec decode(binary) :: {:ok, [event]}
   def decode(page) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->

@@ -1,4 +1,33 @@
 defmodule Pummpcomm.PumpModel do
+  @moduledoc """
+  Model-specific options and information
+  """
+
+  # Types
+
+  @typedoc """
+  Model number of a pump as an integer
+  """
+  @type pump_model :: non_neg_integer
+
+  @typedoc """
+  Return how many turns the pump motor takes to deliver 1U of insulin
+  """
+  @type strokes_per_unit :: 10 | 40
+
+  @typedoc """
+  * `large_format` - history records use larger format
+  * `strokes_per_unit` - how many turns the pump motor takes to deliver 1U of insulin
+  * `supports_low_suspend` - if the pump will automatically suspend basal when the CGM reports a low blood glucose
+  """
+  @type pump_options :: %{
+                          large_format: boolean,
+                          strokes_per_unit: strokes_per_unit,
+                          supports_low_suspend: boolean
+                        }
+
+  # Functions
+
   @doc """
   Return the model number of the pump from its model string
 
@@ -18,6 +47,7 @@ defmodule Pummpcomm.PumpModel do
   def model_number({model_number, _}) when div(model_number, 100) in [5, 7], do: {:ok, model_number}
   def model_number(_),                                                       do: {:error, "Bad Pump Model"}
 
+  @spec pump_options(pump_model) :: pump_options
   def pump_options(pump_model) do
     %{
       large_format: large_format?(pump_model),
