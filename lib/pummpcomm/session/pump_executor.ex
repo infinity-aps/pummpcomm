@@ -37,7 +37,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
     end
   end
 
-  def wait_for_silence() do
+  def wait_for_silence do
     with {:ok, %{data: <<0xA7::size(8), _::binary>>}} <- read(5000) do
       Logger.debug fn -> "Detected pump radio comms" end
       wait_for_silence()
