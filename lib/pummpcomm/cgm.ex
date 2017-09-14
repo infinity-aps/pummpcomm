@@ -74,7 +74,10 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@sensor_calibration::8, type::8, tail::binary>>, events) do
-    event = {:sensor_calibration, %{calibration_type: calibration_type(type), raw: reverse(<<@sensor_calibration::8, type::8>>)}}
+    event = {
+      :sensor_calibration,
+      %{calibration_type: calibration_type(type), raw: reverse(<<@sensor_calibration :: 8, type :: 8>>)}
+    }
     decode_page(tail, [event | events])
   end
 
@@ -106,7 +109,10 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@battery_change::8, timestamp::32, tail::binary>>, events) do
-    event = {:battery_change, %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@battery_change::8, timestamp::32>>)}}
+    event = {
+      :battery_change,
+      %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@battery_change :: 8, timestamp :: 32>>)}
+    }
     decode_page(tail, [event | events])
   end
 
@@ -119,7 +125,12 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@datetime_change::8, timestamp::32, tail::binary>>, events) do
-    event = {:datetime_change, %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@datetime_change::8, timestamp::32>>)}}
+    event = {
+      :datetime_change,
+      %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+        raw: reverse(<<@datetime_change :: 8, timestamp :: 32>>)
+      }
+    }
     decode_page(tail, [event | events])
   end
 
@@ -151,7 +162,13 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@ten_something::8, timestamp::32, more::24, tail::binary>>, events) do
-    event = {:ten_something, %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@ten_something::8, timestamp::32, more::24>>)}}
+    event = {
+      :ten_something,
+      %{
+        timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+        raw: reverse(<<@ten_something :: 8, timestamp :: 32, more :: 24>>)
+      }
+    }
     decode_page(tail, [event | events])
   end
 

@@ -22,7 +22,9 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
   defp fetch_and_filter_page(page_number, history_events, oldest_allowed, highest_page_allowed) do
     {:ok, values} = @pump.read_history_page(page_number)
     newest_first_values = Enum.reverse(values)
-    {oldest_reached, history_events} = newest_first_values |> Enum.filter(&filter_history_event/1) |> filter_by_date(history_events, oldest_allowed)
+    {oldest_reached, history_events} = newest_first_values
+                                       |> Enum.filter(&filter_history_event/1)
+                                       |> filter_by_date(history_events, oldest_allowed)
     case oldest_reached do
       true -> Enum.reverse(history_events)
       false -> fetch_and_filter_page(page_number + 1, history_events, oldest_allowed, highest_page_allowed)

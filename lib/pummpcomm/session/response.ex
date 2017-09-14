@@ -37,7 +37,15 @@ defmodule Pummpcomm.Session.Response do
 
   def add_packet(response = %Response{opcode: opcode}, packet = %Packet{opcode: opcode}) do
     <<last_frame::size(1), _frame_number::size(7), rest::binary>> = packet.payload
-    {:ok, %{response | data: response.data <> rest, frames: [packet | response.frames], last_frame?: convert_last_frame(last_frame)}}
+    {
+      :ok,
+      %{
+        response |
+        data: response.data <> rest,
+        frames: [packet | response.frames],
+        last_frame?: convert_last_frame(last_frame)
+      }
+    }
   end
 
   def add_packet(%Response{}, packet = %Packet{opcode: @ack}) do

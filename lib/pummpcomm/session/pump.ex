@@ -145,7 +145,9 @@ defmodule Pummpcomm.Session.Pump do
   end
 
   def make_pump_call({:read_remaining_insulin}, state) do
-    with {:ok, context}                        <- state.pump_serial |> ReadRemainingInsulin.make() |> PumpExecutor.execute(),
+    with {:ok, context}                        <- state.pump_serial
+                                                  |> ReadRemainingInsulin.make()
+                                                  |> PumpExecutor.execute(),
          %{strokes_per_unit: strokes_per_unit} <- PumpModel.pump_options(state.model_number),
          result                                <- ReadRemainingInsulin.decode(context.response, strokes_per_unit) do
       {:reply, result, state}
