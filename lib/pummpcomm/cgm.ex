@@ -10,6 +10,8 @@ defmodule Pummpcomm.Cgm do
   alias Pummpcomm.Crc.Crc16
   alias Pummpcomm.Cgm.Timestamper
 
+  # Constants
+
   @data_end                  0x01
   @sensor_weak_signal        0x02
   @sensor_calibration        0x03
@@ -27,9 +29,21 @@ defmodule Pummpcomm.Cgm do
   @ten_something             0x10
   @nineteen_something        0x13
 
+  # Types
+
+  @type event :: %{}
+
+  @typedoc """
+  The ISIG (short for Insterstitial Signal) is an electrical reading that is proportional to BG.
+  """
+  @type isig :: non_neg_integer
+
+  # Functions
+
   @doc """
   Takes a page of cgm data and decodes events from it.
   """
+  @spec decode(binary) :: {:ok, [event]}
   def decode(page) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->
@@ -60,7 +74,10 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@sensor_calibration::8, type::8, tail::binary>>, events) do
-    event = {:sensor_calibration, %{calibration_type: calibration_type(type), raw: reverse(<<@sensor_calibration::8, type::8>>)}}
+    event = {
+      :sensor_calibration,
+      %{calibration_type: calibration_type(type), raw: reverse(<<@sensor_calibration :: 8, type :: 8>>)}
+    }
     decode_page(tail, [event | events])
   end
 
@@ -92,7 +109,10 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@battery_change::8, timestamp::32, tail::binary>>, events) do
-    event = {:battery_change, %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@battery_change::8, timestamp::32>>)}}
+    event = {
+      :battery_change,
+      %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@battery_change :: 8, timestamp :: 32>>)}
+    }
     decode_page(tail, [event | events])
   end
 
@@ -105,7 +125,12 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@datetime_change::8, timestamp::32, tail::binary>>, events) do
-    event = {:datetime_change, %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@datetime_change::8, timestamp::32>>)}}
+    event = {
+      :datetime_change,
+      %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+        raw: reverse(<<@datetime_change :: 8, timestamp :: 32>>)
+      }
+    }
     decode_page(tail, [event | events])
   end
 
@@ -137,7 +162,13 @@ defmodule Pummpcomm.Cgm do
   end
 
   def decode_page(<<@ten_something::8, timestamp::32, more::24, tail::binary>>, events) do
-    event = {:ten_something, %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@ten_something::8, timestamp::32, more::24>>)}}
+    event = {
+      :ten_something,
+      %{
+        timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+        raw: reverse(<<@ten_something :: 8, timestamp :: 32, more :: 24>>)
+      }
+    }
     decode_page(tail, [event | events])
   end
 

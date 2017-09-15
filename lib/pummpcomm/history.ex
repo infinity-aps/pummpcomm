@@ -1,4 +1,7 @@
+# Only a separate module to allow macro to be used in Pummpcomm.History
 defmodule Pummpcomm.HistoryDefinition do
+  @moduledoc false
+
   alias Pummpcomm.History
 
   defmacro define_record(opcode, module, size_fn) do
@@ -27,6 +30,7 @@ defmodule Pummpcomm.History do
 
   import Pummpcomm.HistoryDefinition
 
+  @spec decode(page :: binary, PumpModel.pump_model) :: {:ok, [any]} | {:error, String.t} | {:fail, String.t}
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->
@@ -40,6 +44,8 @@ defmodule Pummpcomm.History do
   end
 
   def decode_records(page_data, pump_options = %{}), do: do_decode_records(page_data, pump_options, [])
+
+  ## Private Functions
 
   defp do_decode_records(<<>>, _, events), do: events
 

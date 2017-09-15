@@ -1,11 +1,35 @@
 defmodule Pummpcomm.History.BolusWizardEstimate do
+  @moduledoc """
+  Inputs Bolus Wizard used to estimate needed bolus.
+  """
+
   use Bitwise
-  alias Pummpcomm.DateDecoder
+  alias Pummpcomm.{BloodGlucose, Carbohydrates, DateDecoder, Insulin}
 
+  # Functions
+
+  @doc """
+  Inputs Bolus Wizard used to estimate needed bolus.
+  """
+
+  @spec decode(binary, any) :: %{
+                                 bg: BloodGlucose.blood_glucose,
+                                 bg_target_high: BloodGlucose.blood_glucose,
+                                 bg_target_low: BloodGlucose.blood_glucose,
+                                 bolus_estimate: Insulin.units,
+                                 carb_ratio: Insulin.carbohydrates_per_unit,
+                                 carbohydrates: Carbohydrates.carbohydrates,
+                                 correction_estimate: Insulin.units,
+                                 food_estimate: Insulin.units,
+                                 insulin_sensitivity: Insulin.blood_glucose_per_unit,
+                                 timestamp: NaiveDateTime.t,
+                                 unabsorbed_insulin_total: Insulin.units
+                               }
+  def decode(body, pump_options)
   def decode(<<bg_low_bits::8, timestamp::binary-size(5), carbohydrates::8, _::6, bg_high_bits::2, carb_ratio::8,
-    insulin_sensitivity::8, bg_target_low::8, correction_estimate_low_bits::8, food_estimate::8,
-    correction_estimate_high_bits::8, _::8, unabsorbed_insulin_total::8, _::8, bolus_estimate::8, bg_target_high::8>>, _) do
-
+               insulin_sensitivity::8, bg_target_low::8, correction_estimate_low_bits::8, food_estimate::8,
+               correction_estimate_high_bits::8, _::8, unabsorbed_insulin_total::8, _::8, bolus_estimate::8,
+               bg_target_high::8>>, _) do
     %{
       bg: (bg_high_bits <<< 8) + bg_low_bits,
       bg_target_high: bg_target_high,
@@ -22,9 +46,9 @@ defmodule Pummpcomm.History.BolusWizardEstimate do
   end
 
   def decode(<<bg_low_bits::8, timestamp::binary-size(5), carbohydrates_low_bits::8, _::4, carbohydrates_high_bits::2,
-    bg_high_bits::2, _::5, carb_ratio::11, insulin_sensitivity::8, bg_target_low::8, correction_estimate_low_bits::8, food_estimate::16,
-    correction_estimate_high_bits::3, _::5, unabsorbed_insulin_total::16, bolus_estimate::16, bg_target_high::8>>, _) do
-
+               bg_high_bits::2, _::5, carb_ratio::11, insulin_sensitivity::8, bg_target_low::8,
+               correction_estimate_low_bits::8, food_estimate::16, correction_estimate_high_bits::3, _::5,
+               unabsorbed_insulin_total::16, bolus_estimate::16, bg_target_high::8>>, _) do
     %{
       bg: (bg_high_bits <<< 8) + bg_low_bits,
       bg_target_high: bg_target_high,

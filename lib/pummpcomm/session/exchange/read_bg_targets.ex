@@ -1,16 +1,62 @@
 defmodule Pummpcomm.Session.Exchange.ReadBgTargets do
-  alias Pummpcomm.Session.Command
-  alias Pummpcomm.Session.Response
+  @moduledoc """
+  Reads blood glucose targets for throughout the day.
+  """
+
+  alias Pummpcomm.BloodGlucose
+  alias Pummpcomm.Session.{Command, Response}
+
+  # Constants
+
+  @mgdl 1
+  @mmol 2
 
   @opcode 0x9F
+
+  @targets_max_count 8
+
+  # Functions
+
+  @doc """
+  Makes `Pummpcomm.Session.Command.t` to read the target low and high blood glucose throughout the day.
+  """
+  @spec make(Command.pump_serial) :: Command.t
   def make(pump_serial) do
     %Command{opcode: @opcode, pump_serial: pump_serial}
   end
 
-  @targets_max_count 8
+  @doc """
+  Decodes `Pummpcomm.Session.Response.t` to `units` the blood glucose targets are in and the high and low target for
+  each open interval starting at `start`.
+  """
+  @spec decode(Response.t) :: {
+                                :ok,
+                                %{
+                                  targets: [
+                                    %{
+                                      bg_high: BloodGlucose.blood_glucose,
+                                      bg_low: BloodGlucose.blood_glucose,
+                                      start: NaiveDateTime.t
+                                    }
+                                  ],
+                                  units: String.t
+                                }
+                              }
   def decode(%Response{opcode: @opcode, data: <<units::8, targets::binary>>}) do
     {:ok, %{units: decode_units(units), targets: decode_targets(units, targets, [], @targets_max_count)}}
   end
+
+  ## Private Functions
+
+  defp basal_time(raw_time) do
+    Timex.now()
+    |> Timex.beginning_of_day()
+    |> Timex.shift(minutes: 30 * raw_time)
+    |> DateTime.to_time()
+  end
+
+  defp decode_bg(bg, @mgdl), do: bg
+  defp decode_bg(bg, @mmol), do: bg / 10
 
   defp decode_targets(_, _, decoded_targets, 0), do: Enum.reverse(decoded_targets)
 
@@ -21,18 +67,6 @@ defmodule Pummpcomm.Session.Exchange.ReadBgTargets do
     decode_targets(units, rest, [target | decoded_targets], count - 1)
   end
 
-  @mgdl 1
-  @mmol 2
   defp decode_units(@mgdl), do: "mg/dL"
   defp decode_units(@mmol), do: "mmol/L"
-
-  defp decode_bg(bg, @mgdl), do: bg
-  defp decode_bg(bg, @mmol), do: bg / 10
-
-  defp basal_time(raw_time) do
-    Timex.now()
-    |> Timex.beginning_of_day()
-    |> Timex.shift(minutes: 30 * raw_time)
-    |> DateTime.to_time()
-  end
 end

@@ -1,4 +1,8 @@
 defmodule Pummpcomm.Session.PumpFake do
+  @moduledoc """
+  Fakes `Pummpcomm.Session`
+  """
+
   alias Pummpcomm.Cgm
 
   def get_current_cgm_page do
@@ -10,7 +14,7 @@ defmodule Pummpcomm.Session.PumpFake do
     fake_rolling_cgm()
   end
 
-  def write_cgm_timestamp(), do: :ok
+  def write_cgm_timestamp, do: :ok
 
   def read_history_page(0) do
     events = [{:bg_received,

@@ -1,8 +1,31 @@
 defmodule Pummpcomm.History.UnabsorbedInsulin do
+  @moduledoc """
+  The unabsorbed insulin remaining in the user's body
+  """
+
+  alias Pummpcomm.Insulin
+
   use Bitwise
+
+  @behaviour Pummpcomm.History.Decoder
+
+  # Types
+
+  # TODO figure out units of age
+  @type age :: non_neg_integer
+
+  # Functions
 
   def event_length(%{body_and_tail: <<length::8, _::binary>>}), do: max((length), 2)
 
+  ## Pummpcomm.History.Decoder callbacks
+
+  @doc """
+  The unabsorbed insulin remaining in the user's body for each time insulin was given.
+  """
+  @impl Pummpcomm.History.Decoder
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{data: [%{age: age, amount: Insulin.units}]}
+  def decode(body, pump_options)
   def decode(<<_length::8, body::binary>>, _) do
     %{data: decode_unabsorbed_insulin(body, [])}
   end
