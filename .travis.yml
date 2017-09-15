@@ -14,5 +14,5 @@ matrix:
       otp_release: 20.0
 
 script:
-  - mix credo
+  - mix credo --strict
   - mix test

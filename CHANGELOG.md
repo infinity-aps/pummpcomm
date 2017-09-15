@@ -1,3 +1,14 @@
+## v2.3.0
+
+## Enhancements
+* Extract `subg_rfspy` client code into separate hex package
+
+## Bug Fixes
+* Fix credo warnings that cause a non-zero exit status
+* While fixing `@moduledocs` in those modules, also document their types and functions, so that most undocumented functions are now documented too with `@doc` and `@spec`
+* Fix lines > 120 characters
+* Remove `()` from function definitons
+
 ## v2.2.0
 
 This release contains the following changes:
