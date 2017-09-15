@@ -7,7 +7,7 @@
 * Fix credo warnings that cause a non-zero exit status
 * While fixing `@moduledocs` in those modules, also document their types and functions, so that most undocumented functions are now documented too with `@doc` and `@spec`
 * Fix lines > 120 characters
-* Remove `()` from function definitons
+* Remove `()` from function definitions
 
 ## v2.2.0
 
