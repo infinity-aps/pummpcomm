@@ -110,7 +110,8 @@ defmodule Pummpcomm.Session.PumpExecutor do
       end
     else
       {:error, reason} ->
-        message = "do_prelude errored with reason #{reason}"
+        # use `inspect` to handle complex `reason`s like tuples, maps, and structs
+        message = "do_prelude errored with reason #{inspect(reason)}"
         # Logger.error message, context: context
         Context.add_error(context, message)
     end

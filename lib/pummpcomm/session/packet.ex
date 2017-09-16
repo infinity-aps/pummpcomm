@@ -36,13 +36,13 @@ defmodule Pummpcomm.Session.Packet do
 
   ## Returns
 
-  * `{:invalid_packet, "Packet too short"}` - fewer than 6 bytes are given
   * `{:ok, Pummpcomm.Session.Response.t}` - packet could be parsed and CRC8 check passed
-  * `{:invalid_packet, "CRC doesn't match"}` - packet could be parsed, but CRC8 check failed
+  * `{:error, {:invalid_packet, :crc_mismatch}}` - packet could be parsed, but CRC8 check failed
+  * `{:error, {:invalid_packet, :packet_too_short}}` - fewer than 6 bytes are given, packet was not parsed
 
   """
-  @spec from_binary(<<>>) :: {:invalid_packet, String.t} | {:ok, t}
-  def from_binary(bytes) when byte_size(bytes) <= 5, do: {:invalid_packet, "Packet too short"}
+  @spec from_binary(<<>>) :: {:ok, t} | {:error, {:invalid_packet,  :crc_mismatch | :packet_too_short}}
+  def from_binary(bytes) when byte_size(bytes) <= 5, do: {:error, {:invalid_packet, :packet_too_short}}
   def from_binary(<<rf_type::8, serial::binary-size(3), opcode::8, payload_and_crc::binary>>) do
     payload_size = byte_size(payload_and_crc) - 1
     <<payload::binary-size(payload_size), crc::8>> = payload_and_crc
@@ -54,7 +54,7 @@ defmodule Pummpcomm.Session.Packet do
     }
     case crc == Crc8.crc_8(crc_components(packet)) do
       true  -> {:ok, packet}
-               false -> {:invalid_packet, "CRC doesn't match"}
+      false -> {:error, {:invalid_packet, :crc_mismatch}}
     end
   end
 
