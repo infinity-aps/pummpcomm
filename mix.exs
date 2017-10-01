@@ -5,7 +5,7 @@ defmodule Pummpcomm.Mixfile do
     [aliases: aliases(),
      app: :pummpcomm,
      version: "2.3.0",
-     elixir: ">= 1.4.5", elixirc_paths: elixirc_paths(Mix.env),
+     elixir: "~> 1.5", elixirc_paths: elixirc_paths(Mix.env),
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps(),
