@@ -6,6 +6,7 @@
   "csv": {:hex, :csv, "2.0.0", "c66fea89ba7862b94901baf0871285e9b73cad89c5fdb57a6386d2adcf29593e", [:mix], [{:parallel_stream, "~> 1.0.4", [hex: :parallel_stream, repo: "hexpm", optional: false]}], "hexpm"},
   "dialyxir": {:hex, :dialyxir, "0.5.1", "b331b091720fd93e878137add264bac4f644e1ddae07a70bf7062c7862c4b952", [], [], "hexpm"},
   "earmark": {:hex, :earmark, "1.2.3", "206eb2e2ac1a794aa5256f3982de7a76bf4579ff91cb28d0e17ea2c9491e46a4", [], [], "hexpm"},
+  "elixir_ale": {:hex, :elixir_ale, "1.0.1", "2066e467e929c589a873e94befd08133eff32c20ef79db24904160dbd7ba75df", [:make, :mix], [{:elixir_make, "~> 0.4", [hex: :elixir_make, repo: "hexpm", optional: false]}], "hexpm"},
   "elixir_make": {:hex, :elixir_make, "0.4.0", "992f38fabe705bb45821a728f20914c554b276838433349d4f2341f7a687cddf", [:mix], []},
   "ex_doc": {:hex, :ex_doc, "0.16.2", "3b3e210ebcd85a7c76b4e73f85c5640c011d2a0b2f06dcdf5acdb2ae904e5084", [], [{:earmark, "~> 1.1", [hex: :earmark, repo: "hexpm", optional: false]}], "hexpm"},
   "gettext": {:hex, :gettext, "0.12.1", "c0624f52763469ef7a3674919ae28b8286d88195b90fa1516180f31bbbd26d14", [:mix], []},
@@ -15,8 +16,9 @@
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [:rebar3], []},
   "nerves_uart": {:hex, :nerves_uart, "0.1.2", "4310dbb1721a5a007b8e5c416cf81754415bde6b7e2c9aa65a059886b85e637c", [:make, :mix], [{:elixir_make, "~> 0.4", [hex: :elixir_make, optional: false]}]},
   "parallel_stream": {:hex, :parallel_stream, "1.0.5", "4c78d3e675f9eff885cbe252c89a8fc1d2fb803c0d03a914281e587834e09431", [:mix], []},
+  "rfm69": {:hex, :rfm69, "0.1.2", "6636c214434906d0096209de7fcf8332ea3b5c4202eedfb2e020a26877ff461a", [], [{:elixir_ale, "~> 1.0", [hex: :elixir_ale, repo: "hexpm", optional: false]}], "hexpm"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.1", "28a4d65b7f59893bc2c7de786dec1e1555bd742d336043fe644ae956c3497fbe", [:make, :rebar], []},
-  "subg_rfspy": {:hex, :subg_rfspy, "0.9.0", "3029ffb73874ae354e913d1d281b0ec638ff5abdf193cbfb1a62a876e0deed91", [:mix], [{:csv, "~> 2.0.0", [hex: :csv, repo: "hexpm", optional: false]}, {:nerves_uart, "~> 0.1.1", [hex: :nerves_uart, repo: "hexpm", optional: false]}], "hexpm"},
+  "subg_rfspy": {:hex, :subg_rfspy, "1.0.0", "50c8d9ba9e2dcaab8883d6415a9cbb6c7d88791a677abf0208fab0082e3e4ff3", [:mix], [{:csv, "~> 2.0.0", [hex: :csv, repo: "hexpm", optional: false]}, {:elixir_ale, "~> 1.0.1", [hex: :elixir_ale, repo: "hexpm", optional: false]}, {:nerves_uart, "~> 0.1.1", [hex: :nerves_uart, repo: "hexpm", optional: false]}], "hexpm"},
   "timex": {:hex, :timex, "3.1.5", "413d6d8d6f0162a5d47080cb8ca520d790184ac43e097c95191c7563bf25b428", [:mix], [{:combine, "~> 0.7", [hex: :combine, optional: false]}, {:gettext, "~> 0.10", [hex: :gettext, optional: false]}, {:tzdata, "~> 0.1.8 or ~> 0.5", [hex: :tzdata, optional: false]}]},
   "tzdata": {:hex, :tzdata, "0.5.9", "575be217b039057a47e133b72838cbe104fb5329b19906ea4e66857001c37edb", [:mix], [{:hackney, "~> 1.0", [hex: :hackney, optional: false]}]},
   "yamerl": {:hex, :yamerl, "0.4.0", "ae215b1242810a9bc07716b88062f1bfe06f6bc7cf68372091f630baa536df79", [:rebar3], []}}
