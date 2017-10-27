@@ -1,9 +1,14 @@
+## v2.4.0
+
+### Enhancements
+* Support subg_rfspy and rfm69 via SPI by making the communication driver a configuration option
+
 ## v2.3.0
 
-## Enhancements
+### Enhancements
 * Extract `subg_rfspy` client code into separate hex package
 
-## Bug Fixes
+### Bug Fixes
 * Fix credo warnings that cause a non-zero exit status
 * While fixing `@moduledocs` in those modules, also document their types and functions, so that most undocumented functions are now documented too with `@doc` and `@spec`
 * Fix lines > 120 characters
