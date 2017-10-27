@@ -12,6 +12,8 @@ defmodule Pummpcomm.Session.Tuner do
   alias Pummpcomm.Session.PumpExecutor
   alias Pummpcomm.Session.Exchange.ReadPumpModel
 
+  @driver Application.get_env(:pummpcomm, :pump_driver)
+
   @frequencies_by_region %{
     us: [916.45, 916.50, 916.55, 916.60, 916.65, 916.70, 916.75, 916.80],
     ww: [868.25, 868.30, 868.35, 868.40, 868.45, 868.50, 868.55, 868.60, 868.65]
@@ -22,7 +24,7 @@ defmodule Pummpcomm.Session.Tuner do
 
     with frequencies <- @frequencies_by_region[radio_locale],
          default_frequency <- default_frequency(frequencies),
-         {:ok} <- SubgRfspy.set_base_frequency(default_frequency),
+         {:ok} <- @driver.set_base_frequency(default_frequency),
          _ <- PumpExecutor.ensure_pump_awake(pump_serial),
          test_command <- %{ReadPumpModel.make(pump_serial) | retries: 0},
          {:ok, test_packet} <- Packet.from_command(test_command, <<0x00>>),
@@ -33,7 +35,7 @@ defmodule Pummpcomm.Session.Tuner do
         |> select_best_frequency({default_frequency, -99})
 
       Logger.info fn() -> "Best frequency is #{best_frequency} with an rssi of #{avg_rssi}" end
-      SubgRfspy.set_base_frequency(best_frequency)
+      @driver.set_base_frequency(best_frequency)
       {:ok, best_frequency, avg_rssi}
 
     else
@@ -60,7 +62,8 @@ defmodule Pummpcomm.Session.Tuner do
 
   @samples 5
   defp scan_frequency(frequency, command_bytes) do
-    {:ok} = SubgRfspy.set_base_frequency(frequency)
+    Logger.debug fn() -> "Trying #{inspect(frequency)}" end
+    {:ok} = @driver.set_base_frequency(frequency)
 
     (1..@samples)
     |> Enum.map(fn(_) -> measure_communication(command_bytes) end)
@@ -73,7 +76,7 @@ defmodule Pummpcomm.Session.Tuner do
 
   defp measure_communication(command_bytes) do
     with {:ok, encoded} <- FourBySix.encode(command_bytes),
-         {:ok, %{rssi: rssi}} <- SubgRfspy.write_and_read(encoded, 80) do
+         {:ok, %{rssi: rssi}} <- @driver.write_and_read(encoded, 80) do
       {:ok, rssi}
     else
       _ -> {:error, -99}
