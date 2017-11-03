@@ -32,7 +32,7 @@ defmodule Pummpcomm.Session.Pump do
 
   @timeout 300_000
 
-  def start_link(pump_serial) do
+  def start_link(pump_serial, _local_timezone) do
     state = %{
       pump_serial: pump_serial,
       model_number: nil,
