@@ -6,7 +6,8 @@ defmodule Pummpcomm.Session.PumpExecutor do
   """
 
   require Logger
-  alias Pummpcomm.DriverSelector
+  alias Pummpcomm.Radio.Chip
+  alias Pummpcomm.Radio.ChipAgent
   alias Pummpcomm.Session.Context
   alias Pummpcomm.Session.Command
   alias Pummpcomm.Session.Exchange.Ack
@@ -14,6 +15,8 @@ defmodule Pummpcomm.Session.PumpExecutor do
   alias Pummpcomm.Session.Exchange.ReadPumpModel
   alias Pummpcomm.Session.FourBySix
   alias Pummpcomm.Session.Packet
+
+  def configure, do: Chip.configure(ChipAgent.current)
 
   @retry_count 3
   def execute(command, retry_count \\ @retry_count) do
@@ -210,7 +213,7 @@ defmodule Pummpcomm.Session.PumpExecutor do
 
   defp write_and_read(command_bytes, timeout_ms) do
     with {:ok, encoded}                          <- FourBySix.encode(command_bytes),
-         {:ok, response = %{data: encoded_data}} <- DriverSelector.driver.write_and_read(encoded, timeout_ms),
+         {:ok, response = %{data: encoded_data}} <- Chip.write_and_read(ChipAgent.current, encoded, timeout_ms),
          {:ok, decoded}                          <- FourBySix.decode(encoded_data) do
       {:ok, %{response | data: decoded}}
     else
@@ -220,11 +223,11 @@ defmodule Pummpcomm.Session.PumpExecutor do
 
   def write(command_bytes, repetitions \\ 1, repetition_delay \\ 0, timeout_ms \\ 1000) do
     {:ok, encoded} = FourBySix.encode(command_bytes)
-    DriverSelector.driver.write(encoded, repetitions, repetition_delay, timeout_ms)
+    Chip.write(ChipAgent.current, encoded, repetitions, repetition_delay, timeout_ms)
   end
 
   defp read(timeout_ms) do
-    with {:ok, response = %{data: encoded}} <- DriverSelector.driver.read(timeout_ms),
+    with {:ok, response = %{data: encoded}} <- Chip.read(ChipAgent.current, timeout_ms),
          {:ok, decoded}                     <- FourBySix.decode(encoded) do
       {:ok, %{response | data: decoded}}
     else
