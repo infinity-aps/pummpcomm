@@ -5,16 +5,21 @@ defmodule Pummpcomm.Radio.ChipDetector do
 
   alias RFM69.Device, as: RFM69SPI
   alias SubgRfspy.SPI, as: SubgRfspySPI
+  alias SubgRfspy.UART, as: SubgRfspyUART
 
-  @chips [
-    %SubgRfspySPI{name: :explorer_board, device: "spidev0.0", reset_pin: 4},
-    %RFM69SPI{name: :ecc1_phat, device: "spidev0.0", reset_pin: 24, interrupt_pin: 23}
-  ]
+  @chips Application.get_env(:pummpcomm, :autodetect_chips)
 
   def autodetect do
-    @chips |> Enum.find(&detect_chip/1)
+    (@chips || enumerated_uarts()) |> Enum.find(&detect_chip/1)
   end
 
-  defp detect_chip(chip = %SubgRfspySPI{}), do: SubgRfspySPI.chip_present?(chip)
+  def enumerated_uarts do
+    Nerves.UART.enumerate()
+    |> Enum.filter(fn({device, _}) -> String.contains?(device, "usb") end)
+    |> Enum.map(fn({device, _}) -> %{__struct__: SubgRfspy.UART, name: :usb_uart, device: device} end)
+  end
+
   defp detect_chip(chip = %RFM69SPI{}), do: RFM69SPI.chip_present?(chip)
+  defp detect_chip(chip = %SubgRfspySPI{}), do: SubgRfspySPI.chip_present?(chip)
+  defp detect_chip(chip = %SubgRfspyUART{}), do: SubgRfspyUART.chip_present?(chip)
 end

@@ -11,7 +11,15 @@ defimpl Pummpcomm.Radio.Chip, for: SubgRfspy.SPI do
   defdelegate read(chip, timeout_ms), to: SubgRfspy
   defdelegate write(chip, packet, repetition, repetition_delay, timeout_ms), to: SubgRfspy
   defdelegate write_and_read(chip, packet, timeout_ms), to: SubgRfspy
-  def configure(chip), do: :ok
+  def configure(_), do: :ok
+end
+
+defimpl Pummpcomm.Radio.Chip, for: SubgRfspy.UART do
+  defdelegate set_base_frequency(chip, mhz), to: SubgRfspy
+  defdelegate read(chip, timeout_ms), to: SubgRfspy
+  defdelegate write(chip, packet, repetition, repetition_delay, timeout_ms), to: SubgRfspy
+  defdelegate write_and_read(chip, packet, timeout_ms), to: SubgRfspy
+  def configure(_), do: :ok
 end
 
 defimpl Pummpcomm.Radio.Chip, for: RFM69.Device do
