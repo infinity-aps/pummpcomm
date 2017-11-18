@@ -1,4 +1,6 @@
 defprotocol Pummpcomm.Radio.Chip do
+  @fallback_to_any true
+
   def set_base_frequency(chip, mhz)
   def read(chip, timeout_ms)
   def write(chip, packet, repetition, repetition_delay, timeout_ms)
@@ -52,4 +54,12 @@ defimpl Pummpcomm.Radio.Chip, for: RFM69.Device do
     RFM69.write_configuration(chip, configuration)
     :ok
   end
+end
+
+defimpl Pummpcomm.Radio.Chip, for: Any do
+  def set_base_frequency(chip, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
+  def read(chip, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
+  def write(chip, _, _, _, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
+  def write_and_read(chip, _, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
+  def configure(chip), do: {:error, "No Chip implementation found for #{inspect chip}"}
 end

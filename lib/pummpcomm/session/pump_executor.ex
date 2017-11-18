@@ -97,7 +97,6 @@ defmodule Pummpcomm.Session.PumpExecutor do
     %Context{command: command} |> do_prelude |> do_upload
   end
 
-  defp do_prelude(context = %Context{error: error}) when error != nil, do: context
   defp do_prelude(context = %Context{command: command}) do
     {:ok, packet} = Packet.from_command(command, <<0x00>>)
     # Logger.info "Sending prelude packet: #{inspect(packet)}"

@@ -39,7 +39,10 @@ defmodule Pummpcomm.Session.Tuner do
       {:ok, best_frequency, avg_rssi}
 
     else
-      result -> Logger.error fn() -> "Could not determine best frequency: #{inspect result}" end
+      result ->
+        message = "Could not determine best frequency: #{inspect result}"
+        Logger.error message
+        {:error, message}
     end
   end
 
