@@ -22,6 +22,10 @@ defmodule Pummpcomm.Radio.ChipSupervisor do
 end
 
 defmodule Pummpcomm.Radio.ChipAgent do
+  @moduledoc """
+  This agent stores the state of the chip that should be used by pummpcomm
+  """
+
   use Agent
 
   def start_link(chip) do
