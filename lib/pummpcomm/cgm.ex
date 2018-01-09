@@ -209,6 +209,8 @@ defmodule Pummpcomm.Cgm do
   defp calibration_type(0x00), do: :meter_bg_now
   defp calibration_type(0x01), do: :waiting
   defp calibration_type(0x02), do: :cal_error
+  defp calibration_type(0x03), do: :unknown_error_0x03
+  defp calibration_type(0x04), do: :unknown_error_0x04
 
   defp error_type(0x01), do: :end
   defp error_type(_), do: :unknown
