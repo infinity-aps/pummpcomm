@@ -5,6 +5,8 @@ defmodule Pummpcomm.Radio.ChipSupervisor do
 
   use Supervisor
 
+  require Logger
+
   alias Pummpcomm.Radio.ChipDetector
   alias Pummpcomm.Radio.ChipAgent
 
@@ -14,6 +16,7 @@ defmodule Pummpcomm.Radio.ChipSupervisor do
 
   def init(_) do
     radio_chip = %{__struct__: radio_module} = ChipDetector.autodetect
+    Logger.warn "Starting chip: #{inspect radio_chip}"
     Supervisor.init([
       ChipAgent.child_spec(radio_chip),
       radio_module.child_spec(radio_chip)
