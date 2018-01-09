@@ -7,12 +7,12 @@ defmodule Pummpcomm.Session.Tuner do
 
   require Logger
 
+  alias Pummpcomm.Radio.Chip
+  alias Pummpcomm.Radio.ChipAgent
   alias Pummpcomm.Session.FourBySix
   alias Pummpcomm.Session.Packet
   alias Pummpcomm.Session.PumpExecutor
   alias Pummpcomm.Session.Exchange.ReadPumpModel
-
-  @driver Application.get_env(:pummpcomm, :pump_driver)
 
   @frequencies_by_region %{
     us: [916.45, 916.50, 916.55, 916.60, 916.65, 916.70, 916.75, 916.80],
@@ -24,7 +24,7 @@ defmodule Pummpcomm.Session.Tuner do
 
     with frequencies <- @frequencies_by_region[radio_locale],
          default_frequency <- default_frequency(frequencies),
-         {:ok} <- @driver.set_base_frequency(default_frequency),
+         {:ok} <- Chip.set_base_frequency(ChipAgent.current, default_frequency),
          _ <- PumpExecutor.ensure_pump_awake(pump_serial),
          test_command <- %{ReadPumpModel.make(pump_serial) | retries: 0},
          {:ok, test_packet} <- Packet.from_command(test_command, <<0x00>>),
@@ -35,11 +35,14 @@ defmodule Pummpcomm.Session.Tuner do
         |> select_best_frequency({default_frequency, -99})
 
       Logger.info fn() -> "Best frequency is #{best_frequency} with an rssi of #{avg_rssi}" end
-      @driver.set_base_frequency(best_frequency)
+      Chip.set_base_frequency(ChipAgent.current, best_frequency)
       {:ok, best_frequency, avg_rssi}
 
     else
-      result -> Logger.error fn() -> "Could not determine best frequency: #{inspect result}" end
+      result ->
+        message = "Could not determine best frequency: #{inspect result}"
+        Logger.error message
+        {:error, message}
     end
   end
 
@@ -63,7 +66,7 @@ defmodule Pummpcomm.Session.Tuner do
   @samples 5
   defp scan_frequency(frequency, command_bytes) do
     Logger.debug fn() -> "Trying #{inspect(frequency)}" end
-    {:ok} = @driver.set_base_frequency(frequency)
+    {:ok} = Chip.set_base_frequency(ChipAgent.current, frequency)
 
     (1..@samples)
     |> Enum.map(fn(_) -> measure_communication(command_bytes) end)
@@ -76,7 +79,7 @@ defmodule Pummpcomm.Session.Tuner do
 
   defp measure_communication(command_bytes) do
     with {:ok, encoded} <- FourBySix.encode(command_bytes),
-         {:ok, %{rssi: rssi}} <- @driver.write_and_read(encoded, 80) do
+         {:ok, %{rssi: rssi}} <- Chip.write_and_read(ChipAgent.current, encoded, 80) do
       {:ok, rssi}
     else
       _ -> {:error, -99}

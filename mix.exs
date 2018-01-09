@@ -32,8 +32,8 @@ defmodule Pummpcomm.Mixfile do
 
   defp deps do
     [{:timex, "~> 3.0"},
-     {:subg_rfspy, "~> 1.0"},
-     {:rfm69, "~> 0.1"},
+     {:subg_rfspy, "~> 2.0"},
+     {:rfm69, "~> 0.2"},
      {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
      {:dialyxir, "~> 0.5.1", only: :test, runtime: false},
      {:ex_doc, ">= 0.0.0", only: :dev}]
