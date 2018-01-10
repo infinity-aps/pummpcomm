@@ -5,8 +5,6 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
   """
   require Logger
 
-  @pump Application.get_env(:pummpcomm, :pump)
-
   def get_pump_history(minutes_back, timezone) do
     oldest_allowed = oldest_entry_allowed(minutes_back, timezone)
     Logger.info fn -> "Searching until we find a history entry older than #{inspect(oldest_allowed)}" end
@@ -20,7 +18,7 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
   end
 
   defp fetch_and_filter_page(page_number, history_events, oldest_allowed, highest_page_allowed) do
-    {:ok, values} = @pump.read_history_page(page_number)
+    {:ok, values} = pump().read_history_page(page_number)
     newest_first_values = Enum.reverse(values)
     {oldest_reached, history_events} = newest_first_values
                                        |> Enum.filter(&filter_history_event/1)
@@ -46,4 +44,6 @@ defmodule Pummpcomm.Monitor.HistoryMonitor do
   defp oldest_entry_allowed(minutes_back, timezone) do
     timezone |> Timex.now() |> Timex.shift(minutes: -minutes_back) |> DateTime.to_naive
   end
+
+  defp pump, do: Application.get_env(:pummpcomm, :pump)
 end
