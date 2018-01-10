@@ -68,6 +68,8 @@ defmodule Pummpcomm.Session.PumpFake do
                %{amount: 103, meter_link_id: "AAAAAA", timestamp: ~N[2017-08-04 17:50:07]}},
               {:alarm_sensor,
                %{alarm_type: "High Glucose", amount: 157, timestamp: ~N[2017-08-04 23:15:09]}},
+              {:alarm_sensor,
+               %{alarm_type: "High Glucose", amount: 157, timestamp: ~N[2016-08-04 23:15:09]}},
               {:null_byte, %{}}]
     |> Enum.map(fn (entry) -> shift_history(entry, history_page_offset(local_timezone)) end)
 
