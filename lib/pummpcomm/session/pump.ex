@@ -24,6 +24,7 @@ defmodule Pummpcomm.Session.Pump do
   alias Pummpcomm.Session.Exchange.ReadPumpStatus
   alias Pummpcomm.Session.Exchange.ReadRemainingInsulin
   alias Pummpcomm.Session.Exchange.ReadSettings
+  alias Pummpcomm.Session.Exchange.ReadStdBasalProfile
   alias Pummpcomm.Session.Exchange.ReadTempBasal
   alias Pummpcomm.Session.Exchange.ReadTime
   alias Pummpcomm.Session.Exchange.SetTempBasal
@@ -54,6 +55,7 @@ defmodule Pummpcomm.Session.Pump do
   def read_pump_status,               do: GenServer.call(__MODULE__, {:read_pump_status},               @timeout)
   def read_remaining_insulin,         do: GenServer.call(__MODULE__, {:read_remaining_insulin},         @timeout)
   def read_settings,                  do: GenServer.call(__MODULE__, {:read_settings},                  @timeout)
+  def read_std_basal_profile,         do: GenServer.call(__MODULE__, {:read_std_basal_profile},         @timeout)
   def read_temp_basal,                do: GenServer.call(__MODULE__, {:read_temp_basal},                @timeout)
   def read_time,                      do: GenServer.call(__MODULE__, {:read_time},                      @timeout)
 
@@ -158,6 +160,13 @@ defmodule Pummpcomm.Session.Pump do
   def make_pump_call({:read_settings}, state) do
     with {:ok, context} <- state.pump_serial |> ReadSettings.make() |> PumpExecutor.execute(),
          pump_status    <- ReadSettings.decode(context.response) do
+      {:reply, pump_status, state}
+    end
+  end
+
+  def make_pump_call({:read_std_basal_profile}, state) do
+    with {:ok, context} <- state.pump_serial |> ReadStdBasalProfile.make() |> PumpExecutor.execute(),
+         pump_status    <- ReadStdBasalProfile.decode(context.response) do
       {:reply, pump_status, state}
     end
   end
