@@ -15,9 +15,20 @@ defmodule Pummpcomm.Session.PumpFake do
     {:ok, %{glucose: 32, isig: 32, page_number: 10}}
   end
 
-  # returns 4 sensor glucose values starting at 3 minutes ago
+  def get_model_number, do: {:ok, 722}
+  def read_bg_targets, do: {:ok, %{units: "mg/dL", targets: [%{bg_high: 120, bg_low: 80, start: ~T[00:00:00]}]}}
+  def read_carb_ratios, do: {:ok, %{units: :grams, schedule: [%{ ratio: 15.0, start: ~T[00:00:00] }]}}
   def read_cgm_page(page), do: GenServer.call(__MODULE__, {:read_cgm_page, page})
   def read_history_page(page), do: GenServer.call(__MODULE__, {:read_history_page, page})
+  def read_insulin_sensitivities, do: {:ok, units: "mg/dL", sensitivities: [%{sensitivity: 40, start: ~T[00:00:00]}]}
+  def read_settings, do: {:ok, insulin_action_curve_hours: 3, max_basal: 3.0, max_bolus: 15.0, selected_basal_profile: :standard}
+  def read_std_basal_profile, do: {:ok, %{schedule: [%{rate: 1.4, start: ~T[00:00:00]}]}}
+  def read_temp_basal, do: {:ok, %{type: :absolute, units_per_hour: 3.0, duration: 30}}
+  def read_time, do: {:ok, Timex.now()}
+
+  def set_temp_basal(units_per_hour: units_per_hour, duration_minutes: duration, type: type) do
+    {:ok, %{type: type, units_per_hour: units_per_hour, duration: duration}}
+  end
 
   def write_cgm_timestamp, do: :ok
 
