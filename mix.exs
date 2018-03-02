@@ -4,8 +4,8 @@ defmodule Pummpcomm.Mixfile do
   def project do
     [aliases: aliases(),
      app: :pummpcomm,
-     version: "2.5.0",
-     elixir: "~> 1.5", elixirc_paths: elixirc_paths(Mix.env),
+     version: "2.5.1",
+     elixir: "~> 1.6", elixirc_paths: elixirc_paths(Mix.env),
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      deps: deps(),
@@ -25,9 +25,7 @@ defmodule Pummpcomm.Mixfile do
   ## Private Functions
 
   defp aliases do
-    [
-      "compile": "compile --warnings-as-errors"
-    ]
+    ["compile": "compile --warnings-as-errors"]
   end
 
   defp deps do

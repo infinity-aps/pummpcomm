@@ -9,6 +9,10 @@ defmodule Pummpcomm.Session.PumpFake do
     GenServer.start_link(__MODULE__, local_timezone, name: __MODULE__)
   end
 
+  def init(local_timezone) do
+    {:ok, local_timezone}
+  end
+
   def get_current_cgm_page do
     {:ok, %{glucose: 32, isig: 32, page_number: 10}}
   end

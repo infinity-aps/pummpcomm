@@ -34,14 +34,17 @@ defmodule Pummpcomm.Session.Pump do
   @timeout 300_000
 
   def start_link(pump_serial, _local_timezone) do
+    GenServer.start_link(__MODULE__, pump_serial, name: __MODULE__)
+  end
+
+  def init(pump_serial) do
     state = %{
       pump_serial: pump_serial,
       model_number: nil,
       initialized: false,
       last_communication: Timex.epoch()
     }
-
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+    {:ok, state}
   end
 
   def get_current_cgm_page,           do: GenServer.call(__MODULE__, {:get_current_cgm_page},           @timeout)
