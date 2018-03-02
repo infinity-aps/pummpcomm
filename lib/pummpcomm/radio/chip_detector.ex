@@ -10,7 +10,7 @@ defmodule Pummpcomm.Radio.ChipDetector do
   alias SubgRfspy.UART, as: SubgRfspyUART
 
   def autodetect do
-    (Application.get_env(:pummpcomm, :autodetect_chips) ++ enumerated_uarts()) |> Enum.find(&detect_chip/1)
+    (Application.get_env(:pummpcomm, :autodetect_chips, []) ++ enumerated_uarts()) |> Enum.find(&detect_chip/1)
   end
 
   defp enumerated_uarts do
