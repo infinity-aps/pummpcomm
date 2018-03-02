@@ -13,6 +13,6 @@ defmodule Pummpcomm.History.ChangeAlarmClockTime do
   """
   @impl Pummpcomm.History.Decoder
   # TODO decode new alarm clock time
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

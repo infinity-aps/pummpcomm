@@ -44,35 +44,45 @@ defmodule Pummpcomm.Session.Pump do
       initialized: false,
       last_communication: Timex.epoch()
     }
+
     {:ok, state}
   end
 
-  def get_current_cgm_page,           do: GenServer.call(__MODULE__, {:get_current_cgm_page},           @timeout)
-  def get_model_number,               do: GenServer.call(__MODULE__, {:get_model_number},               @timeout)
-  def read_battery_status,            do: GenServer.call(__MODULE__, {:read_battery_status},            @timeout)
-  def read_bg_targets,                do: GenServer.call(__MODULE__, {:read_bg_targets},                @timeout)
-  def read_carb_ratios,               do: GenServer.call(__MODULE__, {:read_carb_ratios},               @timeout)
-  def read_cgm_page(page_number),     do: GenServer.call(__MODULE__, {:read_cgm_page, page_number},     @timeout)
-  def read_history_page(page_number), do: GenServer.call(__MODULE__, {:read_history_page, page_number}, @timeout)
-  def read_insulin_sensitivities,     do: GenServer.call(__MODULE__, {:read_insulin_sensitivities},     @timeout)
-  def read_pump_status,               do: GenServer.call(__MODULE__, {:read_pump_status},               @timeout)
-  def read_remaining_insulin,         do: GenServer.call(__MODULE__, {:read_remaining_insulin},         @timeout)
-  def read_settings,                  do: GenServer.call(__MODULE__, {:read_settings},                  @timeout)
-  def read_std_basal_profile,         do: GenServer.call(__MODULE__, {:read_std_basal_profile},         @timeout)
-  def read_temp_basal,                do: GenServer.call(__MODULE__, {:read_temp_basal},                @timeout)
-  def read_time,                      do: GenServer.call(__MODULE__, {:read_time},                      @timeout)
+  def get_current_cgm_page, do: GenServer.call(__MODULE__, {:get_current_cgm_page}, @timeout)
+  def get_model_number, do: GenServer.call(__MODULE__, {:get_model_number}, @timeout)
+  def read_battery_status, do: GenServer.call(__MODULE__, {:read_battery_status}, @timeout)
+  def read_bg_targets, do: GenServer.call(__MODULE__, {:read_bg_targets}, @timeout)
+  def read_carb_ratios, do: GenServer.call(__MODULE__, {:read_carb_ratios}, @timeout)
+
+  def read_cgm_page(page_number),
+    do: GenServer.call(__MODULE__, {:read_cgm_page, page_number}, @timeout)
+
+  def read_history_page(page_number),
+    do: GenServer.call(__MODULE__, {:read_history_page, page_number}, @timeout)
+
+  def read_insulin_sensitivities,
+    do: GenServer.call(__MODULE__, {:read_insulin_sensitivities}, @timeout)
+
+  def read_pump_status, do: GenServer.call(__MODULE__, {:read_pump_status}, @timeout)
+  def read_remaining_insulin, do: GenServer.call(__MODULE__, {:read_remaining_insulin}, @timeout)
+  def read_settings, do: GenServer.call(__MODULE__, {:read_settings}, @timeout)
+  def read_std_basal_profile, do: GenServer.call(__MODULE__, {:read_std_basal_profile}, @timeout)
+  def read_temp_basal, do: GenServer.call(__MODULE__, {:read_temp_basal}, @timeout)
+  def read_time, do: GenServer.call(__MODULE__, {:read_time}, @timeout)
 
   def set_temp_basal(options = [units_per_hour: _, duration_minutes: _, type: :absolute]) do
     GenServer.call(__MODULE__, {:set_temp_basal, options}, @timeout)
   end
-  def write_cgm_timestamp,            do: GenServer.call(__MODULE__, {:write_cgm_timestamp},            @timeout)
+
+  def write_cgm_timestamp, do: GenServer.call(__MODULE__, {:write_cgm_timestamp}, @timeout)
 
   def handle_call(call_params, from, state = %{initialized: false}) do
-    with :ok                                  <- PumpExecutor.configure(),
-         {:ok, _, _}                          <- Tuner.tune(state.pump_serial),
+    with :ok <- PumpExecutor.configure(),
+         {:ok, _, _} <- Tuner.tune(state.pump_serial),
          {:ok, %{model_number: model_number}} <- PumpExecutor.ensure_pump_awake(state.pump_serial) do
+      initialized_state =
+        %{state | initialized: true, model_number: model_number} |> update_last_communication()
 
-      initialized_state = %{state | initialized: true, model_number: model_number} |> update_last_communication()
       handle_call(call_params, from, initialized_state)
     else
       _ -> {:reply, {:error, "Pump did not respond to initial communication"}, state}
@@ -80,10 +90,9 @@ defmodule Pummpcomm.Session.Pump do
   end
 
   def handle_call(pump_call, _from, state) do
-    with :ok      <- maybe_wait_for_silence(state),
+    with :ok <- maybe_wait_for_silence(state),
          {:ok, _} <- PumpExecutor.ensure_pump_awake(state.pump_serial),
          {:reply, response, state} <- make_pump_call(pump_call, state) do
-
       {:reply, response, update_last_communication(state)}
     else
       _ -> {:reply, {:error, "#{Atom.to_string(elem(pump_call, 0))} Failed"}, state}
@@ -92,7 +101,7 @@ defmodule Pummpcomm.Session.Pump do
 
   def make_pump_call({:get_current_cgm_page}, state) do
     with {:ok, context} <- state.pump_serial |> GetCurrentCgmPage.make() |> PumpExecutor.execute(),
-         response       <- GetCurrentCgmPage.decode(context.response) do
+         response <- GetCurrentCgmPage.decode(context.response) do
       {:reply, response, state}
     end
   end
@@ -103,102 +112,109 @@ defmodule Pummpcomm.Session.Pump do
 
   def make_pump_call({:read_battery_status}, state) do
     with {:ok, context} <- state.pump_serial |> ReadBatteryStatus.make() |> PumpExecutor.execute(),
-         response       <- ReadBatteryStatus.decode(context.response) do
+         response <- ReadBatteryStatus.decode(context.response) do
       {:reply, response, state}
     end
   end
 
   def make_pump_call({:read_bg_targets}, state) do
     with {:ok, context} <- state.pump_serial |> ReadBgTargets.make() |> PumpExecutor.execute(),
-         response       <- ReadBgTargets.decode(context.response) do
+         response <- ReadBgTargets.decode(context.response) do
       {:reply, response, state}
     end
   end
 
   def make_pump_call({:read_carb_ratios}, state) do
     with {:ok, context} <- state.pump_serial |> ReadCarbRatios.make() |> PumpExecutor.execute(),
-         response       <- ReadCarbRatios.decode(context.response, state.model_number) do
+         response <- ReadCarbRatios.decode(context.response, state.model_number) do
       {:reply, response, state}
     end
   end
 
   def make_pump_call({:read_cgm_page, page_number}, state) do
-    with {:ok, context} <- state.pump_serial |> ReadCgmPage.make(page_number) |> PumpExecutor.execute(),
-         response       <- ReadCgmPage.decode(context.response) do
+    with {:ok, context} <-
+           state.pump_serial |> ReadCgmPage.make(page_number) |> PumpExecutor.execute(),
+         response <- ReadCgmPage.decode(context.response) do
       {:reply, response, state}
     end
   end
 
   def make_pump_call({:read_history_page, page_number}, state) do
-    with {:ok, context} <- state.pump_serial |> ReadHistoryPage.make(page_number) |> PumpExecutor.execute(),
-         response       <- ReadHistoryPage.decode(context.response, state.model_number) do
+    with {:ok, context} <-
+           state.pump_serial |> ReadHistoryPage.make(page_number) |> PumpExecutor.execute(),
+         response <- ReadHistoryPage.decode(context.response, state.model_number) do
       {:reply, response, state}
     end
   end
 
   def make_pump_call({:read_insulin_sensitivities}, state) do
-    with {:ok, context} <- state.pump_serial |> ReadInsulinSensitivities.make() |> PumpExecutor.execute(),
-         response       <- ReadInsulinSensitivities.decode(context.response) do
+    with {:ok, context} <-
+           state.pump_serial |> ReadInsulinSensitivities.make() |> PumpExecutor.execute(),
+         response <- ReadInsulinSensitivities.decode(context.response) do
       {:reply, response, state}
     end
   end
 
   def make_pump_call({:read_pump_status}, state) do
     with {:ok, context} <- state.pump_serial |> ReadPumpStatus.make() |> PumpExecutor.execute(),
-         pump_status    <- ReadPumpStatus.decode(context.response) do
+         pump_status <- ReadPumpStatus.decode(context.response) do
       {:reply, pump_status, state}
     end
   end
 
   def make_pump_call({:read_remaining_insulin}, state) do
-    with {:ok, context}                        <- state.pump_serial
-                                                  |> ReadRemainingInsulin.make()
-                                                  |> PumpExecutor.execute(),
+    with {:ok, context} <-
+           state.pump_serial
+           |> ReadRemainingInsulin.make()
+           |> PumpExecutor.execute(),
          %{strokes_per_unit: strokes_per_unit} <- PumpModel.pump_options(state.model_number),
-         result                                <- ReadRemainingInsulin.decode(context.response, strokes_per_unit) do
+         result <- ReadRemainingInsulin.decode(context.response, strokes_per_unit) do
       {:reply, result, state}
     end
   end
 
   def make_pump_call({:read_settings}, state) do
     with {:ok, context} <- state.pump_serial |> ReadSettings.make() |> PumpExecutor.execute(),
-         pump_status    <- ReadSettings.decode(context.response) do
+         pump_status <- ReadSettings.decode(context.response) do
       {:reply, pump_status, state}
     end
   end
 
   def make_pump_call({:read_std_basal_profile}, state) do
-    with {:ok, context} <- state.pump_serial |> ReadStdBasalProfile.make() |> PumpExecutor.execute(),
-         pump_status    <- ReadStdBasalProfile.decode(context.response) do
+    with {:ok, context} <-
+           state.pump_serial |> ReadStdBasalProfile.make() |> PumpExecutor.execute(),
+         pump_status <- ReadStdBasalProfile.decode(context.response) do
       {:reply, pump_status, state}
     end
   end
 
   def make_pump_call({:read_temp_basal}, state) do
     with {:ok, context} <- state.pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute(),
-         temp_basal     <- ReadTempBasal.decode(context.response) do
+         temp_basal <- ReadTempBasal.decode(context.response) do
       {:reply, temp_basal, state}
     end
   end
 
   def make_pump_call({:read_time}, state) do
     with {:ok, context} <- state.pump_serial |> ReadTime.make() |> PumpExecutor.execute(),
-         parsed_date    <- ReadTime.decode(context.response) do
+         parsed_date <- ReadTime.decode(context.response) do
       {:reply, parsed_date, state}
     end
   end
 
   def make_pump_call({:set_temp_basal, options}, state) do
-    with {:ok, context} <- state.pump_serial |> SetTempBasal.make(options) |> PumpExecutor.execute(),
-         :ok            <- SetTempBasal.decode(context.response),
+    with {:ok, context} <-
+           state.pump_serial |> SetTempBasal.make(options) |> PumpExecutor.execute(),
+         :ok <- SetTempBasal.decode(context.response),
          {:ok, context} <- state.pump_serial |> ReadTempBasal.make() |> PumpExecutor.execute(),
-         temp_basal     <- ReadTempBasal.decode(context.response) do
+         temp_basal <- ReadTempBasal.decode(context.response) do
       {:reply, temp_basal, state}
     end
   end
 
   def make_pump_call({:write_cgm_timestamp}, state) do
-    with {:ok, %{received_ack: true}} <- state.pump_serial |> WriteCgmTimestamp.make() |> PumpExecutor.execute() do
+    with {:ok, %{received_ack: true}} <-
+           state.pump_serial |> WriteCgmTimestamp.make() |> PumpExecutor.execute() do
       {:reply, :ok, state}
     end
   end
@@ -209,10 +225,12 @@ defmodule Pummpcomm.Session.Pump do
 
   defp maybe_wait_for_silence(state) do
     case state.last_communication |> Timex.before?(Timex.shift(Timex.now(), seconds: -4)) do
-      true  ->
-        Logger.info "Waiting for silence before transmitting"
+      true ->
+        Logger.info("Waiting for silence before transmitting")
         PumpExecutor.wait_for_silence()
-      false -> :ok
+
+      false ->
+        :ok
     end
   end
 end

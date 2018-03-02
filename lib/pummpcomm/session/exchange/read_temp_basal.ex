@@ -9,11 +9,15 @@ defmodule Pummpcomm.Session.Exchange.ReadTempBasal do
 
   @opcode 0x98
 
-  @strokes_per_unit 40 # X12 and above
+  # X12 and above
+  @strokes_per_unit 40
 
   # Functions
 
-  def decode(%Response{opcode: @opcode, data: <<0::8, _::8, raw_rate::16, duration::16, _::binary>>}) do
+  def decode(%Response{
+        opcode: @opcode,
+        data: <<0::8, _::8, raw_rate::16, duration::16, _::binary>>
+      }) do
     {:ok, %{type: :absolute, units_per_hour: raw_rate / @strokes_per_unit, duration: duration}}
   end
 
@@ -24,7 +28,7 @@ defmodule Pummpcomm.Session.Exchange.ReadTempBasal do
   @doc """
   Makes `Pummpcomm.Session.Command.t` to read temp basal.
   """
-  @spec make(Command.pump_serial) :: Command.t
+  @spec make(Command.pump_serial()) :: Command.t()
   def make(pump_serial) do
     %Command{opcode: @opcode, pump_serial: pump_serial}
   end

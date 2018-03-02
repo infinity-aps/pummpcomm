@@ -8,15 +8,21 @@ defmodule Pummpcomm.Session.Command do
   # Struct
 
   @enforce_keys [:opcode, :pump_serial]
-  defstruct opcode: nil, params: <<>>, pump_serial: nil, retries: 2, timeout: 3, bytes_per_record: 64, max_records: 1,
-    effect_time: 0.5
+  defstruct opcode: nil,
+            params: <<>>,
+            pump_serial: nil,
+            retries: 2,
+            timeout: 3,
+            bytes_per_record: 64,
+            max_records: 1,
+            effect_time: 0.5
 
   # Types
 
   @typedoc """
   Serial number of the pump
   """
-  @type pump_serial :: String.t
+  @type pump_serial :: String.t()
 
   @typedoc """
   * `opcode` - opcode for the command in the wireless protocol
@@ -28,14 +34,14 @@ defmodule Pummpcomm.Session.Command do
   * `max_records` - the maximum number of records
   """
   @type t :: %Command{
-               opcode: non_neg_integer,
-               params: binary,
-               pump_serial: pump_serial,
-               retries: non_neg_integer,
-               timeout: pos_integer,
-               bytes_per_record: pos_integer,
-               max_records: pos_integer
-             }
+          opcode: non_neg_integer,
+          params: binary,
+          pump_serial: pump_serial,
+          retries: non_neg_integer,
+          timeout: pos_integer,
+          bytes_per_record: pos_integer,
+          max_records: pos_integer
+        }
 
   # Functions
 

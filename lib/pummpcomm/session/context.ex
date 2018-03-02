@@ -14,13 +14,13 @@ defmodule Pummpcomm.Session.Context do
   @typedoc """
   """
   @type t :: %Context{
-               command: Pummpcomm.Session.Command.t,
-               response: Pummpcomm.Session.Response.t | nil,
-               received_ack: boolean,
-               # TODO determine if there's something more specific than term for error shape
-               error: term,
-               sent_params: boolean
-             }
+          command: Pummpcomm.Session.Command.t(),
+          response: Pummpcomm.Session.Response.t() | nil,
+          received_ack: boolean,
+          # TODO determine if there's something more specific than term for error shape
+          error: term,
+          sent_params: boolean
+        }
 
   # Functions
 
@@ -41,15 +41,22 @@ defmodule Pummpcomm.Session.Context do
   error.
   """
 
-  @spec add_response(%Context{response: nil}, Pummpcomm.Session.Packet.t) :: %Context{response: Response.t}
+  @spec add_response(%Context{response: nil}, Pummpcomm.Session.Packet.t()) :: %Context{
+          response: Response.t()
+        }
   def add_response(context = %Context{response: nil}, response_packet) do
-    add_response(%{context | response: %Response{opcode: context.command.opcode}}, response_packet)
+    add_response(
+      %{context | response: %Response{opcode: context.command.opcode}},
+      response_packet
+    )
   end
 
-  @spec add_response(%Context{response: Response.t}, Pummpcomm.Session.Packet.t) :: %Context{response: Response.t}
+  @spec add_response(%Context{response: Response.t()}, Pummpcomm.Session.Packet.t()) :: %Context{
+          response: Response.t()
+        }
   def add_response(context = %Context{response: response}, response_packet) do
     case Response.add_packet(response, response_packet) do
-      {:ok, response}  -> %{context | response: response}
+      {:ok, response} -> %{context | response: response}
       {:error, reason} -> %{context | error: reason}
     end
   end

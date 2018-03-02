@@ -31,16 +31,19 @@ defmodule Pummpcomm.Session.Exchange.GetCurrentCgmPage do
   Decodes the current `page_number` for CGM pages and `page_count` back of `glucose` and `isig` is available when
   using `Pummpcomm.Session.Exchange.ReadCgmPage`.
   """
-  @spec decode(Response.t) ::
+  @spec decode(Response.t()) ::
           {:ok, %{page_number: page_number, glucose: page_count, isig: page_count}}
-  def decode(%Response{opcode: @opcode, data: <<page_number::size(32), glucose::size(16), isig::size(16), _rest::binary>>}) do
+  def decode(%Response{
+        opcode: @opcode,
+        data: <<page_number::size(32), glucose::size(16), isig::size(16), _rest::binary>>
+      }) do
     {:ok, %{page_number: page_number, glucose: glucose, isig: isig}}
   end
 
   @doc """
   `Pummpcomm.Session.Command` to get current CGM page from pump with `pump_serial`.
   """
-  @spec make(Command.pump_serial) :: Command.t
+  @spec make(Command.pump_serial()) :: Command.t()
   def make(pump_serial) do
     %Command{opcode: @opcode, pump_serial: pump_serial}
   end

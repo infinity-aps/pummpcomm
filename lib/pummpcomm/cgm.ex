@@ -47,11 +47,15 @@ defmodule Pummpcomm.Cgm do
   def decode(page) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->
-        Logger.info fn ->
+        Logger.info(fn ->
           "Decoding CGM page:\n#{Base.encode16(page)}"
-        end
-        {:ok, page |> Crc16.page_data |> reverse |> decode_page |> Timestamper.timestamp_events}
-      other    -> other
+        end)
+
+        {:ok,
+         page |> Crc16.page_data() |> reverse |> decode_page |> Timestamper.timestamp_events()}
+
+      other ->
+        other
     end
   end
 
@@ -76,88 +80,127 @@ defmodule Pummpcomm.Cgm do
   def decode_page(<<@sensor_calibration::8, type::8, tail::binary>>, events) do
     event = {
       :sensor_calibration,
-      %{calibration_type: calibration_type(type), raw: reverse(<<@sensor_calibration :: 8, type :: 8>>)}
+      %{
+        calibration_type: calibration_type(type),
+        raw: reverse(<<@sensor_calibration::8, type::8>>)
+      }
     }
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_packet::8, type::8, tail::binary>>, events) do
-    event = {:sensor_packet, %{packet_type: packet_type(type), raw: reverse(<<@sensor_packet::8, type::8>>)}}
+    event =
+      {:sensor_packet,
+       %{packet_type: packet_type(type), raw: reverse(<<@sensor_packet::8, type::8>>)}}
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_error::8, type::8, tail::binary>>, events) do
-    event = {:sensor_error, %{error_type: error_type(type), raw: reverse(<<@sensor_error::8, type::8>>)}}
+    event =
+      {:sensor_error,
+       %{error_type: error_type(type), raw: reverse(<<@sensor_error::8, type::8>>)}}
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_data_high::8, unknown::8, tail::binary>>, events) do
-    event = {:sensor_data_high, %{
-                sgv: 400,
-                raw: reverse(<<@sensor_data_high::8, unknown::8>>)
-             }}
+    event =
+      {:sensor_data_high,
+       %{
+         sgv: 400,
+         raw: reverse(<<@sensor_data_high::8, unknown::8>>)
+       }}
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_timestamp::8, timestamp::32, tail::binary>>, events) do
-    event = {:sensor_timestamp, %{
-                event_type: timestamp_type(flags(timestamp) &&& 0b011),
-                timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
-                raw: reverse(<<@sensor_timestamp::8, timestamp::32>>)
-             }}
+    event =
+      {:sensor_timestamp,
+       %{
+         event_type: timestamp_type(flags(timestamp) &&& 0b011),
+         timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+         raw: reverse(<<@sensor_timestamp::8, timestamp::32>>)
+       }}
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@battery_change::8, timestamp::32, tail::binary>>, events) do
     event = {
       :battery_change,
-      %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp), raw: reverse(<<@battery_change :: 8, timestamp :: 32>>)}
+      %{
+        timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+        raw: reverse(<<@battery_change::8, timestamp::32>>)
+      }
     }
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_status::8, timestamp::32, tail::binary>>, events) do
-    event = {:sensor_status, %{
-                status_type: status_type(flags(timestamp) &&& 0b011),
-                timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
-                raw: reverse(<<@sensor_status::8, timestamp::32>>)}}
+    event =
+      {:sensor_status,
+       %{
+         status_type: status_type(flags(timestamp) &&& 0b011),
+         timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+         raw: reverse(<<@sensor_status::8, timestamp::32>>)
+       }}
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@datetime_change::8, timestamp::32, tail::binary>>, events) do
     event = {
       :datetime_change,
-      %{timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
-        raw: reverse(<<@datetime_change :: 8, timestamp :: 32>>)
+      %{
+        timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+        raw: reverse(<<@datetime_change::8, timestamp::32>>)
       }
     }
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@sensor_sync::8, timestamp::32, tail::binary>>, events) do
-    event = {:sensor_sync, %{
-                sync_type: sync_type(flags(timestamp) &&& 0b011),
-                timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
-                raw: reverse(<<@sensor_sync::8, timestamp::32>>)}}
+    event =
+      {:sensor_sync,
+       %{
+         sync_type: sync_type(flags(timestamp) &&& 0b011),
+         timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+         raw: reverse(<<@sensor_sync::8, timestamp::32>>)
+       }}
+
     decode_page(tail, [event | events])
   end
 
   def decode_page(<<@cal_bg_for_gh::8, timestamp::32, partial_amount::8, tail::binary>>, events) do
-    event = {:cal_bg_for_gh, %{
-                amount: partial_amount,
-                origin_type: origin_type(flags(timestamp) &&& 0b011),
-                timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
-                raw: reverse(<<@cal_bg_for_gh::8, timestamp::32, partial_amount::8>>)
-             }}
+    event =
+      {:cal_bg_for_gh,
+       %{
+         amount: partial_amount,
+         origin_type: origin_type(flags(timestamp) &&& 0b011),
+         timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+         raw: reverse(<<@cal_bg_for_gh::8, timestamp::32, partial_amount::8>>)
+       }}
+
     decode_page(tail, [event | events])
   end
 
-  def decode_page(<<@sensor_calibration_factor::8, timestamp::32, raw_factor::16, tail::binary>>, events) do
-    event = {:sensor_calibration_factor, %{
-                factor: raw_factor / 1000.0,
-                timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
-                raw: reverse(<<@sensor_calibration_factor::8, timestamp::32, raw_factor::16>>)
-             }}
+  def decode_page(
+        <<@sensor_calibration_factor::8, timestamp::32, raw_factor::16, tail::binary>>,
+        events
+      ) do
+    event =
+      {:sensor_calibration_factor,
+       %{
+         factor: raw_factor / 1000.0,
+         timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
+         raw: reverse(<<@sensor_calibration_factor::8, timestamp::32, raw_factor::16>>)
+       }}
+
     decode_page(tail, [event | events])
   end
 
@@ -166,9 +209,10 @@ defmodule Pummpcomm.Cgm do
       :ten_something,
       %{
         timestamp: DateDecoder.decode_cgm_timestamp(timestamp),
-        raw: reverse(<<@ten_something :: 8, timestamp :: 32, more :: 24>>)
+        raw: reverse(<<@ten_something::8, timestamp::32, more::24>>)
       }
     }
+
     decode_page(tail, [event | events])
   end
 
@@ -194,13 +238,15 @@ defmodule Pummpcomm.Cgm do
 
   def needs_timestamp?(events), do: _needs_timestamp?(Enum.reverse(events))
   def _needs_timestamp?([]), do: false
+
   def _needs_timestamp?([event | rest]) do
     case Timestamper.is_relative_event?(event) do
       true ->
         case event do
           {_, %{timestamp: nil}} -> true
-          {_, %{timestamp: _}}   -> false
+          {_, %{timestamp: _}} -> false
         end
+
       false ->
         _needs_timestamp?(rest)
     end
@@ -223,7 +269,7 @@ defmodule Pummpcomm.Cgm do
   defp timestamp_type(0b001), do: :page_end
   defp timestamp_type(0b010), do: :gap
   defp timestamp_type(0b000), do: :last_rf
-  defp timestamp_type(_         ), do: :unknown
+  defp timestamp_type(_), do: :unknown
 
   defp status_type(0b000), do: :off
   defp status_type(0b001), do: :on
@@ -232,10 +278,10 @@ defmodule Pummpcomm.Cgm do
   defp sync_type(0b011), do: :find
   defp sync_type(0b001), do: :new
   defp sync_type(0b010), do: :old
-  defp sync_type(_    ), do: :unknown
+  defp sync_type(_), do: :unknown
 
   defp origin_type(0b000), do: :rf
-  defp origin_type(_    ), do: :unknown
+  defp origin_type(_), do: :unknown
 
   defp flags(timestamp = <<_::16, flags::3, _::bitstring>>) when is_binary(timestamp), do: flags
   defp flags(timestamp), do: flags(<<timestamp::32>>)

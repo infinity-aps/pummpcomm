@@ -3,5 +3,5 @@ defmodule Pummpcomm.History.Decoder do
   Decodes a page of history data
   """
 
-  @callback decode(body :: binary, pump_options :: Pummpcomm.PumpModel.pump_options) :: map
+  @callback decode(body :: binary, pump_options :: Pummpcomm.PumpModel.pump_options()) :: map
 end

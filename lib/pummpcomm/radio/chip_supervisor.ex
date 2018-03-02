@@ -15,16 +15,21 @@ defmodule Pummpcomm.Radio.ChipSupervisor do
   end
 
   def init(_) do
-    case ChipDetector.autodetect do
+    case ChipDetector.autodetect() do
       nil ->
-        Logger.error "Could not detect chip"
+        Logger.error("Could not detect chip")
         Supervisor.init([], strategy: :one_for_one)
+
       radio_chip = %{__struct__: radio_module} ->
-        Logger.warn "Starting chip: #{inspect radio_chip}"
-        Supervisor.init([
-          ChipAgent.child_spec(radio_chip),
-          radio_module.child_spec(radio_chip)
-        ], strategy: :one_for_one)
+        Logger.warn("Starting chip: #{inspect(radio_chip)}")
+
+        Supervisor.init(
+          [
+            ChipAgent.child_spec(radio_chip),
+            radio_module.child_spec(radio_chip)
+          ],
+          strategy: :one_for_one
+        )
     end
   end
 end
@@ -41,6 +46,6 @@ defmodule Pummpcomm.Radio.ChipAgent do
   end
 
   def current do
-    Agent.get(__MODULE__, &(&1))
+    Agent.get(__MODULE__, & &1)
   end
 end

@@ -15,8 +15,12 @@ defmodule Pummpcomm.History.ChangeTempBasalType do
   `timestamp` when the temporary `basal_type` is changed between `:absolute` and `:percentage`
   """
   @impl Pummpcomm.History.Decoder
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{basal_type: TempBasal.type, timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{
+          basal_type: TempBasal.type(),
+          timestamp: NaiveDateTime.t()
+        }
   def decode(body, pump_options)
+
   def decode(<<basal_type::8, timestamp::binary-size(5)>>, _) do
     %{
       basal_type: basal_type(basal_type),

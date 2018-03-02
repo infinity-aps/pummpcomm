@@ -15,7 +15,7 @@ defmodule Pummpcomm.Session.Exchange.ReadPumpStatus do
   Decodes `Pummpcomm.Session.Response.t` from `make/1` `Pummpcomm.Session.Command.t` to whether pump is currently
   bolusing or suspended.
   """
-  @spec decode(Response.t) :: {:ok, %{bolusing: boolean, suspended: boolean}}
+  @spec decode(Response.t()) :: {:ok, %{bolusing: boolean, suspended: boolean}}
   def decode(%Response{opcode: @opcode, data: <<_::8, bolusing::8, suspended::8, _rest::binary>>}) do
     {:ok, %{bolusing: decode_bool(bolusing), suspended: decode_bool(suspended)}}
   end
@@ -23,7 +23,7 @@ defmodule Pummpcomm.Session.Exchange.ReadPumpStatus do
   @doc """
   Makes `Pummpcomm.Session.Command.t` to check if pump is currently bolusing or suspended.
   """
-  @spec make(Command.pump_serial) :: Command.t
+  @spec make(Command.pump_serial()) :: Command.t()
   def make(pump_serial) do
     %Command{opcode: @opcode, pump_serial: pump_serial}
   end

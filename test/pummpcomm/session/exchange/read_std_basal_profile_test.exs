@@ -5,7 +5,11 @@ defmodule ReadStdBasalProfileTest do
   alias Pummpcomm.Session.Response
 
   test "decodes standard profile correctly" do
-    profile_data = Base.decode16!("20000026000D2C001326001C00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+    profile_data =
+      Base.decode16!(
+        "20000026000D2C001326001C00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      )
+
     pump_response = %Response{opcode: 0x92, data: profile_data}
 
     expected_result = [

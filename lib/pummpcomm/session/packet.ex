@@ -23,13 +23,13 @@ defmodule Pummpcomm.Session.Packet do
   * `pump_serial` - serial number of the pump
   """
   @type t :: %Packet{
-               # TODO determine where `date` is used
-               date: term,
-               opcode: non_neg_integer,
-               payload: binary,
-               pump_serial: String.t,
-               type: non_neg_integer
-             }
+          # TODO determine where `date` is used
+          date: term,
+          opcode: non_neg_integer,
+          payload: binary,
+          pump_serial: String.t(),
+          type: non_neg_integer
+        }
 
   @doc """
   Parses `Pummpcomm.Session.Packet.t` out of `bytes`
@@ -41,19 +41,24 @@ defmodule Pummpcomm.Session.Packet do
   * `{:error, {:invalid_packet, :packet_too_short}}` - fewer than 6 bytes are given, packet was not parsed
 
   """
-  @spec from_binary(<<>>) :: {:ok, t} | {:error, {:invalid_packet,  :crc_mismatch | :packet_too_short}}
-  def from_binary(bytes) when byte_size(bytes) <= 5, do: {:error, {:invalid_packet, :packet_too_short}}
+  @spec from_binary(<<>>) ::
+          {:ok, t} | {:error, {:invalid_packet, :crc_mismatch | :packet_too_short}}
+  def from_binary(bytes) when byte_size(bytes) <= 5,
+    do: {:error, {:invalid_packet, :packet_too_short}}
+
   def from_binary(<<rf_type::8, serial::binary-size(3), opcode::8, payload_and_crc::binary>>) do
     payload_size = byte_size(payload_and_crc) - 1
     <<payload::binary-size(payload_size), crc::8>> = payload_and_crc
+
     packet = %Packet{
       pump_serial: decode_serial(serial),
       opcode: opcode,
       payload: payload,
       type: rf_type
     }
+
     case crc == Crc8.crc_8(crc_components(packet)) do
-      true  -> {:ok, packet}
+      true -> {:ok, packet}
       false -> {:error, {:invalid_packet, :crc_mismatch}}
     end
   end
@@ -61,13 +66,13 @@ defmodule Pummpcomm.Session.Packet do
   @doc """
   Converts `command` to `t`
   """
-  @spec from_command(Command.t) :: {:ok, t}
+  @spec from_command(Command.t()) :: {:ok, t}
   def from_command(command), do: from_command(command, Command.payload(command))
 
   @doc """
   Converts `command` to `t`, using given `payload` instead of getting `payload` from `command` `params`.
   """
-  @spec from_command(Command.t, binary) :: {:ok, t}
+  @spec from_command(Command.t(), binary) :: {:ok, t}
   def from_command(command, payload) do
     {:ok,
      %Packet{
@@ -75,8 +80,7 @@ defmodule Pummpcomm.Session.Packet do
        opcode: command.opcode,
        payload: payload,
        type: @types[:carelink]
-     }
-    }
+     }}
   end
 
   @doc """
@@ -91,7 +95,8 @@ defmodule Pummpcomm.Session.Packet do
   ## Private Functions
 
   defp crc_components(packet) do
-    <<packet.type::8>> <> encode_serial(packet.pump_serial) <> <<packet.opcode::8>> <> packet.payload
+    <<packet.type::8>> <>
+      encode_serial(packet.pump_serial) <> <<packet.opcode::8>> <> packet.payload
   end
 
   defp decode_serial(bytes) do

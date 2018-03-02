@@ -21,10 +21,10 @@ defmodule Pummpcomm.PumpModel do
   * `supports_low_suspend` - if the pump will automatically suspend basal when the CGM reports a low blood glucose
   """
   @type pump_options :: %{
-                          large_format: boolean,
-                          strokes_per_unit: strokes_per_unit,
-                          supports_low_suspend: boolean
-                        }
+          large_format: boolean,
+          strokes_per_unit: strokes_per_unit,
+          supports_low_suspend: boolean
+        }
 
   # Functions
 
@@ -42,10 +42,15 @@ defmodule Pummpcomm.PumpModel do
       iex> Pummpcomm.PumpModel.model_number("invalid")
       {:error, "Bad Pump Model"}
   """
-  def model_number(model_string) when is_binary(model_string),               do: model_string |> Integer.parse() |> model_number
-  def model_number(model_number) when model_number == :error,                do: {:error, "Bad Pump Model"}
-  def model_number({model_number, _}) when div(model_number, 100) in [5, 7], do: {:ok, model_number}
-  def model_number(_),                                                       do: {:error, "Bad Pump Model"}
+  def model_number(model_string) when is_binary(model_string),
+    do: model_string |> Integer.parse() |> model_number
+
+  def model_number(model_number) when model_number == :error, do: {:error, "Bad Pump Model"}
+
+  def model_number({model_number, _}) when div(model_number, 100) in [5, 7],
+    do: {:ok, model_number}
+
+  def model_number(_), do: {:error, "Bad Pump Model"}
 
   @spec pump_options(pump_model) :: pump_options
   def pump_options(pump_model) do
@@ -67,7 +72,7 @@ defmodule Pummpcomm.PumpModel do
       false
   """
   def large_format?(model_number) when rem(model_number, 100) >= 23, do: true
-  def large_format?(_),                                              do: false
+  def large_format?(_), do: false
 
   @doc """
   Return true if pump supports MySentry
@@ -80,7 +85,7 @@ defmodule Pummpcomm.PumpModel do
       false
   """
   def supports_my_sentry?(model_number) when rem(model_number, 100) >= 23, do: true
-  def supports_my_sentry?(_),                                              do: false
+  def supports_my_sentry?(_), do: false
 
   @doc """
   Return true if pump supports low suspend
@@ -93,7 +98,7 @@ defmodule Pummpcomm.PumpModel do
       true
   """
   def supports_low_suspend?(model_number) when rem(model_number, 100) >= 51, do: true
-  def supports_low_suspend?(_),                                              do: false
+  def supports_low_suspend?(_), do: false
 
   @doc """
   Return true if pump writes a square wave bolus to history as it starts,
@@ -106,8 +111,10 @@ defmodule Pummpcomm.PumpModel do
       iex> Pummpcomm.PumpModel.records_square_wave_bolus_before_delivery?(522)
       false
   """
-  def records_square_wave_bolus_before_delivery?(model_number) when rem(model_number, 100) >= 23, do: true
-  def records_square_wave_bolus_before_delivery?(_),                                              do: false
+  def records_square_wave_bolus_before_delivery?(model_number) when rem(model_number, 100) >= 23,
+    do: true
+
+  def records_square_wave_bolus_before_delivery?(_), do: false
 
   @doc """
   Return how many turns the pump motor takes to deliver 1U of insulin
@@ -120,7 +127,7 @@ defmodule Pummpcomm.PumpModel do
       40
   """
   def strokes_per_unit(model_number) when rem(model_number, 100) >= 23, do: 40
-  def strokes_per_unit(_),                                              do: 10
+  def strokes_per_unit(_), do: 10
 
   @doc """
   Returns how much the pump's reservoir can hold

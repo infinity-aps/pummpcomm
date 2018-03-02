@@ -7,7 +7,10 @@ defmodule Pummpcomm.Session.FourBySixTest do
 
   test "encode that lands on byte boundary" do
     {:ok, result} = FourBySix.encode(<<0x1234::size(16)>>)
-    assert result == <<0b110001::size(6), 0b110010::size(6), 0b100011::size(6), 0b110100::size(6), 0x00::8>>
+
+    assert result ==
+             <<0b110001::size(6), 0b110010::size(6), 0b100011::size(6), 0b110100::size(6),
+               0x00::8>>
   end
 
   test "encode with result that doesn't land on a byte boundary" do

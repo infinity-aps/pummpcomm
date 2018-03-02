@@ -14,7 +14,7 @@ defmodule Pummpcomm.TempBasal do
   The rate of the temporary basal: either `:absolute` `Pummpcomm.Insulin.units_per_hour` or a `:percent` `percent` of
   the normal bolus `Pummpcomm.Insulin.units_per_hour`.
   """
-  @type rate :: Insulin.units_per_hour | percent
+  @type rate :: Insulin.units_per_hour() | percent
 
   @typedoc """
   Whether the temporary basal can be entered as an `:absolute` number of units per hour OR a `:percentage` of the normal

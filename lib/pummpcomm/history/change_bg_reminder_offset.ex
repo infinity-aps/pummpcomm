@@ -13,6 +13,6 @@ defmodule Pummpcomm.History.ChangeBGReminderOffset do
   `timestamp` when the offset after a bolus when the BG Reminder is shown changed.
   """
   # TODO decode new offset
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

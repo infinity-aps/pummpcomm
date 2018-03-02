@@ -12,6 +12,6 @@ defmodule Pummpcomm.History.ChangeBolusScrollStepSize do
   """
   @impl Pummpcomm.History.Decoder
   # TODO decode the new step size
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

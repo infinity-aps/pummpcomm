@@ -8,6 +8,6 @@ defmodule Pummpcomm.History.NullByte do
   ## Pummpcomm.History.Decoder callbacks
 
   @impl Pummpcomm.History.Decoder
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{}
   def decode(<<>>, _), do: %{}
 end
