@@ -13,6 +13,6 @@ defmodule Pummpcomm.History.ChangeBolusWizardSetup do
   """
   @impl Pummpcomm.History.Decoder
   # TODO decode new bolus wizard settings
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

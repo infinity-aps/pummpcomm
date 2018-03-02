@@ -3,7 +3,8 @@ defmodule Pummpcomm.History.BolusWizardEstimateTest do
 
   test "Bolus Wizard Estimate - Smaller" do
     {:ok, history_page} = Base.decode16("5BD90685140D11005006234B2400000007001D5A")
-    decoded_events = Pummpcomm.History.decode_records(history_page, %{ large_format: false })
+    decoded_events = Pummpcomm.History.decode_records(history_page, %{large_format: false})
+
     expected_event_info = %{
       bg: 217,
       bg_target_high: 90,
@@ -18,12 +19,14 @@ defmodule Pummpcomm.History.BolusWizardEstimateTest do
       raw: history_page,
       timestamp: ~N[2017-02-13 20:05:06]
     }
+
     assert {:bolus_wizard_estimate, ^expected_event_info} = Enum.at(decoded_events, 0)
   end
 
   test "Bolus Wizard Estimate - Larger" do
     {:ok, history_page} = Base.decode16("5B0016E814790F5050003C285A000214000000021478")
-    decoded_events = Pummpcomm.History.decode_records(history_page, %{ large_format: true })
+    decoded_events = Pummpcomm.History.decode_records(history_page, %{large_format: true})
+
     expected_event_info = %{
       bg: 0,
       bg_target_high: 120,
@@ -38,6 +41,7 @@ defmodule Pummpcomm.History.BolusWizardEstimateTest do
       raw: history_page,
       timestamp: ~N[2015-03-25 20:40:22]
     }
+
     assert {:bolus_wizard_estimate, ^expected_event_info} = Enum.at(decoded_events, 0)
   end
 end

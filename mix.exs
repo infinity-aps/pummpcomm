@@ -2,41 +2,44 @@ defmodule Pummpcomm.Mixfile do
   use Mix.Project
 
   def project do
-    [aliases: aliases(),
-     app: :pummpcomm,
-     version: "2.5.0",
-     elixir: "~> 1.5", elixirc_paths: elixirc_paths(Mix.env),
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     deps: deps(),
-     name: "Pummpcomm",
-     source_url: "https://github.com/infinity-aps/pummpcomm",
-     description: description(),
-     package: package(),
-     preferred_cli_env: [
-       "dialyzer": :test
-     ]]
+    [
+      aliases: aliases(),
+      app: :pummpcomm,
+      version: "2.5.1",
+      elixir: "~> 1.6",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      deps: deps(),
+      name: "Pummpcomm",
+      source_url: "https://github.com/infinity-aps/pummpcomm",
+      description: description(),
+      package: package(),
+      preferred_cli_env: [
+        dialyzer: :test
+      ]
+    ]
   end
 
   def application do
-    [extra_applications: extra_applications(Mix.env)]
+    [extra_applications: extra_applications(Mix.env())]
   end
 
   ## Private Functions
 
   defp aliases do
-    [
-      "compile": "compile --warnings-as-errors"
-    ]
+    [compile: "compile --warnings-as-errors"]
   end
 
   defp deps do
-    [{:timex, "~> 3.0"},
-     {:subg_rfspy, "~> 2.0"},
-     {:rfm69, "~> 0.2"},
-     {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
-     {:dialyxir, "~> 0.5.1", only: :test, runtime: false},
-     {:ex_doc, ">= 0.0.0", only: :dev}]
+    [
+      {:timex, "~> 3.0"},
+      {:subg_rfspy, "~> 2.0"},
+      {:rfm69, "~> 0.2"},
+      {:credo, "~> 0.8", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 0.5.1", only: :test, runtime: false},
+      {:ex_doc, ">= 0.0.0", only: :dev}
+    ]
   end
 
   defp description do
@@ -57,5 +60,5 @@ defmodule Pummpcomm.Mixfile do
   end
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 end

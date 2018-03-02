@@ -14,6 +14,6 @@ defmodule Pummpcomm.History.ChangeTimeDisplay do
   """
   @impl Pummpcomm.History.Decoder
   # TODO decode whether 12 or 24 hours clock
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

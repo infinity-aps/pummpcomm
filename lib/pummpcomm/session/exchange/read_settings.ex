@@ -30,31 +30,35 @@ defmodule Pummpcomm.Session.Exchange.ReadSettings do
   Decodes `Pummpcomm.Session.Response.t` to the max basal, max bolus, selected basal profile
   (for basal profile patterns) and the insulin action curve in hours from pump with `pump_serial`
   """
-  @spec decode(Response.t) :: {
-                                :ok,
-                                %{
-                                  insulin_action_curve_hours: non_neg_integer,
-                                  max_basal: Insulin.units,
-                                  max_bolus: Insulin.units,
-                                  selected_basal_profile: basal_profile
-                                }
-                              }
-  def decode(%Response{opcode: @opcode,
-                       data: <<_::8, _::40, max_bolus_ticks::8, max_basal_ticks::16, _::16,
-                       raw_basal_profile::8, _::40, insulin_action_curve_hours::8, _::binary>>}) do
-
-    {:ok, %{max_bolus: max_bolus_ticks / @bolus_multiplier,
-            max_basal: max_basal_ticks / @basal_multiplier,
-            selected_basal_profile: selected_basal_profile(raw_basal_profile),
-            insulin_action_curve_hours: insulin_action_curve_hours}
-    }
+  @spec decode(Response.t()) :: {
+          :ok,
+          %{
+            insulin_action_curve_hours: non_neg_integer,
+            max_basal: Insulin.units(),
+            max_bolus: Insulin.units(),
+            selected_basal_profile: basal_profile
+          }
+        }
+  def decode(%Response{
+        opcode: @opcode,
+        data:
+          <<_::8, _::40, max_bolus_ticks::8, max_basal_ticks::16, _::16, raw_basal_profile::8,
+            _::40, insulin_action_curve_hours::8, _::binary>>
+      }) do
+    {:ok,
+     %{
+       max_bolus: max_bolus_ticks / @bolus_multiplier,
+       max_basal: max_basal_ticks / @basal_multiplier,
+       selected_basal_profile: selected_basal_profile(raw_basal_profile),
+       insulin_action_curve_hours: insulin_action_curve_hours
+     }}
   end
 
   @doc """
   Makes `Pummpcomm.Session.Command.t` to read the max basal, max bolus, selected basal profile
   (for basal profile patterns) and the insulin action curve in hours from pump with `pump_serial`
   """
-  @spec make(Command.pump_serial) :: Command.t
+  @spec make(Command.pump_serial()) :: Command.t()
   def make(pump_serial) do
     %Command{opcode: @opcode, pump_serial: pump_serial}
   end

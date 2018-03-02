@@ -36,8 +36,9 @@ defmodule Pummpcomm.Crc.Crc8 do
   ## Private Functions
 
   defp crc_8(<<>>, crc), do: crc
+
   defp crc_8(<<data::unsigned-integer-size(8), tail::binary>>, crc) do
-    crc = Enum.at(@crc_table, (crc ^^^ data) &&& 0xff)
+    crc = Enum.at(@crc_table, crc ^^^ data &&& 0xFF)
     crc_8(tail, crc)
   end
 end

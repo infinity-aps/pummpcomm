@@ -13,6 +13,6 @@ defmodule Pummpcomm.History.PumpRewind do
   `timestamp` when the pump screw was rewound to prepare for a new reservoir set.
   """
   @impl Pummpcomm.History.Decoder
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

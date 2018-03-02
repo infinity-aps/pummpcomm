@@ -15,7 +15,7 @@ defmodule Pummpcomm.Session.Exchange.ReadStdBasalProfile do
   @doc """
   Makes `Pummpcomm.Session.Command.t` to read the standard basal profile
   """
-  @spec make(Command.pump_serial) :: Command.t
+  @spec make(Command.pump_serial()) :: Command.t()
   def make(pump_serial) do
     %Command{opcode: @opcode, pump_serial: pump_serial}
   end
@@ -24,17 +24,17 @@ defmodule Pummpcomm.Session.Exchange.ReadStdBasalProfile do
   Decodes `Pummpcomm.Session.Response.t` to the standard basal profile schedule
   with each open interval starting at `start`.
   """
-  @spec decode(Response.t) :: {
-                                :ok,
-                                %{
-                                  schedule: [
-                                    %{
-                                      rate: float(),
-                                      start: NaiveDateTime.t
-                                    }
-                                  ]
-                                }
-                              }
+  @spec decode(Response.t()) :: {
+          :ok,
+          %{
+            schedule: [
+              %{
+                rate: float(),
+                start: NaiveDateTime.t()
+              }
+            ]
+          }
+        }
   def decode(%Response{opcode: @opcode, data: <<targets::binary>>}) do
     {:ok, %{schedule: decode_schedule(targets, [])}}
   end

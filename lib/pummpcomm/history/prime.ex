@@ -25,20 +25,25 @@ defmodule Pummpcomm.History.Prime do
   """
   @impl Pummpcomm.History.Decoder
   # TODO determine difference between `amount` and `programmed_amount`
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{
-                                                              programmed_amount: Insulin.units,
-                                                              amount: Insulin.units,
-                                                              prime_type: prime_type,
-                                                              timestamp: NaiveDateTime.t
-                                                            }
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{
+          programmed_amount: Insulin.units(),
+          amount: Insulin.units(),
+          prime_type: prime_type,
+          timestamp: NaiveDateTime.t()
+        }
   def decode(body, pump_options)
-  def decode(<<_::8, raw_programmed_amount::8, _::8, raw_amount::8, timestamp::binary-size(5)>>, _) do
+
+  def decode(
+        <<_::8, raw_programmed_amount::8, _::8, raw_amount::8, timestamp::binary-size(5)>>,
+        _
+      ) do
     programmed_amount = (raw_programmed_amount <<< 2) / 40
+
     %{
       programmed_amount: programmed_amount,
       amount: (raw_amount <<< 2) / 40,
       prime_type: prime_type(programmed_amount),
-      timestamp: DateDecoder.decode_history_timestamp(timestamp),
+      timestamp: DateDecoder.decode_history_timestamp(timestamp)
     }
   end
 

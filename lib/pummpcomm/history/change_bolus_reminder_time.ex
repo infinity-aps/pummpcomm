@@ -14,6 +14,6 @@ defmodule Pummpcomm.History.ChangeBolusReminderTime do
   """
   @impl Pummpcomm.History.Decoder
   # TODO decode bolus reminder time
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

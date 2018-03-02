@@ -5,6 +5,9 @@ defmodule Pummpcomm.History.InsulinMarkerTest do
   test "Insulin Marker" do
     {:ok, history_page} = Base.decode16("424C722713040FC0")
     decoded_events = Pummpcomm.History.decode_records(history_page, %{})
-    assert {:insulin_marker, %{amount: 84.4, timestamp: ~N[2015-04-04 19:39:50], raw: ^history_page}} = Enum.at(decoded_events, 0)
+
+    assert {:insulin_marker,
+            %{amount: 84.4, timestamp: ~N[2015-04-04 19:39:50], raw: ^history_page}} =
+             Enum.at(decoded_events, 0)
   end
 end

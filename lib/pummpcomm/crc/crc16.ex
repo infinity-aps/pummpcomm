@@ -38,7 +38,8 @@ defmodule Pummpcomm.Crc.Crc16 do
   * `{:ok, expected_crc16}` - `expected_crc16` extracted from `page`.
 
   """
-  @spec check_crc_16(binary) :: {:error, String.t} | {:fail, String.t} | {:ok, non_neg_integer}
+  @spec check_crc_16(binary) ::
+          {:error, String.t()} | {:fail, String.t()} | {:ok, non_neg_integer}
 
   def check_crc_16(page) when byte_size(page) <= 2 do
     {:error, "Page is too short"}
@@ -47,9 +48,14 @@ defmodule Pummpcomm.Crc.Crc16 do
   def check_crc_16(page) do
     crc_data = crc_data(page)
     computed_crc = crc_16(page_data(page))
+
     case crc_data == computed_crc do
-      false -> {:fail, "#{Integer.to_string(computed_crc, 16)} does not match #{Integer.to_string(crc_data, 16)}"}
-      true  -> {:ok, crc_data}
+      false ->
+        {:fail,
+         "#{Integer.to_string(computed_crc, 16)} does not match #{Integer.to_string(crc_data, 16)}"}
+
+      true ->
+        {:ok, crc_data}
     end
   end
 
@@ -57,7 +63,7 @@ defmodule Pummpcomm.Crc.Crc16 do
   CRC16 of `binary`
   """
   @spec crc_16(binary) :: non_neg_integer
-  def crc_16(binary), do: crc_16(binary, 0xffff)
+  def crc_16(binary), do: crc_16(binary, 0xFFFF)
 
   @doc """
   The section of `page` that does not contain the `crc_data`
@@ -68,11 +74,13 @@ defmodule Pummpcomm.Crc.Crc16 do
   ## Private Functions
 
   defp crc_16(<<>>, crc), do: crc
+
   defp crc_16(<<data::unsigned-integer-size(8), tail::binary>>, crc) do
-    idx = ((crc >>> 8) ^^^ data) &&& 0xff
-    crc = ((crc <<< 8) ^^^ Enum.at(@crc_table, idx)) &&& 0xffff
+    idx = (crc >>> 8) ^^^ data &&& 0xFF
+    crc = (crc <<< 8) ^^^ Enum.at(@crc_table, idx) &&& 0xFFFF
     crc_16(tail, crc)
   end
 
-  defp crc_data(page), do: page |> :binary.part(byte_size(page) - 2, 2) |> :binary.decode_unsigned
+  defp crc_data(page),
+    do: page |> :binary.part(byte_size(page) - 2, 2) |> :binary.decode_unsigned()
 end

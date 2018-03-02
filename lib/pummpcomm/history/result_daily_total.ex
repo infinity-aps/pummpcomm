@@ -24,9 +24,13 @@ defmodule Pummpcomm.History.ResultDailyTotal do
   The number of strokes and units given in a day
   """
   @impl Pummpcomm.History.Decoder
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) ::
-          %{strokes: strokes, timestamp: NaiveDateTime.t, units: Insulin.units}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{
+          strokes: strokes,
+          timestamp: NaiveDateTime.t(),
+          units: Insulin.units()
+        }
   def decode(body, pump_options)
+
   def decode(<<_::16, strokes::16, timestamp::binary-size(2), _::binary>>, _) do
     %{
       strokes: strokes,

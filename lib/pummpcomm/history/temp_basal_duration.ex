@@ -20,8 +20,12 @@ defmodule Pummpcomm.History.TempBasalDuration do
   `timestamp` when `PummpComm.History.TempBasal` ended after `duration`.
   """
   @impl Pummpcomm.History.Decoder
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{duration: duration, timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{
+          duration: duration,
+          timestamp: NaiveDateTime.t()
+        }
   def decode(body, pump_options)
+
   def decode(<<duration::8, timestamp::binary-size(5)>>, _) do
     %{
       duration: duration * 30,

@@ -38,8 +38,10 @@ defimpl Pummpcomm.Radio.Chip, for: RFM69.Device do
       data_modul: 0x08,
       pa_level: 0x5F,
       lna: 0x88,
-      rx_bw: 0x40, # 250kHz with dcc freq shift 2, RxBwMant of 16 and RxBwExp of 0
-      afc_bw: 0x80, # dcc freq shift of 4
+      # 250kHz with dcc freq shift 2, RxBwMant of 16 and RxBwExp of 0
+      rx_bw: 0x40,
+      # dcc freq shift of 4
+      afc_bw: 0x80,
       dio_mapping1: 0x80,
       dio_mapping2: 0x07,
       rssi_thresh: 0xE4,
@@ -51,15 +53,21 @@ defimpl Pummpcomm.Radio.Chip, for: RFM69.Device do
       fifo_thresh: 0x94,
       packet_config2: 0x00
     }
+
     RFM69.write_configuration(chip, configuration)
     :ok
   end
 end
 
 defimpl Pummpcomm.Radio.Chip, for: Any do
-  def set_base_frequency(chip, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
-  def read(chip, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
-  def write(chip, _, _, _, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
-  def write_and_read(chip, _, _), do: {:error, "No Chip implementation found for #{inspect chip}"}
-  def configure(chip), do: {:error, "No Chip implementation found for #{inspect chip}"}
+  def set_base_frequency(chip, _),
+    do: {:error, "No Chip implementation found for #{inspect(chip)}"}
+
+  def read(chip, _), do: {:error, "No Chip implementation found for #{inspect(chip)}"}
+  def write(chip, _, _, _, _), do: {:error, "No Chip implementation found for #{inspect(chip)}"}
+
+  def write_and_read(chip, _, _),
+    do: {:error, "No Chip implementation found for #{inspect(chip)}"}
+
+  def configure(chip), do: {:error, "No Chip implementation found for #{inspect(chip)}"}
 end

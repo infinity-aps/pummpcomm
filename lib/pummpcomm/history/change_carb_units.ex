@@ -14,6 +14,6 @@ defmodule Pummpcomm.History.ChangeCarbUnits do
   """
   @impl Pummpcomm.History.Decoder
   # TODO decode whether grams or exchanges is selected
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

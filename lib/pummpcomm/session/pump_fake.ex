@@ -9,17 +9,36 @@ defmodule Pummpcomm.Session.PumpFake do
     GenServer.start_link(__MODULE__, local_timezone, name: __MODULE__)
   end
 
+  def init(local_timezone) do
+    {:ok, local_timezone}
+  end
+
   def get_current_cgm_page do
     {:ok, %{glucose: 32, isig: 32, page_number: 10}}
   end
 
   def get_model_number, do: {:ok, 722}
-  def read_bg_targets, do: {:ok, %{units: "mg/dL", targets: [%{bg_high: 120, bg_low: 80, start: ~T[00:00:00]}]}}
-  def read_carb_ratios, do: {:ok, %{units: :grams, schedule: [%{ ratio: 15.0, start: ~T[00:00:00] }]}}
+
+  def read_bg_targets,
+    do: {:ok, %{units: "mg/dL", targets: [%{bg_high: 120, bg_low: 80, start: ~T[00:00:00]}]}}
+
+  def read_carb_ratios,
+    do: {:ok, %{units: :grams, schedule: [%{ratio: 15.0, start: ~T[00:00:00]}]}}
+
   def read_cgm_page(page), do: GenServer.call(__MODULE__, {:read_cgm_page, page})
   def read_history_page(page), do: GenServer.call(__MODULE__, {:read_history_page, page})
-  def read_insulin_sensitivities, do: {:ok, units: "mg/dL", sensitivities: [%{sensitivity: 40, start: ~T[00:00:00]}]}
-  def read_settings, do: {:ok, insulin_action_curve_hours: 3, max_basal: 3.0, max_bolus: 15.0, selected_basal_profile: :standard}
+
+  def read_insulin_sensitivities,
+    do: {:ok, units: "mg/dL", sensitivities: [%{sensitivity: 40, start: ~T[00:00:00]}]}
+
+  def read_settings,
+    do:
+      {:ok,
+       insulin_action_curve_hours: 3,
+       max_basal: 3.0,
+       max_bolus: 15.0,
+       selected_basal_profile: :standard}
+
   def read_std_basal_profile, do: {:ok, %{schedule: [%{rate: 1.4, start: ~T[00:00:00]}]}}
   def read_temp_basal, do: {:ok, %{type: :absolute, units_per_hour: 3.0, duration: 30}}
   def read_time, do: {:ok, Timex.now()}
@@ -39,25 +58,35 @@ defmodule Pummpcomm.Session.PumpFake do
   end
 
   def fake_rolling_history(local_timezone) do
-    today_midnight = local_timezone |> Timex.now() |> Timex.to_date |> Timex.to_naive_datetime
+    today_midnight = local_timezone |> Timex.now() |> Timex.to_date() |> Timex.to_naive_datetime()
     yesterday_midnight = today_midnight |> Timex.shift(days: -1)
-    yesterday = history_entries() |> Enum.reverse() |> offset_and_trim_history(yesterday_midnight, local_timezone)
-    today = history_entries() |> Enum.reverse() |> offset_and_trim_history(today_midnight, local_timezone)
+
+    yesterday =
+      history_entries() |> Enum.reverse()
+      |> offset_and_trim_history(yesterday_midnight, local_timezone)
+
+    today =
+      history_entries() |> Enum.reverse()
+      |> offset_and_trim_history(today_midnight, local_timezone)
+
     {:ok, yesterday ++ today}
   end
 
   defp offset_and_trim_history(entries, date_offset, local_timezone) do
-    now = local_timezone |> Timex.now() |> DateTime.to_naive
+    now = local_timezone |> Timex.now() |> DateTime.to_naive()
+
     entries
-    |> Enum.map(fn(entry = {entry_type, entry_data}) ->
+    |> Enum.map(fn entry = {entry_type, entry_data} ->
       case Map.get(entry_data, :timestamp) do
-        nil -> entry
+        nil ->
+          entry
+
         timestamp ->
-          day_offset = Timex.diff(date_offset, timestamp |> Timex.to_date, :days)
+          day_offset = Timex.diff(date_offset, timestamp |> Timex.to_date(), :days)
           {entry_type, %{entry_data | timestamp: Timex.shift(timestamp, days: day_offset)}}
       end
     end)
-    |> Enum.filter(fn({entry_type, entry_data}) ->
+    |> Enum.filter(fn {entry_type, entry_data} ->
       case Map.get(entry_data, :timestamp) do
         nil -> entry_type != :null_byte
         timestamp -> Timex.before?(timestamp, now)
@@ -65,27 +94,33 @@ defmodule Pummpcomm.Session.PumpFake do
     end)
   end
 
-  #returns between 1-2 days of actual cgm data time shifted so that it's realistic
+  # returns between 1-2 days of actual cgm data time shifted so that it's realistic
   def fake_rolling_cgm(local_timezone) do
-    today_midnight = local_timezone |> Timex.now() |> Timex.to_date |> Timex.to_naive_datetime
+    today_midnight = local_timezone |> Timex.now() |> Timex.to_date() |> Timex.to_naive_datetime()
     yesterday_midnight = today_midnight |> Timex.shift(days: -1)
-    yesterday = sgv_entries() |> Enum.reverse() |> offset_and_trim_cgm(yesterday_midnight, local_timezone)
+
+    yesterday =
+      sgv_entries() |> Enum.reverse() |> offset_and_trim_cgm(yesterday_midnight, local_timezone)
+
     today = sgv_entries() |> Enum.reverse() |> offset_and_trim_cgm(today_midnight, local_timezone)
     {:ok, yesterday ++ today}
   end
 
   defp offset_and_trim_cgm(entries, date_offset, local_timezone) do
-    now = local_timezone |> Timex.now() |> DateTime.to_naive
+    now = local_timezone |> Timex.now() |> DateTime.to_naive()
+
     entries
-    |> Enum.map(fn(entry = {entry_type, entry_data}) ->
+    |> Enum.map(fn entry = {entry_type, entry_data} ->
       case Map.get(entry_data, :timestamp) do
-        nil -> entry
+        nil ->
+          entry
+
         timestamp ->
-          day_offset = Timex.diff(date_offset, timestamp |> Timex.to_date, :days)
+          day_offset = Timex.diff(date_offset, timestamp |> Timex.to_date(), :days)
           {entry_type, %{entry_data | timestamp: Timex.shift(timestamp, days: day_offset)}}
       end
     end)
-    |> Enum.filter(fn({entry_type, entry_data}) ->
+    |> Enum.filter(fn {entry_type, entry_data} ->
       case Map.get(entry_data, :timestamp) do
         nil -> entry_type != :null_byte
         timestamp -> Timex.before?(timestamp, now)
@@ -96,816 +131,1257 @@ defmodule Pummpcomm.Session.PumpFake do
   defp history_entries do
     [
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 45, 185, 23, 83, 18>>,
-         timestamp: ~N[2018-02-19 23:57:45]}},
+       %{duration: 30, raw: <<22, 1, 45, 185, 23, 83, 18>>, timestamp: ~N[2018-02-19 23:57:45]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 45, 185, 23, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 23:57:45]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 45, 185, 23, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 23:57:45]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 44, 173, 23, 83, 18>>,
-         timestamp: ~N[2018-02-19 23:45:44]}},
+       %{duration: 30, raw: <<22, 1, 44, 173, 23, 83, 18>>, timestamp: ~N[2018-02-19 23:45:44]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 44, 173, 23, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 23:45:44]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 44, 173, 23, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 23:45:44]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 34, 162, 23, 83, 18>>,
-         timestamp: ~N[2018-02-19 23:34:34]}},
+       %{duration: 30, raw: <<22, 1, 34, 162, 23, 83, 18>>, timestamp: ~N[2018-02-19 23:34:34]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 34, 162, 23, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 23:34:34]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 34, 162, 23, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 23:34:34]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 46, 134, 23, 83, 18>>,
-         timestamp: ~N[2018-02-19 23:06:46]}},
+       %{duration: 30, raw: <<22, 1, 46, 134, 23, 83, 18>>, timestamp: ~N[2018-02-19 23:06:46]}},
       {:temp_basal,
-       %{rate: 1.1, rate_type: :absolute, raw: <<51, 44, 46, 134, 23, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 23:06:46]}},
+       %{
+         rate: 1.1,
+         rate_type: :absolute,
+         raw: <<51, 44, 46, 134, 23, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 23:06:46]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 35, 183, 22, 83, 18>>,
-         timestamp: ~N[2018-02-19 22:55:35]}},
+       %{duration: 30, raw: <<22, 1, 35, 183, 22, 83, 18>>, timestamp: ~N[2018-02-19 22:55:35]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 35, 183, 22, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 22:55:35]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 35, 183, 22, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 22:55:35]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 59, 167, 22, 83, 18>>,
-         timestamp: ~N[2018-02-19 22:39:59]}},
+       %{duration: 30, raw: <<22, 1, 59, 167, 22, 83, 18>>, timestamp: ~N[2018-02-19 22:39:59]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 59, 167, 22, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 22:39:59]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 59, 167, 22, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 22:39:59]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 59, 150, 22, 83, 18>>,
-         timestamp: ~N[2018-02-19 22:22:59]}},
+       %{duration: 30, raw: <<22, 1, 59, 150, 22, 83, 18>>, timestamp: ~N[2018-02-19 22:22:59]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 59, 150, 22, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 22:22:59]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 59, 150, 22, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 22:22:59]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 54, 133, 22, 83, 18>>,
-         timestamp: ~N[2018-02-19 22:05:54]}},
+       %{duration: 30, raw: <<22, 1, 54, 133, 22, 83, 18>>, timestamp: ~N[2018-02-19 22:05:54]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 54, 133, 22, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 22:05:54]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 54, 133, 22, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 22:05:54]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 46, 168, 21, 83, 18>>,
-         timestamp: ~N[2018-02-19 21:40:46]}},
+       %{duration: 30, raw: <<22, 1, 46, 168, 21, 83, 18>>, timestamp: ~N[2018-02-19 21:40:46]}},
       {:temp_basal,
-       %{rate: 3.5, rate_type: :absolute, raw: <<51, 140, 46, 168, 21, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 21:40:46]}},
+       %{
+         rate: 3.5,
+         rate_type: :absolute,
+         raw: <<51, 140, 46, 168, 21, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 21:40:46]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 31, 158, 21, 83, 18>>,
-         timestamp: ~N[2018-02-19 21:30:31]}},
+       %{duration: 30, raw: <<22, 1, 31, 158, 21, 83, 18>>, timestamp: ~N[2018-02-19 21:30:31]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 31, 158, 21, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 21:30:31]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 31, 158, 21, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 21:30:31]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 52, 157, 21, 83, 18>>,
-         timestamp: ~N[2018-02-19 21:29:52]}},
+       %{duration: 30, raw: <<22, 1, 52, 157, 21, 83, 18>>, timestamp: ~N[2018-02-19 21:29:52]}},
       {:temp_basal,
-       %{rate: 3.5, rate_type: :absolute, raw: <<51, 140, 52, 157, 21, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 21:29:52]}},
+       %{
+         rate: 3.5,
+         rate_type: :absolute,
+         raw: <<51, 140, 52, 157, 21, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 21:29:52]
+       }},
       {:bolus_normal,
-       %{amount: 4.0, duration: 0, programmed: 4.0,
+       %{
+         amount: 4.0,
+         duration: 0,
+         programmed: 4.0,
          raw: <<1, 40, 40, 0, 17, 151, 85, 19, 18>>,
-         timestamp: ~N[2018-02-19 21:23:17], type: :normal}},
+         timestamp: ~N[2018-02-19 21:23:17],
+         type: :normal
+       }},
       {:bolus_wizard_estimate,
-       %{bg: 280, bg_target_high: 110, bg_target_low: 90, bolus_estimate: 0.0,
-         carb_ratio: 6, carbohydrates: 0, correction_estimate: 5.6,
-         food_estimate: 0.0, insulin_sensitivity: 30,
-         raw: <<91, 24, 17, 151, 21, 19, 18, 0, 81, 6, 30, 90, 56, 0, 0, 0, 81, 0, 0,
-         110>>, timestamp: ~N[2018-02-19 21:23:17], unabsorbed_insulin_total: 8.1}},
+       %{
+         bg: 280,
+         bg_target_high: 110,
+         bg_target_low: 90,
+         bolus_estimate: 0.0,
+         carb_ratio: 6,
+         carbohydrates: 0,
+         correction_estimate: 5.6,
+         food_estimate: 0.0,
+         insulin_sensitivity: 30,
+         raw: <<91, 24, 17, 151, 21, 19, 18, 0, 81, 6, 30, 90, 56, 0, 0, 0, 81, 0, 0, 110>>,
+         timestamp: ~N[2018-02-19 21:23:17],
+         unabsorbed_insulin_total: 8.1
+       }},
       {:bg_received,
-       %{amount: 280, meter_link_id: "C1774D",
+       %{
+         amount: 280,
+         meter_link_id: "C1774D",
          raw: <<63, 35, 46, 150, 21, 115, 18, 193, 119, 77>>,
-         timestamp: ~N[2018-02-19 21:22:46]}},
+         timestamp: ~N[2018-02-19 21:22:46]
+       }},
       {:cal_bg_for_ph,
-       %{amount: 280, raw: <<10, 24, 46, 150, 53, 115, 146>>,
-         timestamp: ~N[2018-02-19 21:22:46]}},
+       %{amount: 280, raw: <<10, 24, 46, 150, 53, 115, 146>>, timestamp: ~N[2018-02-19 21:22:46]}},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 9, 146, 21, 83, 18>>,
-         timestamp: ~N[2018-02-19 21:18:09]}},
+       %{duration: 30, raw: <<22, 1, 9, 146, 21, 83, 18>>, timestamp: ~N[2018-02-19 21:18:09]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 9, 146, 21, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 21:18:09]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 9, 146, 21, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 21:18:09]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 29, 180, 20, 83, 18>>,
-         timestamp: ~N[2018-02-19 20:52:29]}},
+       %{duration: 30, raw: <<22, 1, 29, 180, 20, 83, 18>>, timestamp: ~N[2018-02-19 20:52:29]}},
       {:temp_basal,
-       %{rate: 1.1, rate_type: :absolute, raw: <<51, 44, 29, 180, 20, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 20:52:29]}},
+       %{
+         rate: 1.1,
+         rate_type: :absolute,
+         raw: <<51, 44, 29, 180, 20, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 20:52:29]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 49, 169, 20, 83, 18>>,
-         timestamp: ~N[2018-02-19 20:41:49]}},
+       %{duration: 30, raw: <<22, 1, 49, 169, 20, 83, 18>>, timestamp: ~N[2018-02-19 20:41:49]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 49, 169, 20, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 20:41:49]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 49, 169, 20, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 20:41:49]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 54, 153, 20, 83, 18>>,
-         timestamp: ~N[2018-02-19 20:25:54]}},
+       %{duration: 30, raw: <<22, 1, 54, 153, 20, 83, 18>>, timestamp: ~N[2018-02-19 20:25:54]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 54, 153, 20, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 20:25:54]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 54, 153, 20, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 20:25:54]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 45, 137, 20, 83, 18>>,
-         timestamp: ~N[2018-02-19 20:09:45]}},
+       %{duration: 30, raw: <<22, 1, 45, 137, 20, 83, 18>>, timestamp: ~N[2018-02-19 20:09:45]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 45, 137, 20, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 20:09:45]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 45, 137, 20, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 20:09:45]
+       }},
       {:bolus_normal,
-       %{amount: 11.6, duration: 0, programmed: 11.6,
+       %{
+         amount: 11.6,
+         duration: 0,
+         programmed: 11.6,
          raw: <<1, 116, 116, 0, 49, 129, 84, 19, 18>>,
-         timestamp: ~N[2018-02-19 20:01:49], type: :normal}},
+         timestamp: ~N[2018-02-19 20:01:49],
+         type: :normal
+       }},
       {:bolus_wizard_estimate,
-       %{bg: 0, bg_target_high: 110, bg_target_low: 90, bolus_estimate: 11.6,
-         carb_ratio: 6, carbohydrates: 70, correction_estimate: 0.0,
-         food_estimate: 11.6, insulin_sensitivity: 25,
-         raw: <<91, 0, 49, 129, 20, 19, 18, 70, 80, 6, 25, 90, 0, 116, 0, 0, 0, 0,
-         116, 110>>, timestamp: ~N[2018-02-19 20:01:49],
-         unabsorbed_insulin_total: 0.0}},
+       %{
+         bg: 0,
+         bg_target_high: 110,
+         bg_target_low: 90,
+         bolus_estimate: 11.6,
+         carb_ratio: 6,
+         carbohydrates: 70,
+         correction_estimate: 0.0,
+         food_estimate: 11.6,
+         insulin_sensitivity: 25,
+         raw: <<91, 0, 49, 129, 20, 19, 18, 70, 80, 6, 25, 90, 0, 116, 0, 0, 0, 0, 116, 110>>,
+         timestamp: ~N[2018-02-19 20:01:49],
+         unabsorbed_insulin_total: 0.0
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 37, 179, 19, 83, 18>>,
-         timestamp: ~N[2018-02-19 19:51:37]}},
+       %{duration: 30, raw: <<22, 1, 37, 179, 19, 83, 18>>, timestamp: ~N[2018-02-19 19:51:37]}},
       {:temp_basal,
-       %{rate: 2.25, rate_type: :absolute, raw: <<51, 90, 37, 179, 19, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 19:51:37]}},
+       %{
+         rate: 2.25,
+         rate_type: :absolute,
+         raw: <<51, 90, 37, 179, 19, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 19:51:37]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 42, 175, 19, 83, 18>>,
-         timestamp: ~N[2018-02-19 19:47:42]}},
+       %{duration: 30, raw: <<22, 1, 42, 175, 19, 83, 18>>, timestamp: ~N[2018-02-19 19:47:42]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 42, 175, 19, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 19:47:42]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 42, 175, 19, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 19:47:42]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 8, 175, 19, 83, 18>>,
-         timestamp: ~N[2018-02-19 19:47:08]}},
+       %{duration: 30, raw: <<22, 1, 8, 175, 19, 83, 18>>, timestamp: ~N[2018-02-19 19:47:08]}},
       {:temp_basal,
-       %{rate: 1.7, rate_type: :absolute, raw: <<51, 68, 8, 175, 19, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 19:47:08]}},
+       %{
+         rate: 1.7,
+         rate_type: :absolute,
+         raw: <<51, 68, 8, 175, 19, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 19:47:08]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 23, 143, 19, 83, 18>>,
-         timestamp: ~N[2018-02-19 19:15:23]}},
+       %{duration: 30, raw: <<22, 1, 23, 143, 19, 83, 18>>, timestamp: ~N[2018-02-19 19:15:23]}},
       {:temp_basal,
-       %{rate: 3.3, rate_type: :absolute, raw: <<51, 132, 23, 143, 19, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 19:15:23]}},
+       %{
+         rate: 3.3,
+         rate_type: :absolute,
+         raw: <<51, 132, 23, 143, 19, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 19:15:23]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 1, 138, 19, 83, 18>>,
-         timestamp: ~N[2018-02-19 19:10:01]}},
+       %{duration: 30, raw: <<22, 1, 1, 138, 19, 83, 18>>, timestamp: ~N[2018-02-19 19:10:01]}},
       {:temp_basal,
-       %{rate: 2.55, rate_type: :absolute, raw: <<51, 102, 1, 138, 19, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 19:10:01]}},
+       %{
+         rate: 2.55,
+         rate_type: :absolute,
+         raw: <<51, 102, 1, 138, 19, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 19:10:01]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 0, 132, 19, 83, 18>>,
-         timestamp: ~N[2018-02-19 19:04:00]}},
+       %{duration: 30, raw: <<22, 1, 0, 132, 19, 83, 18>>, timestamp: ~N[2018-02-19 19:04:00]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 0, 132, 19, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 19:04:00]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 0, 132, 19, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 19:04:00]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 18, 181, 18, 83, 18>>,
-         timestamp: ~N[2018-02-19 18:53:18]}},
+       %{duration: 30, raw: <<22, 1, 18, 181, 18, 83, 18>>, timestamp: ~N[2018-02-19 18:53:18]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 18, 181, 18, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 18:53:18]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 18, 181, 18, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 18:53:18]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 53, 167, 18, 83, 18>>,
-         timestamp: ~N[2018-02-19 18:39:53]}},
+       %{duration: 30, raw: <<22, 1, 53, 167, 18, 83, 18>>, timestamp: ~N[2018-02-19 18:39:53]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 53, 167, 18, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 18:39:53]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 53, 167, 18, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 18:39:53]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 21, 156, 18, 83, 18>>,
-         timestamp: ~N[2018-02-19 18:28:21]}},
+       %{duration: 30, raw: <<22, 1, 21, 156, 18, 83, 18>>, timestamp: ~N[2018-02-19 18:28:21]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 21, 156, 18, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 18:28:21]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 21, 156, 18, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 18:28:21]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 7, 147, 18, 83, 18>>,
-         timestamp: ~N[2018-02-19 18:19:07]}},
+       %{duration: 30, raw: <<22, 1, 7, 147, 18, 83, 18>>, timestamp: ~N[2018-02-19 18:19:07]}},
       {:temp_basal,
-       %{rate: 3.5, rate_type: :absolute, raw: <<51, 140, 7, 147, 18, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 18:19:07]}},
+       %{
+         rate: 3.5,
+         rate_type: :absolute,
+         raw: <<51, 140, 7, 147, 18, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 18:19:07]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 46, 141, 18, 83, 18>>,
-         timestamp: ~N[2018-02-19 18:13:46]}},
+       %{duration: 30, raw: <<22, 1, 46, 141, 18, 83, 18>>, timestamp: ~N[2018-02-19 18:13:46]}},
       {:temp_basal,
-       %{rate: 1.0, rate_type: :absolute, raw: <<51, 40, 46, 141, 18, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 18:13:46]}},
+       %{
+         rate: 1.0,
+         rate_type: :absolute,
+         raw: <<51, 40, 46, 141, 18, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 18:13:46]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 25, 136, 18, 83, 18>>,
-         timestamp: ~N[2018-02-19 18:08:25]}},
+       %{duration: 30, raw: <<22, 1, 25, 136, 18, 83, 18>>, timestamp: ~N[2018-02-19 18:08:25]}},
       {:temp_basal,
-       %{rate: 2.55, rate_type: :absolute, raw: <<51, 102, 25, 136, 18, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 18:08:25]}},
+       %{
+         rate: 2.55,
+         rate_type: :absolute,
+         raw: <<51, 102, 25, 136, 18, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 18:08:25]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 33, 130, 18, 83, 18>>,
-         timestamp: ~N[2018-02-19 18:02:33]}},
+       %{duration: 30, raw: <<22, 1, 33, 130, 18, 83, 18>>, timestamp: ~N[2018-02-19 18:02:33]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 33, 130, 18, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 18:02:33]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 33, 130, 18, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 18:02:33]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 40, 185, 17, 83, 18>>,
-         timestamp: ~N[2018-02-19 17:57:40]}},
+       %{duration: 30, raw: <<22, 1, 40, 185, 17, 83, 18>>, timestamp: ~N[2018-02-19 17:57:40]}},
       {:temp_basal,
-       %{rate: 3.05, rate_type: :absolute, raw: <<51, 122, 40, 185, 17, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 17:57:40]}},
+       %{
+         rate: 3.05,
+         rate_type: :absolute,
+         raw: <<51, 122, 40, 185, 17, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 17:57:40]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 20, 159, 17, 83, 18>>,
-         timestamp: ~N[2018-02-19 17:31:20]}},
+       %{duration: 30, raw: <<22, 1, 20, 159, 17, 83, 18>>, timestamp: ~N[2018-02-19 17:31:20]}},
       {:temp_basal,
-       %{rate: 3.5, rate_type: :absolute, raw: <<51, 140, 20, 159, 17, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 17:31:20]}},
+       %{
+         rate: 3.5,
+         rate_type: :absolute,
+         raw: <<51, 140, 20, 159, 17, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 17:31:20]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 10, 147, 17, 83, 18>>,
-         timestamp: ~N[2018-02-19 17:19:10]}},
+       %{duration: 30, raw: <<22, 1, 10, 147, 17, 83, 18>>, timestamp: ~N[2018-02-19 17:19:10]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 10, 147, 17, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 17:19:10]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 10, 147, 17, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 17:19:10]
+       }},
       {:prime,
-       %{amount: 0.5, prime_type: :fixed, programmed_amount: 0.5,
+       %{
+         amount: 0.5,
+         prime_type: :fixed,
+         programmed_amount: 0.5,
          raw: <<3, 0, 5, 0, 5, 5, 144, 17, 19, 18>>,
-         timestamp: ~N[2018-02-19 17:16:05]}},
+         timestamp: ~N[2018-02-19 17:16:05]
+       }},
       {:prime,
-       %{amount: 9.6, prime_type: :manual, programmed_amount: 0.0,
+       %{
+         amount: 9.6,
+         prime_type: :manual,
+         programmed_amount: 0.0,
          raw: <<3, 0, 0, 0, 96, 16, 143, 49, 19, 18>>,
-         timestamp: ~N[2018-02-19 17:15:16]}},
-      {:pump_rewind,
-       %{raw: <<33, 0, 26, 139, 17, 19, 18>>, timestamp: ~N[2018-02-19 17:11:26]}},
+         timestamp: ~N[2018-02-19 17:15:16]
+       }},
+      {:pump_rewind, %{raw: <<33, 0, 26, 139, 17, 19, 18>>, timestamp: ~N[2018-02-19 17:11:26]}},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 15, 136, 17, 83, 18>>,
-         timestamp: ~N[2018-02-19 17:08:15]}},
+       %{duration: 30, raw: <<22, 1, 15, 136, 17, 83, 18>>, timestamp: ~N[2018-02-19 17:08:15]}},
       {:temp_basal,
-       %{rate: 2.55, rate_type: :absolute, raw: <<51, 102, 15, 136, 17, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 17:08:15]}},
+       %{
+         rate: 2.55,
+         rate_type: :absolute,
+         raw: <<51, 102, 15, 136, 17, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 17:08:15]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 51, 131, 17, 83, 18>>,
-         timestamp: ~N[2018-02-19 17:03:51]}},
+       %{duration: 30, raw: <<22, 1, 51, 131, 17, 83, 18>>, timestamp: ~N[2018-02-19 17:03:51]}},
       {:temp_basal,
-       %{rate: 1.65, rate_type: :absolute, raw: <<51, 66, 51, 131, 17, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 17:03:51]}},
+       %{
+         rate: 1.65,
+         rate_type: :absolute,
+         raw: <<51, 66, 51, 131, 17, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 17:03:51]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 23, 179, 16, 83, 18>>,
-         timestamp: ~N[2018-02-19 16:51:23]}},
+       %{duration: 30, raw: <<22, 1, 23, 179, 16, 83, 18>>, timestamp: ~N[2018-02-19 16:51:23]}},
       {:temp_basal,
-       %{rate: 3.05, rate_type: :absolute, raw: <<51, 122, 23, 179, 16, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 16:51:23]}},
+       %{
+         rate: 3.05,
+         rate_type: :absolute,
+         raw: <<51, 122, 23, 179, 16, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 16:51:23]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 8, 169, 16, 83, 18>>,
-         timestamp: ~N[2018-02-19 16:41:08]}},
+       %{duration: 30, raw: <<22, 1, 8, 169, 16, 83, 18>>, timestamp: ~N[2018-02-19 16:41:08]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 8, 169, 16, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 16:41:08]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 8, 169, 16, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 16:41:08]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 36, 162, 16, 83, 18>>,
-         timestamp: ~N[2018-02-19 16:34:36]}},
+       %{duration: 30, raw: <<22, 1, 36, 162, 16, 83, 18>>, timestamp: ~N[2018-02-19 16:34:36]}},
       {:temp_basal,
-       %{rate: 2.95, rate_type: :absolute, raw: <<51, 118, 36, 162, 16, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 16:34:36]}},
+       %{
+         rate: 2.95,
+         rate_type: :absolute,
+         raw: <<51, 118, 36, 162, 16, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 16:34:36]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 36, 147, 16, 83, 18>>,
-         timestamp: ~N[2018-02-19 16:19:36]}},
+       %{duration: 30, raw: <<22, 1, 36, 147, 16, 83, 18>>, timestamp: ~N[2018-02-19 16:19:36]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 36, 147, 16, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 16:19:36]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 36, 147, 16, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 16:19:36]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 21, 144, 16, 83, 18>>,
-         timestamp: ~N[2018-02-19 16:16:21]}},
+       %{duration: 30, raw: <<22, 1, 21, 144, 16, 83, 18>>, timestamp: ~N[2018-02-19 16:16:21]}},
       {:temp_basal,
-       %{rate: 2.45, rate_type: :absolute, raw: <<51, 98, 21, 144, 16, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 16:16:21]}},
+       %{
+         rate: 2.45,
+         rate_type: :absolute,
+         raw: <<51, 98, 21, 144, 16, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 16:16:21]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 54, 137, 16, 83, 18>>,
-         timestamp: ~N[2018-02-19 16:09:54]}},
+       %{duration: 30, raw: <<22, 1, 54, 137, 16, 83, 18>>, timestamp: ~N[2018-02-19 16:09:54]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 54, 137, 16, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 16:09:54]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 54, 137, 16, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 16:09:54]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 24, 131, 16, 83, 18>>,
-         timestamp: ~N[2018-02-19 16:03:24]}},
+       %{duration: 30, raw: <<22, 1, 24, 131, 16, 83, 18>>, timestamp: ~N[2018-02-19 16:03:24]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 24, 131, 16, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 16:03:24]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 24, 131, 16, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 16:03:24]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 21, 181, 15, 83, 18>>,
-         timestamp: ~N[2018-02-19 15:53:21]}},
+       %{duration: 30, raw: <<22, 1, 21, 181, 15, 83, 18>>, timestamp: ~N[2018-02-19 15:53:21]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 21, 181, 15, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 15:53:21]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 21, 181, 15, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 15:53:21]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 53, 172, 15, 83, 18>>,
-         timestamp: ~N[2018-02-19 15:44:53]}},
+       %{duration: 30, raw: <<22, 1, 53, 172, 15, 83, 18>>, timestamp: ~N[2018-02-19 15:44:53]}},
       {:temp_basal,
-       %{rate: 3.5, rate_type: :absolute, raw: <<51, 140, 53, 172, 15, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 15:44:53]}},
+       %{
+         rate: 3.5,
+         rate_type: :absolute,
+         raw: <<51, 140, 53, 172, 15, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 15:44:53]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 46, 166, 15, 83, 18>>,
-         timestamp: ~N[2018-02-19 15:38:46]}},
+       %{duration: 30, raw: <<22, 1, 46, 166, 15, 83, 18>>, timestamp: ~N[2018-02-19 15:38:46]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 46, 166, 15, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 15:38:46]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 46, 166, 15, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 15:38:46]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 17, 156, 15, 83, 18>>,
-         timestamp: ~N[2018-02-19 15:28:17]}},
+       %{duration: 30, raw: <<22, 1, 17, 156, 15, 83, 18>>, timestamp: ~N[2018-02-19 15:28:17]}},
       {:temp_basal,
-       %{rate: 3.2, rate_type: :absolute, raw: <<51, 128, 17, 156, 15, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 15:28:17]}},
+       %{
+         rate: 3.2,
+         rate_type: :absolute,
+         raw: <<51, 128, 17, 156, 15, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 15:28:17]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 24, 155, 15, 83, 18>>,
-         timestamp: ~N[2018-02-19 15:27:24]}},
+       %{duration: 30, raw: <<22, 1, 24, 155, 15, 83, 18>>, timestamp: ~N[2018-02-19 15:27:24]}},
       {:temp_basal,
-       %{rate: 2.55, rate_type: :absolute, raw: <<51, 102, 24, 155, 15, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 15:27:24]}},
+       %{
+         rate: 2.55,
+         rate_type: :absolute,
+         raw: <<51, 102, 24, 155, 15, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 15:27:24]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 44, 148, 15, 83, 18>>,
-         timestamp: ~N[2018-02-19 15:20:44]}},
+       %{duration: 30, raw: <<22, 1, 44, 148, 15, 83, 18>>, timestamp: ~N[2018-02-19 15:20:44]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 44, 148, 15, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 15:20:44]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 44, 148, 15, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 15:20:44]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 33, 132, 15, 83, 18>>,
-         timestamp: ~N[2018-02-19 15:04:33]}},
+       %{duration: 30, raw: <<22, 1, 33, 132, 15, 83, 18>>, timestamp: ~N[2018-02-19 15:04:33]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 33, 132, 15, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 15:04:33]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 33, 132, 15, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 15:04:33]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 11, 181, 14, 83, 18>>,
-         timestamp: ~N[2018-02-19 14:53:11]}},
+       %{duration: 30, raw: <<22, 1, 11, 181, 14, 83, 18>>, timestamp: ~N[2018-02-19 14:53:11]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 11, 181, 14, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 14:53:11]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 11, 181, 14, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 14:53:11]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 16, 172, 14, 83, 18>>,
-         timestamp: ~N[2018-02-19 14:44:16]}},
+       %{duration: 30, raw: <<22, 1, 16, 172, 14, 83, 18>>, timestamp: ~N[2018-02-19 14:44:16]}},
       {:temp_basal,
-       %{rate: 2.2, rate_type: :absolute, raw: <<51, 88, 16, 172, 14, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 14:44:16]}},
+       %{
+         rate: 2.2,
+         rate_type: :absolute,
+         raw: <<51, 88, 16, 172, 14, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 14:44:16]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 34, 170, 14, 83, 18>>,
-         timestamp: ~N[2018-02-19 14:42:34]}},
+       %{duration: 30, raw: <<22, 1, 34, 170, 14, 83, 18>>, timestamp: ~N[2018-02-19 14:42:34]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 34, 170, 14, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 14:42:34]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 34, 170, 14, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 14:42:34]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 31, 154, 14, 83, 18>>,
-         timestamp: ~N[2018-02-19 14:26:31]}},
+       %{duration: 30, raw: <<22, 1, 31, 154, 14, 83, 18>>, timestamp: ~N[2018-02-19 14:26:31]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 31, 154, 14, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 14:26:31]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 31, 154, 14, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 14:26:31]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 19, 145, 14, 83, 18>>,
-         timestamp: ~N[2018-02-19 14:17:19]}},
+       %{duration: 30, raw: <<22, 1, 19, 145, 14, 83, 18>>, timestamp: ~N[2018-02-19 14:17:19]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 19, 145, 14, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 14:17:19]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 19, 145, 14, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 14:17:19]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 22, 133, 14, 83, 18>>,
-         timestamp: ~N[2018-02-19 14:05:22]}},
+       %{duration: 30, raw: <<22, 1, 22, 133, 14, 83, 18>>, timestamp: ~N[2018-02-19 14:05:22]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 22, 133, 14, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 14:05:22]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 22, 133, 14, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 14:05:22]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 33, 176, 13, 83, 18>>,
-         timestamp: ~N[2018-02-19 13:48:33]}},
+       %{duration: 30, raw: <<22, 1, 33, 176, 13, 83, 18>>, timestamp: ~N[2018-02-19 13:48:33]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 33, 176, 13, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 13:48:33]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 33, 176, 13, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 13:48:33]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 42, 172, 13, 83, 18>>,
-         timestamp: ~N[2018-02-19 13:44:42]}},
+       %{duration: 30, raw: <<22, 1, 42, 172, 13, 83, 18>>, timestamp: ~N[2018-02-19 13:44:42]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 42, 172, 13, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 13:44:42]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 42, 172, 13, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 13:44:42]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 2, 158, 13, 83, 18>>,
-         timestamp: ~N[2018-02-19 13:30:02]}},
+       %{duration: 30, raw: <<22, 1, 2, 158, 13, 83, 18>>, timestamp: ~N[2018-02-19 13:30:02]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 2, 158, 13, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 13:30:02]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 2, 158, 13, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 13:30:02]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 4, 145, 13, 83, 18>>,
-         timestamp: ~N[2018-02-19 13:17:04]}},
+       %{duration: 30, raw: <<22, 1, 4, 145, 13, 83, 18>>, timestamp: ~N[2018-02-19 13:17:04]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 4, 145, 13, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 13:17:04]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 4, 145, 13, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 13:17:04]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 12, 187, 12, 83, 18>>,
-         timestamp: ~N[2018-02-19 12:59:12]}},
+       %{duration: 30, raw: <<22, 1, 12, 187, 12, 83, 18>>, timestamp: ~N[2018-02-19 12:59:12]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 12, 187, 12, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 12:59:12]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 12, 187, 12, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 12:59:12]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 41, 170, 12, 83, 18>>,
-         timestamp: ~N[2018-02-19 12:42:41]}},
+       %{duration: 30, raw: <<22, 1, 41, 170, 12, 83, 18>>, timestamp: ~N[2018-02-19 12:42:41]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 41, 170, 12, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 12:42:41]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 41, 170, 12, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 12:42:41]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 34, 168, 12, 83, 18>>,
-         timestamp: ~N[2018-02-19 12:40:34]}},
+       %{duration: 30, raw: <<22, 1, 34, 168, 12, 83, 18>>, timestamp: ~N[2018-02-19 12:40:34]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 34, 168, 12, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 12:40:34]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 34, 168, 12, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 12:40:34]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 56, 165, 12, 83, 18>>,
-         timestamp: ~N[2018-02-19 12:37:56]}},
+       %{duration: 30, raw: <<22, 1, 56, 165, 12, 83, 18>>, timestamp: ~N[2018-02-19 12:37:56]}},
       {:temp_basal,
-       %{rate: 1.65, rate_type: :absolute, raw: <<51, 66, 56, 165, 12, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 12:37:56]}},
+       %{
+         rate: 1.65,
+         rate_type: :absolute,
+         raw: <<51, 66, 56, 165, 12, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 12:37:56]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 18, 161, 12, 83, 18>>,
-         timestamp: ~N[2018-02-19 12:33:18]}},
+       %{duration: 30, raw: <<22, 1, 18, 161, 12, 83, 18>>, timestamp: ~N[2018-02-19 12:33:18]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 18, 161, 12, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 12:33:18]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 18, 161, 12, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 12:33:18]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 7, 142, 12, 83, 18>>,
-         timestamp: ~N[2018-02-19 12:14:07]}},
+       %{duration: 30, raw: <<22, 1, 7, 142, 12, 83, 18>>, timestamp: ~N[2018-02-19 12:14:07]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 7, 142, 12, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 12:14:07]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 7, 142, 12, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 12:14:07]
+       }},
       {:bolus_normal,
-       %{amount: 10.0, duration: 0, programmed: 10.0,
+       %{
+         amount: 10.0,
+         duration: 0,
+         programmed: 10.0,
          raw: <<1, 100, 100, 0, 28, 134, 76, 19, 18>>,
-         timestamp: ~N[2018-02-19 12:06:28], type: :normal}},
+         timestamp: ~N[2018-02-19 12:06:28],
+         type: :normal
+       }},
       {:bolus_wizard_estimate,
-       %{bg: 0, bg_target_high: 110, bg_target_low: 90, bolus_estimate: 10.0,
-         carb_ratio: 5, carbohydrates: 50, correction_estimate: 0.0,
-         food_estimate: 10.0, insulin_sensitivity: 25,
-         raw: <<91, 0, 28, 134, 12, 19, 18, 50, 80, 5, 25, 90, 0, 100, 0, 0, 0, 0,
-         100, 110>>, timestamp: ~N[2018-02-19 12:06:28],
-         unabsorbed_insulin_total: 0.0}},
+       %{
+         bg: 0,
+         bg_target_high: 110,
+         bg_target_low: 90,
+         bolus_estimate: 10.0,
+         carb_ratio: 5,
+         carbohydrates: 50,
+         correction_estimate: 0.0,
+         food_estimate: 10.0,
+         insulin_sensitivity: 25,
+         raw: <<91, 0, 28, 134, 12, 19, 18, 50, 80, 5, 25, 90, 0, 100, 0, 0, 0, 0, 100, 110>>,
+         timestamp: ~N[2018-02-19 12:06:28],
+         unabsorbed_insulin_total: 0.0
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 19, 128, 12, 83, 18>>,
-         timestamp: ~N[2018-02-19 12:00:19]}},
+       %{duration: 30, raw: <<22, 1, 19, 128, 12, 83, 18>>, timestamp: ~N[2018-02-19 12:00:19]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 19, 128, 12, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 12:00:19]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 19, 128, 12, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 12:00:19]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 48, 174, 11, 83, 18>>,
-         timestamp: ~N[2018-02-19 11:46:48]}},
+       %{duration: 30, raw: <<22, 1, 48, 174, 11, 83, 18>>, timestamp: ~N[2018-02-19 11:46:48]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 48, 174, 11, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 11:46:48]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 48, 174, 11, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 11:46:48]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 36, 169, 11, 83, 18>>,
-         timestamp: ~N[2018-02-19 11:41:36]}},
+       %{duration: 30, raw: <<22, 1, 36, 169, 11, 83, 18>>, timestamp: ~N[2018-02-19 11:41:36]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 36, 169, 11, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 11:41:36]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 36, 169, 11, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 11:41:36]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 40, 152, 11, 83, 18>>,
-         timestamp: ~N[2018-02-19 11:24:40]}},
+       %{duration: 30, raw: <<22, 1, 40, 152, 11, 83, 18>>, timestamp: ~N[2018-02-19 11:24:40]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 40, 152, 11, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 11:24:40]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 40, 152, 11, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 11:24:40]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 39, 136, 11, 83, 18>>,
-         timestamp: ~N[2018-02-19 11:08:39]}},
+       %{duration: 30, raw: <<22, 1, 39, 136, 11, 83, 18>>, timestamp: ~N[2018-02-19 11:08:39]}},
       {:temp_basal,
-       %{rate: 0.85, rate_type: :absolute, raw: <<51, 34, 39, 136, 11, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 11:08:39]}},
+       %{
+         rate: 0.85,
+         rate_type: :absolute,
+         raw: <<51, 34, 39, 136, 11, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 11:08:39]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 57, 185, 10, 83, 18>>,
-         timestamp: ~N[2018-02-19 10:57:57]}},
+       %{duration: 30, raw: <<22, 1, 57, 185, 10, 83, 18>>, timestamp: ~N[2018-02-19 10:57:57]}},
       {:temp_basal,
-       %{rate: 0.9, rate_type: :absolute, raw: <<51, 36, 57, 185, 10, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 10:57:57]}},
+       %{
+         rate: 0.9,
+         rate_type: :absolute,
+         raw: <<51, 36, 57, 185, 10, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 10:57:57]
+       }},
       {:bolus_normal,
-       %{amount: 16.0, duration: 0, programmed: 16.0,
+       %{
+         amount: 16.0,
+         duration: 0,
+         programmed: 16.0,
          raw: <<1, 160, 160, 0, 45, 173, 74, 19, 18>>,
-         timestamp: ~N[2018-02-19 10:45:45], type: :normal}},
+         timestamp: ~N[2018-02-19 10:45:45],
+         type: :normal
+       }},
       {:bolus_wizard_estimate,
-       %{bg: 0, bg_target_high: 110, bg_target_low: 90, bolus_estimate: 16.0,
-         carb_ratio: 5, carbohydrates: 80, correction_estimate: 0.0,
-         food_estimate: 16.0, insulin_sensitivity: 25,
-         raw: <<91, 0, 45, 173, 10, 19, 18, 80, 80, 5, 25, 90, 0, 160, 0, 0, 0, 0,
-         160, 110>>, timestamp: ~N[2018-02-19 10:45:45],
-         unabsorbed_insulin_total: 0.0}},
+       %{
+         bg: 0,
+         bg_target_high: 110,
+         bg_target_low: 90,
+         bolus_estimate: 16.0,
+         carb_ratio: 5,
+         carbohydrates: 80,
+         correction_estimate: 0.0,
+         food_estimate: 16.0,
+         insulin_sensitivity: 25,
+         raw: <<91, 0, 45, 173, 10, 19, 18, 80, 80, 5, 25, 90, 0, 160, 0, 0, 0, 0, 160, 110>>,
+         timestamp: ~N[2018-02-19 10:45:45],
+         unabsorbed_insulin_total: 0.0
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 44, 172, 10, 83, 18>>,
-         timestamp: ~N[2018-02-19 10:44:44]}},
+       %{duration: 30, raw: <<22, 1, 44, 172, 10, 83, 18>>, timestamp: ~N[2018-02-19 10:44:44]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 44, 172, 10, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 10:44:44]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 44, 172, 10, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 10:44:44]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 22, 161, 10, 83, 18>>,
-         timestamp: ~N[2018-02-19 10:33:22]}},
+       %{duration: 30, raw: <<22, 1, 22, 161, 10, 83, 18>>, timestamp: ~N[2018-02-19 10:33:22]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 22, 161, 10, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 10:33:22]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 22, 161, 10, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 10:33:22]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 23, 149, 10, 83, 18>>,
-         timestamp: ~N[2018-02-19 10:21:23]}},
+       %{duration: 30, raw: <<22, 1, 23, 149, 10, 83, 18>>, timestamp: ~N[2018-02-19 10:21:23]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 23, 149, 10, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 10:21:23]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 23, 149, 10, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 10:21:23]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 6, 130, 10, 83, 18>>,
-         timestamp: ~N[2018-02-19 10:02:06]}},
+       %{duration: 30, raw: <<22, 1, 6, 130, 10, 83, 18>>, timestamp: ~N[2018-02-19 10:02:06]}},
       {:temp_basal,
-       %{rate: 0.95, rate_type: :absolute, raw: <<51, 38, 6, 130, 10, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 10:02:06]}},
+       %{
+         rate: 0.95,
+         rate_type: :absolute,
+         raw: <<51, 38, 6, 130, 10, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 10:02:06]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 0, 176, 9, 83, 18>>,
-         timestamp: ~N[2018-02-19 09:48:00]}},
+       %{duration: 30, raw: <<22, 1, 0, 176, 9, 83, 18>>, timestamp: ~N[2018-02-19 09:48:00]}},
       {:temp_basal,
-       %{rate: 1.25, rate_type: :absolute, raw: <<51, 50, 0, 176, 9, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 09:48:00]}},
+       %{
+         rate: 1.25,
+         rate_type: :absolute,
+         raw: <<51, 50, 0, 176, 9, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 09:48:00]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 20, 174, 9, 83, 18>>,
-         timestamp: ~N[2018-02-19 09:46:20]}},
+       %{duration: 30, raw: <<22, 1, 20, 174, 9, 83, 18>>, timestamp: ~N[2018-02-19 09:46:20]}},
       {:temp_basal,
-       %{rate: 3.45, rate_type: :absolute, raw: <<51, 138, 20, 174, 9, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 09:46:20]}},
+       %{
+         rate: 3.45,
+         rate_type: :absolute,
+         raw: <<51, 138, 20, 174, 9, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 09:46:20]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 11, 162, 9, 83, 18>>,
-         timestamp: ~N[2018-02-19 09:34:11]}},
+       %{duration: 30, raw: <<22, 1, 11, 162, 9, 83, 18>>, timestamp: ~N[2018-02-19 09:34:11]}},
       {:temp_basal,
-       %{rate: 3.0, rate_type: :absolute, raw: <<51, 120, 11, 162, 9, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 09:34:11]}},
+       %{
+         rate: 3.0,
+         rate_type: :absolute,
+         raw: <<51, 120, 11, 162, 9, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 09:34:11]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 3, 145, 9, 83, 18>>,
-         timestamp: ~N[2018-02-19 09:17:03]}},
+       %{duration: 30, raw: <<22, 1, 3, 145, 9, 83, 18>>, timestamp: ~N[2018-02-19 09:17:03]}},
       {:temp_basal,
-       %{rate: 2.8, rate_type: :absolute, raw: <<51, 112, 3, 145, 9, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 09:17:03]}},
+       %{
+         rate: 2.8,
+         rate_type: :absolute,
+         raw: <<51, 112, 3, 145, 9, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 09:17:03]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 15, 132, 9, 83, 18>>,
-         timestamp: ~N[2018-02-19 09:04:15]}},
+       %{duration: 30, raw: <<22, 1, 15, 132, 9, 83, 18>>, timestamp: ~N[2018-02-19 09:04:15]}},
       {:temp_basal,
-       %{rate: 2.5, rate_type: :absolute, raw: <<51, 100, 15, 132, 9, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 09:04:15]}},
+       %{
+         rate: 2.5,
+         rate_type: :absolute,
+         raw: <<51, 100, 15, 132, 9, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 09:04:15]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 2, 183, 8, 83, 18>>,
-         timestamp: ~N[2018-02-19 08:55:02]}},
+       %{duration: 30, raw: <<22, 1, 2, 183, 8, 83, 18>>, timestamp: ~N[2018-02-19 08:55:02]}},
       {:temp_basal,
-       %{rate: 1.25, rate_type: :absolute, raw: <<51, 50, 2, 183, 8, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 08:55:02]}},
+       %{
+         rate: 1.25,
+         rate_type: :absolute,
+         raw: <<51, 50, 2, 183, 8, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 08:55:02]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 38, 161, 8, 83, 18>>,
-         timestamp: ~N[2018-02-19 08:33:38]}},
+       %{duration: 30, raw: <<22, 1, 38, 161, 8, 83, 18>>, timestamp: ~N[2018-02-19 08:33:38]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 38, 161, 8, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 08:33:38]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 38, 161, 8, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 08:33:38]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 44, 156, 8, 83, 18>>,
-         timestamp: ~N[2018-02-19 08:28:44]}},
+       %{duration: 30, raw: <<22, 1, 44, 156, 8, 83, 18>>, timestamp: ~N[2018-02-19 08:28:44]}},
       {:temp_basal,
-       %{rate: 1.25, rate_type: :absolute, raw: <<51, 50, 44, 156, 8, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 08:28:44]}},
+       %{
+         rate: 1.25,
+         rate_type: :absolute,
+         raw: <<51, 50, 44, 156, 8, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 08:28:44]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 28, 134, 8, 83, 18>>,
-         timestamp: ~N[2018-02-19 08:06:28]}},
+       %{duration: 30, raw: <<22, 1, 28, 134, 8, 83, 18>>, timestamp: ~N[2018-02-19 08:06:28]}},
       {:temp_basal,
-       %{rate: 1.25, rate_type: :absolute, raw: <<51, 50, 28, 134, 8, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 08:06:28]}},
+       %{
+         rate: 1.25,
+         rate_type: :absolute,
+         raw: <<51, 50, 28, 134, 8, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 08:06:28]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 31, 181, 7, 83, 18>>,
-         timestamp: ~N[2018-02-19 07:53:31]}},
+       %{duration: 30, raw: <<22, 1, 31, 181, 7, 83, 18>>, timestamp: ~N[2018-02-19 07:53:31]}},
       {:temp_basal,
-       %{rate: 2.1, rate_type: :absolute, raw: <<51, 84, 31, 181, 7, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 07:53:31]}},
+       %{
+         rate: 2.1,
+         rate_type: :absolute,
+         raw: <<51, 84, 31, 181, 7, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 07:53:31]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 31, 170, 7, 83, 18>>,
-         timestamp: ~N[2018-02-19 07:42:31]}},
+       %{duration: 30, raw: <<22, 1, 31, 170, 7, 83, 18>>, timestamp: ~N[2018-02-19 07:42:31]}},
       {:temp_basal,
-       %{rate: 1.95, rate_type: :absolute, raw: <<51, 78, 31, 170, 7, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 07:42:31]}},
+       %{
+         rate: 1.95,
+         rate_type: :absolute,
+         raw: <<51, 78, 31, 170, 7, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 07:42:31]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 20, 152, 7, 83, 18>>,
-         timestamp: ~N[2018-02-19 07:24:20]}},
+       %{duration: 30, raw: <<22, 1, 20, 152, 7, 83, 18>>, timestamp: ~N[2018-02-19 07:24:20]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 20, 152, 7, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 07:24:20]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 20, 152, 7, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 07:24:20]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 26, 149, 7, 83, 18>>,
-         timestamp: ~N[2018-02-19 07:21:26]}},
+       %{duration: 30, raw: <<22, 1, 26, 149, 7, 83, 18>>, timestamp: ~N[2018-02-19 07:21:26]}},
       {:temp_basal,
-       %{rate: 1.8, rate_type: :absolute, raw: <<51, 72, 26, 149, 7, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 07:21:26]}},
+       %{
+         rate: 1.8,
+         rate_type: :absolute,
+         raw: <<51, 72, 26, 149, 7, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 07:21:26]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 28, 144, 7, 83, 18>>,
-         timestamp: ~N[2018-02-19 07:16:28]}},
+       %{duration: 30, raw: <<22, 1, 28, 144, 7, 83, 18>>, timestamp: ~N[2018-02-19 07:16:28]}},
       {:temp_basal,
-       %{rate: 1.05, rate_type: :absolute, raw: <<51, 42, 28, 144, 7, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 07:16:28]}},
+       %{
+         rate: 1.05,
+         rate_type: :absolute,
+         raw: <<51, 42, 28, 144, 7, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 07:16:28]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 35, 138, 7, 83, 18>>,
-         timestamp: ~N[2018-02-19 07:10:35]}},
+       %{duration: 30, raw: <<22, 1, 35, 138, 7, 83, 18>>, timestamp: ~N[2018-02-19 07:10:35]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 35, 138, 7, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 07:10:35]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 35, 138, 7, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 07:10:35]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 18, 176, 6, 83, 18>>,
-         timestamp: ~N[2018-02-19 06:48:18]}},
+       %{duration: 30, raw: <<22, 1, 18, 176, 6, 83, 18>>, timestamp: ~N[2018-02-19 06:48:18]}},
       {:temp_basal,
-       %{rate: 1.15, rate_type: :absolute, raw: <<51, 46, 18, 176, 6, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 06:48:18]}},
+       %{
+         rate: 1.15,
+         rate_type: :absolute,
+         raw: <<51, 46, 18, 176, 6, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 06:48:18]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 43, 160, 6, 83, 18>>,
-         timestamp: ~N[2018-02-19 06:32:43]}},
+       %{duration: 30, raw: <<22, 1, 43, 160, 6, 83, 18>>, timestamp: ~N[2018-02-19 06:32:43]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 43, 160, 6, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 06:32:43]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 43, 160, 6, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 06:32:43]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 24, 150, 6, 83, 18>>,
-         timestamp: ~N[2018-02-19 06:22:24]}},
+       %{duration: 30, raw: <<22, 1, 24, 150, 6, 83, 18>>, timestamp: ~N[2018-02-19 06:22:24]}},
       {:temp_basal,
-       %{rate: 1.15, rate_type: :absolute, raw: <<51, 46, 24, 150, 6, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 06:22:24]}},
+       %{
+         rate: 1.15,
+         rate_type: :absolute,
+         raw: <<51, 46, 24, 150, 6, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 06:22:24]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 29, 130, 6, 83, 18>>,
-         timestamp: ~N[2018-02-19 06:02:29]}},
+       %{duration: 30, raw: <<22, 1, 29, 130, 6, 83, 18>>, timestamp: ~N[2018-02-19 06:02:29]}},
       {:temp_basal,
-       %{rate: 1.15, rate_type: :absolute, raw: <<51, 46, 29, 130, 6, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 06:02:29]}},
+       %{
+         rate: 1.15,
+         rate_type: :absolute,
+         raw: <<51, 46, 29, 130, 6, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 06:02:29]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 23, 181, 5, 83, 18>>,
-         timestamp: ~N[2018-02-19 05:53:23]}},
+       %{duration: 30, raw: <<22, 1, 23, 181, 5, 83, 18>>, timestamp: ~N[2018-02-19 05:53:23]}},
       {:temp_basal,
-       %{rate: 2.35, rate_type: :absolute, raw: <<51, 94, 23, 181, 5, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 05:53:23]}},
+       %{
+         rate: 2.35,
+         rate_type: :absolute,
+         raw: <<51, 94, 23, 181, 5, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 05:53:23]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 27, 166, 5, 83, 18>>,
-         timestamp: ~N[2018-02-19 05:38:27]}},
+       %{duration: 30, raw: <<22, 1, 27, 166, 5, 83, 18>>, timestamp: ~N[2018-02-19 05:38:27]}},
       {:temp_basal,
-       %{rate: 1.45, rate_type: :absolute, raw: <<51, 58, 27, 166, 5, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 05:38:27]}},
+       %{
+         rate: 1.45,
+         rate_type: :absolute,
+         raw: <<51, 58, 27, 166, 5, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 05:38:27]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 28, 162, 5, 83, 18>>,
-         timestamp: ~N[2018-02-19 05:34:28]}},
+       %{duration: 30, raw: <<22, 1, 28, 162, 5, 83, 18>>, timestamp: ~N[2018-02-19 05:34:28]}},
       {:temp_basal,
-       %{rate: 2.25, rate_type: :absolute, raw: <<51, 90, 28, 162, 5, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 05:34:28]}},
+       %{
+         rate: 2.25,
+         rate_type: :absolute,
+         raw: <<51, 90, 28, 162, 5, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 05:34:28]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 21, 160, 5, 83, 18>>,
-         timestamp: ~N[2018-02-19 05:32:21]}},
+       %{duration: 30, raw: <<22, 1, 21, 160, 5, 83, 18>>, timestamp: ~N[2018-02-19 05:32:21]}},
       {:temp_basal,
-       %{rate: 1.45, rate_type: :absolute, raw: <<51, 58, 21, 160, 5, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 05:32:21]}},
+       %{
+         rate: 1.45,
+         rate_type: :absolute,
+         raw: <<51, 58, 21, 160, 5, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 05:32:21]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 48, 155, 5, 83, 18>>,
-         timestamp: ~N[2018-02-19 05:27:48]}},
+       %{duration: 30, raw: <<22, 1, 48, 155, 5, 83, 18>>, timestamp: ~N[2018-02-19 05:27:48]}},
       {:temp_basal,
-       %{rate: 2.15, rate_type: :absolute, raw: <<51, 86, 48, 155, 5, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 05:27:48]}},
+       %{
+         rate: 2.15,
+         rate_type: :absolute,
+         raw: <<51, 86, 48, 155, 5, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 05:27:48]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 47, 149, 5, 83, 18>>,
-         timestamp: ~N[2018-02-19 05:21:47]}},
+       %{duration: 30, raw: <<22, 1, 47, 149, 5, 83, 18>>, timestamp: ~N[2018-02-19 05:21:47]}},
       {:temp_basal,
-       %{rate: 1.4, rate_type: :absolute, raw: <<51, 56, 47, 149, 5, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 05:21:47]}},
+       %{
+         rate: 1.4,
+         rate_type: :absolute,
+         raw: <<51, 56, 47, 149, 5, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 05:21:47]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 15, 133, 5, 83, 18>>,
-         timestamp: ~N[2018-02-19 05:05:15]}},
+       %{duration: 30, raw: <<22, 1, 15, 133, 5, 83, 18>>, timestamp: ~N[2018-02-19 05:05:15]}},
       {:temp_basal,
-       %{rate: 1.4, rate_type: :absolute, raw: <<51, 56, 15, 133, 5, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 05:05:15]}},
+       %{
+         rate: 1.4,
+         rate_type: :absolute,
+         raw: <<51, 56, 15, 133, 5, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 05:05:15]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 5, 180, 4, 83, 18>>,
-         timestamp: ~N[2018-02-19 04:52:05]}},
+       %{duration: 30, raw: <<22, 1, 5, 180, 4, 83, 18>>, timestamp: ~N[2018-02-19 04:52:05]}},
       {:temp_basal,
-       %{rate: 1.45, rate_type: :absolute, raw: <<51, 58, 5, 180, 4, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 04:52:05]}},
+       %{
+         rate: 1.45,
+         rate_type: :absolute,
+         raw: <<51, 58, 5, 180, 4, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 04:52:05]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 56, 156, 4, 83, 18>>,
-         timestamp: ~N[2018-02-19 04:28:56]}},
+       %{duration: 30, raw: <<22, 1, 56, 156, 4, 83, 18>>, timestamp: ~N[2018-02-19 04:28:56]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 56, 156, 4, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 04:28:56]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 56, 156, 4, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 04:28:56]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 40, 148, 4, 83, 18>>,
-         timestamp: ~N[2018-02-19 04:20:40]}},
+       %{duration: 30, raw: <<22, 1, 40, 148, 4, 83, 18>>, timestamp: ~N[2018-02-19 04:20:40]}},
       {:temp_basal,
-       %{rate: 1.45, rate_type: :absolute, raw: <<51, 58, 40, 148, 4, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 04:20:40]}},
+       %{
+         rate: 1.45,
+         rate_type: :absolute,
+         raw: <<51, 58, 40, 148, 4, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 04:20:40]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 13, 128, 4, 83, 18>>,
-         timestamp: ~N[2018-02-19 04:00:13]}},
+       %{duration: 30, raw: <<22, 1, 13, 128, 4, 83, 18>>, timestamp: ~N[2018-02-19 04:00:13]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 13, 128, 4, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 04:00:13]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 13, 128, 4, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 04:00:13]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 49, 178, 3, 83, 18>>,
-         timestamp: ~N[2018-02-19 03:50:49]}},
+       %{duration: 30, raw: <<22, 1, 49, 178, 3, 83, 18>>, timestamp: ~N[2018-02-19 03:50:49]}},
       {:temp_basal,
-       %{rate: 1.45, rate_type: :absolute, raw: <<51, 58, 49, 178, 3, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 03:50:49]}},
+       %{
+         rate: 1.45,
+         rate_type: :absolute,
+         raw: <<51, 58, 49, 178, 3, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 03:50:49]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 9, 162, 3, 83, 18>>,
-         timestamp: ~N[2018-02-19 03:34:09]}},
+       %{duration: 30, raw: <<22, 1, 9, 162, 3, 83, 18>>, timestamp: ~N[2018-02-19 03:34:09]}},
       {:temp_basal,
-       %{rate: 1.45, rate_type: :absolute, raw: <<51, 58, 9, 162, 3, 83, 18, 0>>,
-         timestamp: ~N[2018-02-19 03:34:09]}},
+       %{
+         rate: 1.45,
+         rate_type: :absolute,
+         raw: <<51, 58, 9, 162, 3, 83, 18, 0>>,
+         timestamp: ~N[2018-02-19 03:34:09]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 14, 143, 3, 84, 18>>,
-         timestamp: ~N[2018-02-19 03:15:14]}},
+       %{duration: 30, raw: <<22, 1, 14, 143, 3, 84, 18>>, timestamp: ~N[2018-02-19 03:15:14]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 14, 143, 3, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 03:15:14]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 14, 143, 3, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 03:15:14]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 58, 138, 3, 84, 18>>,
-         timestamp: ~N[2018-02-19 03:10:58]}},
+       %{duration: 30, raw: <<22, 1, 58, 138, 3, 84, 18>>, timestamp: ~N[2018-02-19 03:10:58]}},
       {:temp_basal,
-       %{rate: 1.25, rate_type: :absolute, raw: <<51, 50, 58, 138, 3, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 03:10:58]}},
+       %{
+         rate: 1.25,
+         rate_type: :absolute,
+         raw: <<51, 50, 58, 138, 3, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 03:10:58]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 46, 132, 3, 84, 18>>,
-         timestamp: ~N[2018-02-19 03:04:46]}},
+       %{duration: 30, raw: <<22, 1, 46, 132, 3, 84, 18>>, timestamp: ~N[2018-02-19 03:04:46]}},
       {:temp_basal,
-       %{rate: 2.3, rate_type: :absolute, raw: <<51, 92, 46, 132, 3, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 03:04:46]}},
+       %{
+         rate: 2.3,
+         rate_type: :absolute,
+         raw: <<51, 92, 46, 132, 3, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 03:04:46]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 54, 185, 2, 84, 18>>,
-         timestamp: ~N[2018-02-19 02:57:54]}},
+       %{duration: 30, raw: <<22, 1, 54, 185, 2, 84, 18>>, timestamp: ~N[2018-02-19 02:57:54]}},
       {:temp_basal,
-       %{rate: 1.15, rate_type: :absolute, raw: <<51, 46, 54, 185, 2, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 02:57:54]}},
+       %{
+         rate: 1.15,
+         rate_type: :absolute,
+         raw: <<51, 46, 54, 185, 2, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 02:57:54]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 19, 168, 2, 84, 18>>,
-         timestamp: ~N[2018-02-19 02:40:19]}},
+       %{duration: 30, raw: <<22, 1, 19, 168, 2, 84, 18>>, timestamp: ~N[2018-02-19 02:40:19]}},
       {:temp_basal,
-       %{rate: 3.25, rate_type: :absolute, raw: <<51, 130, 19, 168, 2, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 02:40:19]}},
+       %{
+         rate: 3.25,
+         rate_type: :absolute,
+         raw: <<51, 130, 19, 168, 2, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 02:40:19]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 32, 166, 2, 84, 18>>,
-         timestamp: ~N[2018-02-19 02:38:32]}},
+       %{duration: 30, raw: <<22, 1, 32, 166, 2, 84, 18>>, timestamp: ~N[2018-02-19 02:38:32]}},
       {:temp_basal,
-       %{rate: 2.55, rate_type: :absolute, raw: <<51, 102, 32, 166, 2, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 02:38:32]}},
+       %{
+         rate: 2.55,
+         rate_type: :absolute,
+         raw: <<51, 102, 32, 166, 2, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 02:38:32]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 57, 161, 2, 84, 18>>,
-         timestamp: ~N[2018-02-19 02:33:57]}},
+       %{duration: 30, raw: <<22, 1, 57, 161, 2, 84, 18>>, timestamp: ~N[2018-02-19 02:33:57]}},
       {:temp_basal,
-       %{rate: 1.15, rate_type: :absolute, raw: <<51, 46, 57, 161, 2, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 02:33:57]}},
+       %{
+         rate: 1.15,
+         rate_type: :absolute,
+         raw: <<51, 46, 57, 161, 2, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 02:33:57]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 27, 150, 2, 84, 18>>,
-         timestamp: ~N[2018-02-19 02:22:27]}},
+       %{duration: 30, raw: <<22, 1, 27, 150, 2, 84, 18>>, timestamp: ~N[2018-02-19 02:22:27]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 27, 150, 2, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 02:22:27]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 27, 150, 2, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 02:22:27]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 36, 139, 2, 84, 18>>,
-         timestamp: ~N[2018-02-19 02:11:36]}},
+       %{duration: 30, raw: <<22, 1, 36, 139, 2, 84, 18>>, timestamp: ~N[2018-02-19 02:11:36]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 36, 139, 2, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 02:11:36]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 36, 139, 2, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 02:11:36]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 57, 128, 2, 84, 18>>,
-         timestamp: ~N[2018-02-19 02:00:57]}},
+       %{duration: 30, raw: <<22, 1, 57, 128, 2, 84, 18>>, timestamp: ~N[2018-02-19 02:00:57]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 57, 128, 2, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 02:00:57]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 57, 128, 2, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 02:00:57]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 4, 178, 1, 84, 18>>,
-         timestamp: ~N[2018-02-19 01:50:04]}},
+       %{duration: 30, raw: <<22, 1, 4, 178, 1, 84, 18>>, timestamp: ~N[2018-02-19 01:50:04]}},
       {:temp_basal,
-       %{rate: 1.1, rate_type: :absolute, raw: <<51, 44, 4, 178, 1, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 01:50:04]}},
+       %{
+         rate: 1.1,
+         rate_type: :absolute,
+         raw: <<51, 44, 4, 178, 1, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 01:50:04]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 7, 158, 1, 84, 18>>,
-         timestamp: ~N[2018-02-19 01:30:07]}},
+       %{duration: 30, raw: <<22, 1, 7, 158, 1, 84, 18>>, timestamp: ~N[2018-02-19 01:30:07]}},
       {:temp_basal,
-       %{rate: 3.5, rate_type: :absolute, raw: <<51, 140, 7, 158, 1, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 01:30:07]}},
+       %{
+         rate: 3.5,
+         rate_type: :absolute,
+         raw: <<51, 140, 7, 158, 1, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 01:30:07]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 14, 130, 1, 84, 18>>,
-         timestamp: ~N[2018-02-19 01:02:14]}},
+       %{duration: 30, raw: <<22, 1, 14, 130, 1, 84, 18>>, timestamp: ~N[2018-02-19 01:02:14]}},
       {:temp_basal,
-       %{rate: 3.5, rate_type: :absolute, raw: <<51, 140, 14, 130, 1, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 01:02:14]}},
+       %{
+         rate: 3.5,
+         rate_type: :absolute,
+         raw: <<51, 140, 14, 130, 1, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 01:02:14]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 28, 183, 0, 84, 18>>,
-         timestamp: ~N[2018-02-19 00:55:28]}},
+       %{duration: 30, raw: <<22, 1, 28, 183, 0, 84, 18>>, timestamp: ~N[2018-02-19 00:55:28]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 28, 183, 0, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 00:55:28]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 28, 183, 0, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 00:55:28]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 28, 172, 0, 84, 18>>,
-         timestamp: ~N[2018-02-19 00:44:28]}},
+       %{duration: 30, raw: <<22, 1, 28, 172, 0, 84, 18>>, timestamp: ~N[2018-02-19 00:44:28]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 28, 172, 0, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 00:44:28]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 28, 172, 0, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 00:44:28]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 55, 159, 0, 84, 18>>,
-         timestamp: ~N[2018-02-19 00:31:55]}},
+       %{duration: 30, raw: <<22, 1, 55, 159, 0, 84, 18>>, timestamp: ~N[2018-02-19 00:31:55]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 55, 159, 0, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 00:31:55]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 55, 159, 0, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 00:31:55]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 45, 147, 0, 84, 18>>,
-         timestamp: ~N[2018-02-19 00:19:45]}},
+       %{duration: 30, raw: <<22, 1, 45, 147, 0, 84, 18>>, timestamp: ~N[2018-02-19 00:19:45]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 45, 147, 0, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 00:19:45]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 45, 147, 0, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 00:19:45]
+       }},
       {:temp_basal_duration,
-       %{duration: 30, raw: <<22, 1, 29, 136, 0, 84, 18>>,
-         timestamp: ~N[2018-02-19 00:08:29]}},
+       %{duration: 30, raw: <<22, 1, 29, 136, 0, 84, 18>>, timestamp: ~N[2018-02-19 00:08:29]}},
       {:temp_basal,
-       %{rate: 0.0, rate_type: :absolute, raw: <<51, 0, 29, 136, 0, 84, 18, 0>>,
-         timestamp: ~N[2018-02-19 00:08:29]}},
+       %{
+         rate: 0.0,
+         rate_type: :absolute,
+         raw: <<51, 0, 29, 136, 0, 84, 18, 0>>,
+         timestamp: ~N[2018-02-19 00:08:29]
+       }},
       {:daily_total_522,
-       %{raw: <<109, 51, 18, 5, 21, 24, 24, 24, 1, 0, 0, 11, 26, 4, 154, 41, 6, 128,
-         59, 0, 200, 6, 128, 59, 5, 224, 90, 0, 160, 10, 0, 0, 0, 4, 3, 1, 0, 0, 12,
-         0, 232, 0, 0, 0>>, timestamp: ~N[2018-02-19 00:00:00]}},
+       %{
+         raw:
+           <<109, 51, 18, 5, 21, 24, 24, 24, 1, 0, 0, 11, 26, 4, 154, 41, 6, 128, 59, 0, 200, 6,
+             128, 59, 5, 224, 90, 0, 160, 10, 0, 0, 0, 4, 3, 1, 0, 0, 12, 0, 232, 0, 0, 0>>,
+         timestamp: ~N[2018-02-19 00:00:00]
+       }},
       {:result_daily_total,
-       %{raw: <<7, 0, 0, 11, 26, 51, 18>>, strokes: 2842,
-         timestamp: ~N[2018-02-19 00:00:00], units: 71.05}}
+       %{
+         raw: <<7, 0, 0, 11, 26, 51, 18>>,
+         strokes: 2842,
+         timestamp: ~N[2018-02-19 00:00:00],
+         units: 71.05
+       }}
     ]
   end
 

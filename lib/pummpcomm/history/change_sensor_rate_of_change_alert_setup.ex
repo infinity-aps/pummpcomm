@@ -14,6 +14,6 @@ defmodule Pummpcomm.History.ChangeSensorRateOfChangeAlertSetup do
   """
   @impl Pummpcomm.History.Decoder
   # TODO decode new rate of change and whether it's or fall or rise
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

@@ -13,6 +13,6 @@ defmodule Pummpcomm.History.ChangeBGReminderEnable do
   `timestamp` when the BG Reminder was enabled/disabled.
   """
   # TODO decode whether it's enabled or disabled
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{timestamp: NaiveDateTime.t()}
   defdelegate decode(body, pump_options), to: Pummpcomm.History.StandardEvent
 end

@@ -8,11 +8,14 @@ defmodule Pummpcomm.History.StandardEvent do
   @doc """
   `timestamp` when event happened
   """
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{required(:timestamp) => NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{
+          required(:timestamp) => NaiveDateTime.t()
+        }
   def decode(body, pump_options)
+
   def decode(<<_::8, timestamp::binary-size(5), _::binary>>, _) do
     %{
-      timestamp: DateDecoder.decode_history_timestamp(timestamp),
+      timestamp: DateDecoder.decode_history_timestamp(timestamp)
     }
   end
 end

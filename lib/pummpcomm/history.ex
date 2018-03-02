@@ -7,9 +7,18 @@ defmodule Pummpcomm.HistoryDefinition do
   defmacro define_record(opcode, module, size_fn) do
     quote do
       alias History.unquote(module)
+
       defp do_decode_records(<<unquote(opcode), body_and_tail::binary>>, pump_options, events) do
         body_length = calculate_length(unquote(size_fn), pump_options, body_and_tail)
-        decode_record(unquote(module), unquote(opcode), body_length, body_and_tail, pump_options, events)
+
+        decode_record(
+          unquote(module),
+          unquote(opcode),
+          body_length,
+          body_and_tail,
+          pump_options,
+          events
+        )
       end
     end
   end
@@ -30,20 +39,26 @@ defmodule Pummpcomm.History do
 
   import Pummpcomm.HistoryDefinition
 
-  @spec decode(page :: binary, PumpModel.pump_model) :: {:ok, [any]} | {:error, String.t} | {:fail, String.t}
+  @spec decode(page :: binary, PumpModel.pump_model()) ::
+          {:ok, [any]} | {:error, String.t()} | {:fail, String.t()}
   def decode(page, pump_model) do
     case Crc16.check_crc_16(page) do
       {:ok, _} ->
-        Logger.info fn ->
+        Logger.info(fn ->
           "Decoding history page:\n#{Base.encode16(page)}"
-        end
-        {:ok, page |> Crc16.page_data |> decode_records(PumpModel.pump_options(pump_model)) |> Enum.reverse}
-      other    ->
+        end)
+
+        {:ok,
+         page |> Crc16.page_data() |> decode_records(PumpModel.pump_options(pump_model))
+         |> Enum.reverse()}
+
+      other ->
         other
     end
   end
 
-  def decode_records(page_data, pump_options = %{}), do: do_decode_records(page_data, pump_options, [])
+  def decode_records(page_data, pump_options = %{}),
+    do: do_decode_records(page_data, pump_options, [])
 
   ## Private Functions
 
@@ -129,15 +144,19 @@ defmodule Pummpcomm.History do
 
   defp decode_record(module, head, body_length, body_and_tail, pump_options, events) do
     <<body::binary-size(body_length), tail::binary>> = body_and_tail
-    event_info = module |> apply(:decode, [body, pump_options]) |> Map.put(:raw, <<head::8>> <> body)
+
+    event_info =
+      module |> apply(:decode, [body, pump_options]) |> Map.put(:raw, <<head::8>> <> body)
+
     event = {event_type(module), event_info}
     do_decode_records(tail, pump_options, [event | events])
   end
 
   defp event_type(module) do
-    case module |> apply(:"__info__", [:exports]) |> Keyword.get_values(:event_type) |> Enum.member?(0) do
-      true  -> apply(module, :event_type, [])
-      false -> module |> Module.split |> List.last |> Macro.underscore |> String.to_atom
+    case module |> apply(:__info__, [:functions]) |> Keyword.get_values(:event_type)
+         |> Enum.member?(0) do
+      true -> apply(module, :event_type, [])
+      false -> module |> Module.split() |> List.last() |> Macro.underscore() |> String.to_atom()
     end
   end
 
@@ -147,24 +166,24 @@ defmodule Pummpcomm.History do
   end
 
   defp length_by_format(small_length, large_length) do
-    fn (%{pump_options: %{large_format: large_format}}) ->
+    fn %{pump_options: %{large_format: large_format}} ->
       case large_format do
         true -> large_length
-        _    -> small_length
+        _ -> small_length
       end
     end
   end
 
   defp length_by_low_suspend(without_low_suspend_length, with_low_suspend_length) do
-    fn (%{pump_options: %{supports_low_suspend: supports_low_suspend}}) ->
+    fn %{pump_options: %{supports_low_suspend: supports_low_suspend}} ->
       case supports_low_suspend do
         true -> with_low_suspend_length
-        _    -> without_low_suspend_length
+        _ -> without_low_suspend_length
       end
     end
   end
 
   defp fixed_length(length) do
-    fn (_) -> length end
+    fn _ -> length end
   end
 end

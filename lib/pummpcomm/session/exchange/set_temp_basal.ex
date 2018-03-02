@@ -19,7 +19,7 @@ defmodule Pummpcomm.Session.Exchange.SetTempBasal do
   @doc """
   Decodes that set temporary basal command was acknowledged.
   """
-  @spec decode(Response.t) :: :ok
+  @spec decode(Response.t()) :: :ok
   def decode(%Response{opcode: @ack, data: <<0>>}), do: :ok
 
   @doc """
@@ -27,10 +27,17 @@ defmodule Pummpcomm.Session.Exchange.SetTempBasal do
   `pump_serial`
   """
   @spec make(
-          Command.pump_serial,
-          [units_per_hour: Insulin.units_per_hour, duration_minutes: non_neg_integer, type: :absolute]
-        ) :: Command.t
-  def make(pump_serial, units_per_hour: units_per_hour, duration_minutes: duration_minutes, type: :absolute) do
+          Command.pump_serial(),
+          units_per_hour: Insulin.units_per_hour(),
+          duration_minutes: non_neg_integer,
+          type: :absolute
+        ) :: Command.t()
+  def make(
+        pump_serial,
+        units_per_hour: units_per_hour,
+        duration_minutes: duration_minutes,
+        type: :absolute
+      ) do
     binary_duration = round(duration_minutes / 30)
     binary_rate = round(units_per_hour * @strokes_per_unit)
     params = <<binary_rate::integer-size(16), binary_duration::8>>

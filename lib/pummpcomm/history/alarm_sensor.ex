@@ -42,22 +42,23 @@ defmodule Pummpcomm.History.AlarmSensor do
   * `"Low Glucose Predicted"` - Due to rate of blood glucose change as measured by CGM, you are likely to hit
       `"Low Glucose"` soon.  Use meter blood glucose to confirm and eat something to correct if meter confirms CGM.
   """
-  @type alarm_type :: String.t
+  @type alarm_type :: String.t()
 
   # Functions
 
   ## Pummpcomm.History.Decoder callbacks
 
   @impl Pummpcomm.History.Decoder
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{
-                                                              alarm_type: alarm_type,
-                                                              amount: BloodGlucose.blood_glucose,
-                                                              timestamp: NaiveDateTime.t
-                                                            } |
-                                                            %{
-                                                              alarm_type: alarm_type,
-                                                              timestamp: NaiveDateTime.t
-                                                            }
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) ::
+          %{
+            alarm_type: alarm_type,
+            amount: BloodGlucose.blood_glucose(),
+            timestamp: NaiveDateTime.t()
+          }
+          | %{
+              alarm_type: alarm_type,
+              timestamp: NaiveDateTime.t()
+            }
 
   def decode(<<0x65, amount::8, timestamp::binary-size(5)>>, _) do
     decode(0x65, %{amount: amount(amount, timestamp)}, timestamp)
@@ -79,9 +80,12 @@ defmodule Pummpcomm.History.AlarmSensor do
   end
 
   defp decode(alarm_type, alarm_params, timestamp) do
-    Map.merge(%{
-      timestamp: DateDecoder.decode_history_timestamp(timestamp),
-      alarm_type: Map.get(@alarm_types, alarm_type, "Unknown")
-    }, alarm_params)
+    Map.merge(
+      %{
+        timestamp: DateDecoder.decode_history_timestamp(timestamp),
+        alarm_type: Map.get(@alarm_types, alarm_type, "Unknown")
+      },
+      alarm_params
+    )
   end
 end

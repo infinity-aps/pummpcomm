@@ -17,7 +17,7 @@ defmodule Pummpcomm.DateDecoder do
   |         xx | 0xxxxx |        xx | xxxxxx |   xxx | xxxxx |    0xxxxxxx |
   +========================================================================+
   """
-  @type cgm_timestamp :: <<_ :: 32>>
+  @type cgm_timestamp :: <<_::32>>
 
   @typedoc """
   A history page long timestamp that contains YYY-MM-DD HH::MM
@@ -29,7 +29,7 @@ defmodule Pummpcomm.DateDecoder do
   |         xx | xxxxxx |        xx | xxxxxx |   xxx | xxxxx |   xxx |    xxxxx |     x |     xxxxxxx |
   +===================================================================================================+
   """
-  @type history_long_timestamp :: <<_ :: 16, _ :: _ * 24>>
+  @type history_long_timestamp :: <<_::16, _::_*24>>
 
   @typedoc """
   A history short timestamp that contains only YYY-MM-DD.
@@ -41,14 +41,14 @@ defmodule Pummpcomm.DateDecoder do
   |        xxx |  xxxxx |         x | xxxxxxx |
   +===========================================+
   """
-  @type history_short_timestamp :: <<_ :: 0>>
+  @type history_short_timestamp :: <<_::0>>
 
   # Functions
 
   @doc """
   This function decodes a full date and time as returned by the ReadTime command
   """
-  @spec decode_full_datetime(binary) :: {:ok, NaiveDateTime.t} | {:error, :invalid_time}
+  @spec decode_full_datetime(binary) :: {:ok, NaiveDateTime.t()} | {:error, :invalid_time}
   def decode_full_datetime(<<hour::8, minute::8, second::8, year::size(16), month::8, day::8>>) do
     NaiveDateTime.new(year, month, day, hour, minute, second)
   end
@@ -63,16 +63,22 @@ defmodule Pummpcomm.DateDecoder do
   |         xx | 0xxxxx |        xx | xxxxxx |   xxx | xxxxx |    0xxxxxxx |
   +========================================================================+
   """
-  @spec decode_cgm_timestamp(cgm_timestamp) :: NaiveDateTime.t
+  @spec decode_cgm_timestamp(cgm_timestamp) :: NaiveDateTime.t()
 
-  def decode_cgm_timestamp(timestamp = <<month_high::2, _::1, hour::5, month_low::2, minute::6, _flags::3, day::5, _::1, year::7>>) when is_binary(timestamp) do
+  def decode_cgm_timestamp(
+        timestamp =
+          <<month_high::2, _::1, hour::5, month_low::2, minute::6, _flags::3, day::5, _::1,
+            year::7>>
+      )
+      when is_binary(timestamp) do
     <<month::4>> = <<month_high::2, month_low::2>>
+
     case NaiveDateTime.new(2000 + year, month, day, hour, minute, 0) do
       {:ok, timestamp} -> timestamp
     end
   end
 
-  @spec decode_cgm_timestamp(non_neg_integer) :: NaiveDateTime.t
+  @spec decode_cgm_timestamp(non_neg_integer) :: NaiveDateTime.t()
   def decode_cgm_timestamp(timestamp) do
     decode_cgm_timestamp(<<timestamp::32>>)
   end
@@ -98,17 +104,25 @@ defmodule Pummpcomm.DateDecoder do
   |        xxx |  xxxxx |         x | xxxxxxx |
   +===========================================+
   """
-  @spec decode_history_timestamp(history_long_timestamp) :: NaiveDateTime.t
-  def decode_history_timestamp(timestamp = <<month_high::2, second::6, month_low::2, minute::6, _::3, hour::5, _::3, day::5, _::1, year::7>>) when is_binary(timestamp) do
+  @spec decode_history_timestamp(history_long_timestamp) :: NaiveDateTime.t()
+  def decode_history_timestamp(
+        timestamp =
+          <<month_high::2, second::6, month_low::2, minute::6, _::3, hour::5, _::3, day::5, _::1,
+            year::7>>
+      )
+      when is_binary(timestamp) do
     <<month::4>> = <<month_high::2, month_low::2>>
+
     case NaiveDateTime.new(2000 + year, month, day, hour, minute, second) do
       {:ok, timestamp} -> timestamp
     end
   end
 
-  @spec decode_history_timestamp(history_short_timestamp) :: NaiveDateTime.t
-  def decode_history_timestamp(timestamp = <<month_high::3, day::5, month_low::1, year::7>>) when is_binary(timestamp) do
+  @spec decode_history_timestamp(history_short_timestamp) :: NaiveDateTime.t()
+  def decode_history_timestamp(timestamp = <<month_high::3, day::5, month_low::1, year::7>>)
+      when is_binary(timestamp) do
     <<month::4>> = <<month_high::3, month_low::1>>
+
     case NaiveDateTime.new(2000 + year, month, day, 0, 0, 0) do
       {:ok, timestamp} -> timestamp
     end

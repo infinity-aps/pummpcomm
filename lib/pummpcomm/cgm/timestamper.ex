@@ -5,8 +5,15 @@ defmodule Pummpcomm.Cgm.Timestamper do
 
   # Constants
 
-  @relative_events [:sensor_weak_signal, :sensor_calibration, :sensor_glucose_value, :sensor_data_low,
-                    :sensor_data_high, :sensor_error, :sensor_packet]
+  @relative_events [
+    :sensor_weak_signal,
+    :sensor_calibration,
+    :sensor_glucose_value,
+    :sensor_data_low,
+    :sensor_data_high,
+    :sensor_error,
+    :sensor_packet
+  ]
 
   # Types
 
@@ -58,11 +65,13 @@ defmodule Pummpcomm.Cgm.Timestamper do
       is_reference_event?(event) ->
         reference_timestamp = elem(event, 1)[:timestamp]
         process_events(tail, [event | processed], reference_timestamp)
-      is_relative_event?(event)  ->
+
+      is_relative_event?(event) ->
         event = add_timestamp(event, timestamp)
         timestamp = decrement_timestamp(timestamp)
         process_events(tail, [event | processed], timestamp)
-      true                       ->
+
+      true ->
         process_events(tail, [event | processed], timestamp)
     end
   end
@@ -75,15 +84,19 @@ defmodule Pummpcomm.Cgm.Timestamper do
   end
 
   defp try_find_timestamp([], _), do: nil
+
   defp try_find_timestamp([event | tail], count) do
     cond do
       is_relative_event?(event) ->
         try_find_timestamp(tail, count + 1)
+
       event_key(event) in [:data_end, :nineteen_something, :null_byte] ->
         try_find_timestamp(tail, count)
+
       is_reference_event?(event) && event_map(event)[:event_type] == :last_rf ->
         timestamp = event_map(event)[:timestamp]
         Timex.shift(timestamp, minutes: count * 5)
+
       true ->
         nil
     end

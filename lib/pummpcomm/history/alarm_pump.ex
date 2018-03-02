@@ -31,14 +31,15 @@ defmodule Pummpcomm.History.AlarmPump do
   * `:reprogram_error`
   * `:unknown` -  The monitor experienced an unknown hardware or software error.  Call support at 1-800-646-4633.
   """
-  @type alarm_type :: :battery_out_limit_exceeded |
-                      :no_delivery |
-                      :battery_depleted |
-                      :auto_off |
-                      :device_reset |
-                      :reprogram_error |
-                      :empty_reservour |
-                      :unknown
+  @type alarm_type ::
+          :battery_out_limit_exceeded
+          | :no_delivery
+          | :battery_depleted
+          | :auto_off
+          | :device_reset
+          | :reprogram_error
+          | :empty_reservour
+          | :unknown
 
   # Functions
 
@@ -48,8 +49,12 @@ defmodule Pummpcomm.History.AlarmPump do
   Decodes an alarm of `alarm_type` raised at `timestamp` by the pump.
   """
   @impl Pummpcomm.History.Decoder
-  @spec decode(binary, Pummpcomm.PumpModel.pump_options) :: %{alarm_type: alarm_type, timestamp: NaiveDateTime.t}
+  @spec decode(binary, Pummpcomm.PumpModel.pump_options()) :: %{
+          alarm_type: alarm_type,
+          timestamp: NaiveDateTime.t()
+        }
   def decode(body, pump_options)
+
   def decode(<<alarm_type::8, _::16, timestamp::binary-size(5)>>, _) do
     %{
       timestamp: DateDecoder.decode_history_timestamp(timestamp),
