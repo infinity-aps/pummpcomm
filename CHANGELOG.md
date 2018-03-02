@@ -1,3 +1,10 @@
+## 2.5.0
+
+## Enhancements
+* Autoselect chip driver
+* Add command/response to read pump's standard basal schedule
+* Add rolling history data and full command/response set to PumpFake
+
 ## v2.4.0
 
 ### Enhancements
