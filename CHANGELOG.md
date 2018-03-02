@@ -1,6 +1,13 @@
+## 2.5.1
+
+### Changes
+* Bump Elixir base version to 1.6
+* `mix format` applied to most files in project
+* Fix warnings and deprecated calls
+
 ## 2.5.0
 
-## Enhancements
+### Enhancements
 * Autoselect chip driver
 * Add command/response to read pump's standard basal schedule
 * Add rolling history data and full command/response set to PumpFake
