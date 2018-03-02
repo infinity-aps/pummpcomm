@@ -153,7 +153,7 @@ defmodule Pummpcomm.History do
   end
 
   defp event_type(module) do
-    case module |> apply(:__info__, [:exports]) |> Keyword.get_values(:event_type)
+    case module |> apply(:__info__, [:functions]) |> Keyword.get_values(:event_type)
          |> Enum.member?(0) do
       true -> apply(module, :event_type, [])
       false -> module |> Module.split() |> List.last() |> Macro.underscore() |> String.to_atom()
